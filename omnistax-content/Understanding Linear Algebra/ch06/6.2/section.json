@@ -380,13 +380,12 @@
     "after": "introduction"
    },
    "cite": "sim-line-and-complement",
-   "prompt": "<ol type=\"a\"><li>Sketch the vector $\\kvecv=\\left[\\begin{array}{r}-1 \\\\ 2 \\end{array}\\right]$ on Figure 6.2.1 and one vector that is orthogonal to it.</li><li>If a vector $\\kvecx$ is orthogonal to $\\kvecv$, what do we know about the dot product $\\kvecv\\cdot\\kvecx$?</li><li>If we write $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$, use the dot product to write an equation for the vectors orthogonal to $\\kvecv$ in terms of $x$ and $y$.</li><li>Use this equation to sketch the set of all vectors orthogonal to $\\kvecv$ in Figure 6.2.1.</li><li><a href=\"/understanding-linear-algebra/ch03/3.5/\">Section 3.5</a> introduced the column space $\\kCol(\\kA)$ and null space $\\kNul(\\kA)$ of a matrix $\\kA$. If $\\kA$ is a matrix, what is the meaning of the null space $\\kNul(\\kA)$?</li><li>What is the meaning of the column space $\\kCol(\\kA)$?</li></ol>",
+   "prompt": "<ol type=\"a\"><li>Sketch the vector $\\kvecv=\\left[\\begin{array}{r}-1 \\\\ 2 \\end{array}\\right]$ on <a href=\"#6.2-sim-line-and-complement\">Figure 6.2.1</a><sup class=\"fn\" data-note=\"fn-a1-figure-6-2-1\"></sup> and one vector that is orthogonal to it.</li><li>If a vector $\\kvecx$ is orthogonal to $\\kvecv$, what do we know about the dot product $\\kvecv\\cdot\\kvecx$?</li><li>If we write $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$, use the dot product to write an equation for the vectors orthogonal to $\\kvecv$ in terms of $x$ and $y$.</li><li>Use this equation to sketch the set of all vectors orthogonal to $\\kvecv$ in <a href=\"#6.2-sim-line-and-complement\">Figure 6.2.1</a>.</li><li><a href=\"/understanding-linear-algebra/ch03/3.5/\">Section 3.5</a> introduced the column space $\\kCol(\\kA)$ and null space $\\kNul(\\kA)$ of a matrix $\\kA$. If $\\kA$ is a matrix, what is the meaning of the null space $\\kNul(\\kA)$?</li><li>What is the meaning of the column space $\\kCol(\\kA)$?</li></ol>",
    "answer": {
     "type": "open",
     "generated_by": "source",
     "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>The vector $\\kvecw=\\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right]$ is an example of a vector orthogonal to $\\kvecv$.</li><li>The dot product must be zero.</li><li>$\\kvecv\\cdot\\kvecx = -x+2y = 0$.</li><li>This is the line $y=\\frac12 x$.</li><li>It is the set of vectors $\\kvecx$ for which $\\kA\\kvecx = \\kveczero$.</li><li>It is the set of vector $\\kvecb$ for which the equation $\\kA\\kvecx=\\kvecb$ is consistent.</li></ol>"
-   },
-   "changes": "The blank grid of Figure 6.2.1 is left out; the upper panel of Figure 6.2.2 draws the vector v = [−1, 2] and the line of vectors orthogonal to it."
+   }
   },
   {
    "id": "a2",
@@ -858,6 +857,11 @@
    "id": "e6-aat",
    "kind": "correction",
    "html": "The book’s answer says No for $\\kA\\kAT$, but its solution shows $(\\kA\\kAT)^T = (\\kAT)^T\\kAT = \\kA\\kAT$, so $\\kA\\kAT$ is always symmetric: the answer is Yes."
+  },
+  {
+   "id": "fn-a1-figure-6-2-1",
+   "kind": "correction",
+   "html": "Figure 6.2.1 is the book’s empty grid for the reader’s own sketches and is not reproduced here; both citations open Figure 6.2.2, whose flat panel draws the vector $\\kvecv = [-1, 2]$ and the line of vectors orthogonal to it."
   }
  ],
  "derivations": [

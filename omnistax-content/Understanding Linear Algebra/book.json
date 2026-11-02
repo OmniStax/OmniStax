@@ -4824,12 +4824,14 @@
       "forms": [
         {
           "id": "eq-dot-product-of-vectors",
-          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[ \\begin{array}{c} v_1 \\\\ v_2 \\\\ \\vdots \\\\ v_m \\end{array} \\right] \\cdot \\left[ \\begin{array}{c} w_1 \\\\ w_2 \\\\ \\vdots \\\\ w_m \\end{array} \\right] = v_1w_1 + v_2w_2 + \\ldots + v_mw_m"
+          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[ \\begin{array}{c} v_1 \\\\ v_2 \\\\ \\vdots \\\\ v_m \\end{array} \\right] \\cdot \\left[ \\begin{array}{c} w_1 \\\\ w_2 \\\\ \\vdots \\\\ w_m \\end{array} \\right] = v_1w_1 + v_2w_2 + \\ldots + v_mw_m",
+          "anchor": "6.1-dot-product-general"
         },
         {
           "id": "eq-dot-product-two-dimensional",
           "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[\\begin{array}{r}v_1 \\\\ v_2 \\end{array}\\right]\\cdot\\left[\\begin{array}{r}w_1 \\\\ w_2 \\end{array}\\right] = v_1w_1 + v_2w_2",
-          "condition": "two-dimensional vectors"
+          "condition": "two-dimensional vectors",
+          "anchor": "6.1-two-dimensional"
         }
       ]
     },
@@ -4842,15 +4844,18 @@
       "forms": [
         {
           "id": "eq-dot-product-distributive",
-          "latex": "(c_1{\\mathbf v}_1+c_2{\\mathbf v}_2)\\cdot{\\mathbf w} = c_1{\\mathbf v}_1\\cdot{\\mathbf w} + c_2{\\mathbf v}_2\\cdot{\\mathbf w}"
+          "latex": "(c_1{\\mathbf v}_1+c_2{\\mathbf v}_2)\\cdot{\\mathbf w} = c_1{\\mathbf v}_1\\cdot{\\mathbf w} + c_2{\\mathbf v}_2\\cdot{\\mathbf w}",
+          "anchor": "6.1-assemblage-dot-properties"
         },
         {
           "id": "eq-dot-product-commutative",
-          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = {\\mathbf w}\\cdot{\\mathbf v}"
+          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = {\\mathbf w}\\cdot{\\mathbf v}",
+          "anchor": "6.1-assemblage-dot-properties"
         },
         {
           "id": "eq-dot-product-scalar-multiple",
-          "latex": "(s{\\mathbf v})\\cdot{\\mathbf w} = s({\\mathbf v}\\cdot{\\mathbf w})"
+          "latex": "(s{\\mathbf v})\\cdot{\\mathbf w} = s({\\mathbf v}\\cdot{\\mathbf w})",
+          "anchor": "6.1-assemblage-dot-properties"
         }
       ]
     },
@@ -4866,12 +4871,14 @@
       "forms": [
         {
           "id": "eq-length-squared-as-dot-product",
-          "latex": "{\\mathbf v}\\cdot{\\mathbf v} = \\left|{\\mathbf v}\\right|^2"
+          "latex": "{\\mathbf v}\\cdot{\\mathbf v} = \\left|{\\mathbf v}\\right|^2",
+          "anchor": "6.1-true-in-general"
         },
         {
           "id": "eq-length-by-pythagoras",
           "latex": "\\left|{\\mathbf v}\\right| = \\sqrt{3^2 + 2^2} = \\sqrt{13}",
-          "condition": "v = [3, 2], Figure 6.1.4"
+          "condition": "v = [3, 2], Figure 6.1.4",
+          "anchor": "6.1-length"
         }
       ]
     },
@@ -4885,11 +4892,13 @@
       "forms": [
         {
           "id": "eq-dot-product-cosine",
-          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta"
+          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta",
+          "anchor": "6.1-upshot"
         },
         {
           "id": "eq-law-of-cosines-for-vectors",
-          "latex": "\\left|{\\mathbf w}-{\\mathbf v}\\right|^2 = \\left|{\\mathbf v}\\right|^2 + \\left|{\\mathbf w}\\right|^2 - 2\\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta"
+          "latex": "\\left|{\\mathbf w}-{\\mathbf v}\\right|^2 = \\left|{\\mathbf v}\\right|^2 + \\left|{\\mathbf w}\\right|^2 - 2\\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta",
+          "anchor": "6.1-law-of-cosines"
         },
         {
           "id": "eq-angle-from-dot-product",
@@ -4911,7 +4920,8 @@
       "forms": [
         {
           "id": "eq-orthogonal-vectors",
-          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = 0"
+          "latex": "{\\mathbf v}\\cdot{\\mathbf w} = 0",
+          "anchor": "6.1-definition-6-1-7"
         }
       ]
     },
@@ -4953,7 +4963,8 @@
         {
           "id": "eq-centroid",
           "latex": "\\frac1n\\left({\\mathbf v}_1+{\\mathbf v}_2+\\ldots+{\\mathbf v}_n\\right)",
-          "condition": "the centroid of v₁, v₂, …, vₙ"
+          "condition": "the centroid of v₁, v₂, …, vₙ",
+          "anchor": "6.1-algorithm"
         }
       ]
     },
@@ -4970,12 +4981,14 @@
         {
           "id": "eq-k-means-first-clustering",
           "latex": "\\begin{array}{rcl} C_1 & {}={} & \\{{\\mathbf v}_1\\} \\\\ C_2 & {}={} & \\{{\\mathbf v}_2, {\\mathbf v}_3,{\\mathbf v}_4\\} \\end{array}",
-          "condition": "the initial choice c₁ = v₂, c₂ = v₃"
+          "condition": "the initial choice c₁ = v₂, c₂ = v₃",
+          "anchor": "6.1-depends-on-start"
         },
         {
           "id": "eq-k-means-second-clustering",
           "latex": "\\begin{array}{rcl} C_1 & {}={} & \\{{\\mathbf v}_1, {\\mathbf v}_2, {\\mathbf v}_3\\} \\\\ C_2 & {}={} & \\{{\\mathbf v}_4\\} \\end{array}",
-          "condition": "the initial choice c₁ = v₃, c₂ = v₄"
+          "condition": "the initial choice c₁ = v₃, c₂ = v₄",
+          "anchor": "6.1-other-start"
         }
       ]
     },
@@ -4992,7 +5005,8 @@
         {
           "id": "eq-clustering-objective-example",
           "latex": "\\frac14\\left( \\left|{\\mathbf v}_1-c_1\\right|^2 + \\left|{\\mathbf v}_2-c_1\\right|^2 + \\left|{\\mathbf v}_3-c_1\\right|^2 + \\left|{\\mathbf v}_4-c_2\\right|^2 \\right) = \\frac 53",
-          "condition": "the clustering C₁ = {v₁, v₂, v₃}, C₂ = {v₄}"
+          "condition": "the clustering C₁ = {v₁, v₂, v₃}, C₂ = {v₄}",
+          "anchor": "6.1-objective-value"
         }
       ]
     },
@@ -5029,7 +5043,8 @@
         {
           "id": "eq-orthogonal-to-a-linear-combination",
           "latex": "(c_1{\\mathbf w}_1+c_2{\\mathbf w}_2)\\cdot{\\mathbf x} = c_1{\\mathbf w}_1\\cdot{\\mathbf x} + c_2{\\mathbf w}_2\\cdot{\\mathbf x} = 0",
-          "condition": "x orthogonal to w₁ and w₂"
+          "condition": "x orthogonal to w₁ and w₂",
+          "anchor": "6.2-example-orthog-comp-gen"
         }
       ]
     },
@@ -5043,12 +5058,14 @@
         {
           "id": "eq-orthogonal-complement-of-a-line",
           "latex": "{\\mathbf v}\\cdot{\\mathbf x} = x_1-2x_2+3x_3 = 0",
-          "condition": "the line defined by v = [1, −2, 3], Example 6.2.4"
+          "condition": "the line defined by v = [1, −2, 3], Example 6.2.4",
+          "anchor": "6.2-example-orthog-comp-line"
         },
         {
           "id": "eq-orthogonal-complement-of-a-line-parametric",
           "latex": "{\\mathbf x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right] = x_2\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r}-3 \\\\ 0 \\\\ 1 \\end{array}\\right]",
-          "condition": "Example 6.2.4"
+          "condition": "Example 6.2.4",
+          "anchor": "6.2-example-orthog-comp-line"
         }
       ]
     },
@@ -5067,7 +5084,8 @@
         {
           "id": "eq-transpose-example",
           "latex": "A=\\begin{bmatrix} 4 & -3 & 0 & 5 \\\\ -1 & 2 & 1 & 3 \\end{bmatrix}, \\qquad A^T=\\begin{bmatrix} 4 & -1 \\\\ -3 & 2 \\\\ 0 & 1 \\\\ 5 & 3 \\end{bmatrix}",
-          "condition": "Example 6.2.7"
+          "condition": "Example 6.2.7",
+          "anchor": "6.2-example-6-2-7"
         }
       ]
     },
@@ -5081,7 +5099,8 @@
         {
           "id": "eq-transpose-times-a-vector",
           "latex": "A^T{\\mathbf x} = \\begin{bmatrix} {\\mathbf v}_1\\cdot{\\mathbf x} \\\\ {\\mathbf v}_2\\cdot{\\mathbf x} \\\\ \\vdots \\\\ {\\mathbf v}_n\\cdot{\\mathbf x} \\end{bmatrix}",
-          "condition": "A the matrix whose columns are v₁, v₂, …, vₙ"
+          "condition": "A the matrix whose columns are v₁, v₂, …, vₙ",
+          "anchor": "6.2-prop-transpose-multiplication"
         },
         {
           "id": "eq-dot-product-as-a-transpose-product",
@@ -5099,12 +5118,14 @@
       "forms": [
         {
           "id": "eq-col-perp-is-nul-transpose",
-          "latex": "\\text{Col}(A)^\\perp = \\text{Nul}(A^T)"
+          "latex": "\\text{Col}(A)^\\perp = \\text{Nul}(A^T)",
+          "anchor": "6.2-prop-col-orthog"
         },
         {
           "id": "eq-orthogonal-complement-system",
           "latex": "A^T{\\mathbf x} = \\left[\\begin{array}{r}{\\mathbf w}_1\\cdot{\\mathbf x} \\\\ {\\mathbf w}_2\\cdot{\\mathbf x} \\end{array}\\right] = \\left[\\begin{array}{r}0 \\\\ 0 \\end{array}\\right]",
-          "condition": "x in W⊥, A = [w₁ w₂], Example 6.2.9"
+          "condition": "x in W⊥, A = [w₁ w₂], Example 6.2.9",
+          "anchor": "6.2-example-6-2-9"
         }
       ]
     },
@@ -5118,7 +5139,8 @@
         {
           "id": "eq-transpose-of-a-product",
           "latex": "(AB)^T = B^TA^T",
-          "condition": "AB defined"
+          "condition": "AB defined",
+          "anchor": "6.2-assemblage-prop-transpose"
         }
       ]
     },
@@ -5132,7 +5154,8 @@
         {
           "id": "eq-determinant-of-the-transpose",
           "latex": "\\det(C) = \\det(C^T)",
-          "condition": "C a square matrix"
+          "condition": "C a square matrix",
+          "anchor": "6.2-assemblage-prop-transpose"
         }
       ]
     },
@@ -5146,20 +5169,24 @@
         {
           "id": "eq-transpose-of-a-sum",
           "latex": "(A+B)^T = A^T+B^T",
-          "condition": "A + B defined"
+          "condition": "A + B defined",
+          "anchor": "6.2-assemblage-prop-transpose"
         },
         {
           "id": "eq-transpose-of-a-scalar-multiple",
-          "latex": "(sA)^T = sA^T"
+          "latex": "(sA)^T = sA^T",
+          "anchor": "6.2-assemblage-prop-transpose"
         },
         {
           "id": "eq-transpose-of-a-transpose",
-          "latex": "(A^T)^T = A"
+          "latex": "(A^T)^T = A",
+          "anchor": "6.2-assemblage-prop-transpose"
         },
         {
           "id": "eq-inverse-of-a-transpose",
           "latex": "(C^T)^{-1} = (C^{-1})^T",
-          "condition": "C invertible"
+          "condition": "C invertible",
+          "anchor": "6.2-assemblage-prop-transpose"
         }
       ]
     },
@@ -5172,7 +5199,8 @@
       "forms": [
         {
           "id": "eq-rank-of-the-transpose",
-          "latex": "\\operatorname{rank}(A) = \\operatorname{rank}(A^T)"
+          "latex": "\\operatorname{rank}(A) = \\operatorname{rank}(A^T)",
+          "anchor": "6.2-prop-col-row-rank"
         }
       ]
     },
@@ -5186,16 +5214,19 @@
         {
           "id": "eq-dimension-of-the-orthogonal-complement",
           "latex": "\\dim W + \\dim W^\\perp = m",
-          "condition": "W a subspace of ℝᵐ"
+          "condition": "W a subspace of ℝᵐ",
+          "anchor": "6.2-prop-orthog-dim"
         },
         {
           "id": "eq-rank-of-a-basis-matrix",
           "latex": "\\operatorname{rank}(A) = \\dim\\text{Col}(A) = \\dim W = n",
-          "condition": "A = [w₁ w₂ … wₙ], a basis of W"
+          "condition": "A = [w₁ w₂ … wₙ], a basis of W",
+          "anchor": "6.2-dimension-argument"
         },
         {
           "id": "eq-dimension-of-w-perp",
-          "latex": "\\dim W^\\perp = \\dim\\text{Nul}(A^T) = m - \\operatorname{rank}(A^T) = m-n = m-\\dim W"
+          "latex": "\\dim W^\\perp = \\dim\\text{Nul}(A^T) = m - \\operatorname{rank}(A^T) = m-n = m-\\dim W",
+          "anchor": "6.2-dimension-argument"
         }
       ]
     },
@@ -5212,7 +5243,8 @@
         {
           "id": "eq-orthogonal-set-dot-products",
           "latex": "\\begin{array}{rcl} {\\mathbf w}_1\\cdot{\\mathbf w}_2 & {}={} & 0 \\\\ {\\mathbf w}_1\\cdot{\\mathbf w}_3 & {}={} & 0 \\\\ {\\mathbf w}_2\\cdot{\\mathbf w}_3 & {}={} & 0 \\end{array}",
-          "condition": "the orthogonal set of Example 6.3.2"
+          "condition": "the orthogonal set of Example 6.3.2",
+          "anchor": "6.3-example-orthogonal-basis"
         }
       ]
     },
@@ -5226,11 +5258,13 @@
         {
           "id": "eq-expansion-in-an-orthogonal-set",
           "latex": "{\\mathbf b} = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 + \\cdots + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_n}{{\\mathbf w}_n\\cdot{\\mathbf w}_n}{\\mathbf w}_n",
-          "condition": "b a linear combination of the orthogonal set w₁, w₂, …, wₙ"
+          "condition": "b a linear combination of the orthogonal set w₁, w₂, …, wₙ",
+          "anchor": "6.3-terms-vanish"
         },
         {
           "id": "eq-weight-in-an-orthogonal-set",
-          "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}"
+          "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}",
+          "anchor": "6.3-terms-vanish"
         }
       ]
     },
@@ -5244,7 +5278,8 @@
         {
           "id": "eq-orthogonal-dependence-impossible",
           "latex": "{\\mathbf w}_3 = \\frac{{\\mathbf w}_3\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 + \\frac{{\\mathbf w}_3\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 = {\\mathbf 0}",
-          "condition": "if w₃ were a linear combination of w₁ and w₂"
+          "condition": "if w₃ were a linear combination of w₁ and w₂",
+          "anchor": "6.3-orthogonal-independent"
         }
       ]
     },
@@ -5272,7 +5307,8 @@
         {
           "id": "eq-length-of-a-scalar-multiple",
           "latex": "\\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right|",
-          "condition": "s a positive scalar"
+          "condition": "s a positive scalar",
+          "anchor": "6.3-unit-length"
         }
       ]
     },
@@ -5285,11 +5321,13 @@
       "forms": [
         {
           "id": "eq-unit-vector-parallel",
-          "latex": "{\\mathbf u} = \\frac{1}{\\left|{\\mathbf w}\\right|}{\\mathbf w}"
+          "latex": "{\\mathbf u} = \\frac{1}{\\left|{\\mathbf w}\\right|}{\\mathbf w}",
+          "anchor": "6.3-unit-length"
         },
         {
           "id": "eq-unit-length-condition",
-          "latex": "\\left|{\\mathbf u}\\right| = \\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right| = 1"
+          "latex": "\\left|{\\mathbf u}\\right| = \\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right| = 1",
+          "anchor": "6.3-unit-length"
         }
       ]
     },
@@ -5323,12 +5361,14 @@
         {
           "id": "eq-qtq-identity",
           "latex": "Q^TQ = I_n",
-          "condition": "the columns of the m × n matrix Q an orthonormal set"
+          "condition": "the columns of the m × n matrix Q an orthonormal set",
+          "anchor": "6.3-prop-orthonormal-QTQ"
         },
         {
           "id": "eq-qtq-dot-products",
           "latex": "Q^TQ = \\begin{bmatrix} {\\mathbf u}_1\\cdot{\\mathbf u}_1 & {\\mathbf u}_1\\cdot{\\mathbf u}_2 \\\\ {\\mathbf u}_2\\cdot{\\mathbf u}_1 & {\\mathbf u}_2\\cdot{\\mathbf u}_2 \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix}",
-          "condition": "Q = [u₁ u₂], Example 6.3.7"
+          "condition": "Q = [u₁ u₂], Example 6.3.7",
+          "anchor": "6.3-example-6-3-7"
         }
       ]
     },
@@ -5342,7 +5382,8 @@
         {
           "id": "eq-pythagorean-closest-vector",
           "latex": "\\left|{\\mathbf b}-{\\mathbf y}\\right|^2 = |{\\mathbf b}-\\widehat{{\\mathbf b}}|^2 + |\\widehat{{\\mathbf b}}-{\\mathbf y}|^2",
-          "condition": "y another vector on the line L, b − b̂ orthogonal to L"
+          "condition": "y another vector on the line L, b − b̂ orthogonal to L",
+          "anchor": "6.3-orthogonal-closest"
         }
       ]
     },
@@ -5361,7 +5402,8 @@
         {
           "id": "eq-orthogonal-projection-condition",
           "latex": "({\\mathbf b}-\\widehat{{\\mathbf b}})\\cdot{\\mathbf w} = 0",
-          "condition": "for any vector w in W"
+          "condition": "for any vector w in W",
+          "anchor": "6.3-looking-for-bhat"
         }
       ]
     },
@@ -5375,12 +5417,14 @@
         {
           "id": "eq-projection-onto-a-line",
           "latex": "\\widehat{{\\mathbf b}}= \\frac{{\\mathbf b}\\cdot{\\mathbf w}}{{\\mathbf w}\\cdot{\\mathbf w}}~{\\mathbf w}",
-          "condition": "the line defined by w"
+          "condition": "the line defined by w",
+          "anchor": "6.3-sim-projection-onto-line"
         },
         {
           "id": "eq-projection-onto-a-line-condition",
           "latex": "({\\mathbf b}-s{\\mathbf w})\\cdot{\\mathbf w} = 0",
-          "condition": "b̂ = sw"
+          "condition": "b̂ = sw",
+          "anchor": "6.3-sim-projection-onto-line"
         }
       ]
     },
@@ -5397,17 +5441,20 @@
         {
           "id": "eq-projection-formula",
           "latex": "\\widehat{{\\mathbf b}}= \\frac{{\\mathbf b}\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}~{\\mathbf w}_1 + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}~{\\mathbf w}_2 + \\cdots + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_n}{{\\mathbf w}_n\\cdot{\\mathbf w}_n}~{\\mathbf w}_n",
-          "condition": "w₁, w₂, …, wₙ an orthogonal basis of W"
+          "condition": "w₁, w₂, …, wₙ an orthogonal basis of W",
+          "anchor": "6.3-prop-proj-formula"
         },
         {
           "id": "eq-projection-formula-orthonormal",
           "latex": "\\widehat{{\\mathbf b}}= ({\\mathbf b}\\cdot{\\mathbf u}_1)~{\\mathbf u}_1 + ({\\mathbf b}\\cdot{\\mathbf u}_2)~{\\mathbf u}_2 + \\cdots + ({\\mathbf b}\\cdot{\\mathbf u}_n)~{\\mathbf u}_n",
-          "condition": "u₁, u₂, …, uₙ an orthonormal basis of W"
+          "condition": "u₁, u₂, …, uₙ an orthonormal basis of W",
+          "anchor": "6.3-orthonormal-simplifies"
         },
         {
           "id": "eq-projection-formula-weight",
           "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}",
-          "condition": "b̂ = c₁w₁ + c₂w₂ + ⋯ + cₙwₙ"
+          "condition": "b̂ = c₁w₁ + c₂w₂ + ⋯ + cₙwₙ",
+          "anchor": "6.3-drv-projection-formula"
         }
       ]
     },
@@ -5423,11 +5470,13 @@
         {
           "id": "eq-projection-matrix",
           "latex": "P = QQ^T",
-          "condition": "Q = [u₁ u₂ … uₙ], an orthonormal basis of W"
+          "condition": "Q = [u₁ u₂ … uₙ], an orthonormal basis of W",
+          "anchor": "6.3-prop-proj-orthonormal"
         },
         {
           "id": "eq-projection-by-qqt",
-          "latex": "\\widehat{{\\mathbf b}} = QQ^T{\\mathbf b}"
+          "latex": "\\widehat{{\\mathbf b}} = QQ^T{\\mathbf b}",
+          "anchor": "6.3-drv-projection-matrix"
         }
       ]
     },
@@ -5441,7 +5490,8 @@
         {
           "id": "eq-orthogonal-decomposition",
           "latex": "{\\mathbf b} = \\widehat{{\\mathbf b}} + {\\mathbf b}^\\perp",
-          "condition": "b̂ in W, b⊥ in W⊥"
+          "condition": "b̂ in W, b⊥ in W⊥",
+          "anchor": "6.3-prop-orthog-decomp"
         }
       ]
     },
@@ -5455,7 +5505,8 @@
         {
           "id": "eq-qqt-identity-when-square",
           "latex": "QQ^T{\\mathbf b} = {\\mathbf b}",
-          "condition": "n = m, so that W = ℝᵐ"
+          "condition": "n = m, so that W = ℝᵐ",
+          "anchor": "6.3-invertibility-temptation"
         }
       ]
     },
@@ -5480,12 +5531,14 @@
         {
           "id": "eq-orthogonal-matrix-inverse",
           "latex": "Q^{-1} = Q^T",
-          "condition": "Q an orthogonal matrix"
+          "condition": "Q an orthogonal matrix",
+          "anchor": "6.3-prop-orthog-matrix"
         },
         {
           "id": "eq-orthogonal-matrix-products",
           "latex": "QQ^T=Q^TQ = I",
-          "condition": "Q an orthogonal matrix"
+          "condition": "Q an orthogonal matrix",
+          "anchor": "6.3-example-6-3-21"
         }
       ]
     },
@@ -5503,15 +5556,18 @@
         {
           "id": "eq-gram-schmidt",
           "latex": "\\begin{aligned} {\\mathbf w}_1 & = {\\mathbf v}_1 \\\\ {\\mathbf w}_2 & = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 \\\\ {\\mathbf w}_3 & = {\\mathbf v}_3 - \\frac{{\\mathbf v}_3\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 - \\frac{{\\mathbf v}_3\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 \\\\ & \\vdots \\\\ {\\mathbf w}_n & = {\\mathbf v}_n - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 - \\ldots - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_{n-1}} {{\\mathbf w}_{n-1}\\cdot{\\mathbf w}_{n-1}}{\\mathbf w}_{n-1} \\end{aligned}",
-          "condition": "v₁, v₂, …, vₙ a basis for a subspace W of ℝᵐ"
+          "condition": "v₁, v₂, …, vₙ a basis for a subspace W of ℝᵐ",
+          "anchor": "6.4-gram-schmidt-general"
         },
         {
           "id": "eq-gram-schmidt-second-vector",
-          "latex": "{\\mathbf w}_2 = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1"
+          "latex": "{\\mathbf w}_2 = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1",
+          "anchor": "6.4-example-gram-schmidt"
         },
         {
           "id": "eq-gram-schmidt-normalization",
-          "latex": "{\\mathbf u}_j = \\frac{1}{\\left|{\\mathbf w}_j\\right|}~{\\mathbf w}_j"
+          "latex": "{\\mathbf u}_j = \\frac{1}{\\left|{\\mathbf w}_j\\right|}~{\\mathbf w}_j",
+          "anchor": "6.4-orthonormal-from-orthogonal"
         }
       ]
     },
@@ -5524,12 +5580,14 @@
       "forms": [
         {
           "id": "eq-gram-schmidt-span",
-          "latex": "W_2 = \\text{Span}\\left\\{{\\mathbf w}_1,{\\mathbf w}_2\\right\\} = \\text{Span}\\left\\{{\\mathbf v}_1,{\\mathbf v}_2\\right\\}"
+          "latex": "W_2 = \\text{Span}\\left\\{{\\mathbf w}_1,{\\mathbf w}_2\\right\\} = \\text{Span}\\left\\{{\\mathbf v}_1,{\\mathbf v}_2\\right\\}",
+          "anchor": "6.4-example-gram-schmidt"
         },
         {
           "id": "eq-gram-schmidt-combination-rewritten",
           "latex": "c_1{\\mathbf v}_1 + c_2{\\mathbf v}_2 = c_1{\\mathbf w}_1 + c_2(-{\\mathbf w}_1+{\\mathbf w}_2) = (c_1-c_2){\\mathbf w}_1 + c_2{\\mathbf w}_2",
-          "condition": "v₂ = −w₁ + w₂, Example 6.4.4"
+          "condition": "v₂ = −w₁ + w₂, Example 6.4.4",
+          "anchor": "6.4-example-gram-schmidt"
         }
       ]
     },
@@ -5546,7 +5604,8 @@
         {
           "id": "eq-qr-factorization",
           "latex": "A = QR",
-          "condition": "the columns of A linearly independent; Q m × n with orthonormal columns, R n × n upper triangular"
+          "condition": "the columns of A linearly independent; Q m × n with orthonormal columns, R n × n upper triangular",
+          "anchor": "6.4-prop-qr"
         }
       ]
     },
@@ -5560,12 +5619,14 @@
         {
           "id": "eq-qr-example",
           "latex": "A = Q\\begin{bmatrix} 3 & -3 & -3 \\\\ 0 & 3 & 6 \\\\ 0 & 0 & 3 \\end{bmatrix} =QR",
-          "condition": "A = [2 −3 −2; −1 3 7; 2 0 1], Example 6.4.6"
+          "condition": "A = [2 −3 −2; −1 3 7; 2 0 1], Example 6.4.6",
+          "anchor": "6.4-example-6-4-6"
         },
         {
           "id": "eq-qr-column-relations",
           "latex": "\\begin{aligned} {\\mathbf v}_1 & {}={} 3{\\mathbf u}_1 \\\\ {\\mathbf v}_2 & {}={} -3{\\mathbf u}_1 + 3{\\mathbf u}_2 \\\\ {\\mathbf v}_3 & {}={} -3{\\mathbf u}_1 + 6{\\mathbf u}_2 + 3{\\mathbf u}_3 \\end{aligned}",
-          "condition": "Example 6.4.6"
+          "condition": "Example 6.4.6",
+          "anchor": "6.4-example-6-4-6"
         }
       ]
     },
@@ -5583,11 +5644,13 @@
         {
           "id": "eq-least-squares-system",
           "latex": "A = \\begin{bmatrix} 1 & x_1 \\\\ 1 & x_2 \\\\ 1 & x_3 \\end{bmatrix},\\hspace{24pt} {\\mathbf b} = \\left[\\begin{array}{r}y_1 \\\\ y_2 \\\\ y_3 \\end{array}\\right]",
-          "condition": "the line b + mx = y through the data points (xᵢ, yᵢ), x = [b; m]"
+          "condition": "the line b + mx = y through the data points (xᵢ, yᵢ), x = [b; m]",
+          "anchor": "6.5-orthogonal-least-squares"
         },
         {
           "id": "eq-sum-of-squares",
-          "latex": "\\left|{\\mathbf b} - A{\\mathbf x}\\right|^2 = \\left(y_1-(b+mx_1)\\right)^2 + \\left(y_2-(b+mx_2)\\right)^2 + \\left(y_3-(b+mx_3)\\right)^2"
+          "latex": "\\left|{\\mathbf b} - A{\\mathbf x}\\right|^2 = \\left(y_1-(b+mx_1)\\right)^2 + \\left(y_2-(b+mx_2)\\right)^2 + \\left(y_3-(b+mx_3)\\right)^2",
+          "anchor": "6.5-distance-squared"
         }
       ]
     },
@@ -5605,7 +5668,8 @@
         {
           "id": "eq-line-of-best-fit-example",
           "latex": "{\\mathbf x}=\\left[\\begin{array}{r}-1/3 \\\\ 1 \\end{array}\\right]",
-          "condition": "the data points (1, 1), (2, 1), (3, 3), Activity 6.5.2"
+          "condition": "the data points (1, 1), (2, 1), (3, 3), Activity 6.5.2",
+          "anchor": "6.5-sim-three-point-fit"
         }
       ]
     },
@@ -5624,7 +5688,8 @@
         {
           "id": "eq-least-squares-solution",
           "latex": "A\\widehat{{\\mathbf x}} = \\widehat{{\\mathbf b}}",
-          "condition": "b̂ the orthogonal projection of b onto Col(A)"
+          "condition": "b̂ the orthogonal projection of b onto Col(A)",
+          "anchor": "6.5-least-squares-solution"
         }
       ]
     },
@@ -5642,17 +5707,20 @@
         {
           "id": "eq-normal-equation",
           "latex": "A^TA\\widehat{{\\mathbf x}} = A^T{\\mathbf b}",
-          "condition": "the columns of A linearly independent"
+          "condition": "the columns of A linearly independent",
+          "anchor": "6.5-normal-equation"
         },
         {
           "id": "eq-normal-equation-origin",
           "latex": "A^T(\\widehat{\\mathbf b}-{\\mathbf b}) = {\\mathbf 0}",
-          "condition": "b̂ − b in Col(A)⊥ = Nul(Aᵀ)"
+          "condition": "b̂ − b in Col(A)⊥ = Nul(Aᵀ)",
+          "anchor": "6.5-alternative-method"
         },
         {
           "id": "eq-normal-equation-example",
           "latex": "A^TA\\widehat{{\\mathbf x}} = \\begin{bmatrix} 9 & -1 \\\\ -1 & 10 \\end{bmatrix} \\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}23 \\\\ 37 \\end{array}\\right] = A^T{\\mathbf b}",
-          "condition": "Example 6.5.5"
+          "condition": "Example 6.5.5",
+          "anchor": "6.5-example-6-5-5"
         }
       ]
     },
@@ -5669,12 +5737,14 @@
         {
           "id": "eq-linear-regression-model",
           "latex": "\\beta_0 + \\beta_1 C = T",
-          "condition": "the chirp rate C and the temperature T, Activity 6.5.3"
+          "condition": "the chirp rate C and the temperature T, Activity 6.5.3",
+          "anchor": "6.5-linear-regression"
         },
         {
           "id": "eq-cricket-solution",
           "latex": "\\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right] = \\left[\\begin{array}{r}22.8 \\\\ 3.4 \\end{array}\\right]",
-          "condition": "Activity 6.5.3"
+          "condition": "Activity 6.5.3",
+          "anchor": "6.5-linear-regression"
         }
       ]
     },
@@ -5706,11 +5776,13 @@
         {
           "id": "eq-coefficient-of-determination",
           "latex": "R^2 = 1 - \\frac{|{\\mathbf b} - A\\widehat{{\\mathbf x}}|^2} {|\\widetilde{{\\mathbf b}}|^2}",
-          "condition": "b̃ the vector obtained by demeaning b"
+          "condition": "b̃ the vector obtained by demeaning b",
+          "anchor": "6.5-definition-6-5-7"
         },
         {
           "id": "eq-r-squared-bounds",
-          "latex": "0\\leq R^2 \\leq 1"
+          "latex": "0\\leq R^2 \\leq 1",
+          "anchor": "6.5-r-squared-bounds"
         }
       ]
     },
@@ -5724,15 +5796,18 @@
         {
           "id": "eq-least-squares-by-qr",
           "latex": "\\widehat{{\\mathbf x}} = R^{-1}Q^T{\\mathbf b}",
-          "condition": "A = QR, the columns of A linearly independent"
+          "condition": "A = QR, the columns of A linearly independent",
+          "anchor": "6.5-proposition-6-5-8"
         },
         {
           "id": "eq-least-squares-r-equation",
-          "latex": "R\\widehat{{\\mathbf x}} = Q^T{\\mathbf b}"
+          "latex": "R\\widehat{{\\mathbf x}} = Q^T{\\mathbf b}",
+          "anchor": "6.5-qr-method"
         },
         {
           "id": "eq-least-squares-qr-equation",
-          "latex": "QR\\widehat{{\\mathbf x}} = QQ^T{\\mathbf b}"
+          "latex": "QR\\widehat{{\\mathbf x}} = QQ^T{\\mathbf b}",
+          "anchor": "6.5-qr-method"
         }
       ]
     },
@@ -5748,12 +5823,14 @@
       "forms": [
         {
           "id": "eq-quadratic-model",
-          "latex": "\\beta_0 + \\beta_1 x + \\beta_2 x^2 = y"
+          "latex": "\\beta_0 + \\beta_1 x + \\beta_2 x^2 = y",
+          "anchor": "6.5-polynomial-models"
         },
         {
           "id": "eq-quadratic-fit-example",
           "latex": "\\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}7/4 \\\\ -1/4 \\\\ 1/4 \\end{array}\\right]",
-          "condition": "the points (0, 2), (1, 1), (2, 3), (3, 3), Activity 6.5.5"
+          "condition": "the points (0, 2), (1, 1), (2, 3), (3, 3), Activity 6.5.5",
+          "anchor": "6.5-polynomial-models"
         }
       ]
     },
@@ -5771,7 +5848,8 @@
         {
           "id": "eq-vandermonde-matrix",
           "latex": "A = \\begin{bmatrix} 1 & x_1 & x_1^2 & \\ldots & x_1^k \\\\ 1 & x_2 & x_2^2 & \\ldots & x_2^k \\\\ \\vdots & \\vdots & \\vdots & \\ddots & \\vdots \\\\ 1 & x_m & x_m^2 & \\ldots & x_m^k \\end{bmatrix}",
-          "condition": "a degree k polynomial fit to the data points (xᵢ, yᵢ)"
+          "condition": "a degree k polynomial fit to the data points (xᵢ, yᵢ)",
+          "anchor": "6.5-special-form"
         }
       ]
     },

@@ -71,8 +71,8 @@
    "terms": ["dot product"],
    "statement": "For two m-dimensional vectors v and w, the dot product v·w is the scalar v₁w₁ + v₂w₂ + … + v_mw_m. The two vectors are combined in such a way as to create a number, and this number conveys useful geometric information: it helps us measure the length of vectors and the angle formed by a pair of vectors. For instance, [2, −3]·[4, 1] = 2·4 + (−3)·1 = 5, and the dot product of the four-dimensional vectors [2, 0, −3, 1] and [−1, 3, 1, 2] is 2(−1) + 0(3) + (−3)(1) + 1(2) = −3.",
    "forms": [
-    {"id": "eq-dot-product-of-vectors", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[ \\begin{array}{c} v_1 \\\\ v_2 \\\\ \\vdots \\\\ v_m \\end{array} \\right] \\cdot \\left[ \\begin{array}{c} w_1 \\\\ w_2 \\\\ \\vdots \\\\ w_m \\end{array} \\right] = v_1w_1 + v_2w_2 + \\ldots + v_mw_m"},
-    {"id": "eq-dot-product-two-dimensional", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[\\begin{array}{r}v_1 \\\\ v_2 \\end{array}\\right]\\cdot\\left[\\begin{array}{r}w_1 \\\\ w_2 \\end{array}\\right] = v_1w_1 + v_2w_2", "condition": "two-dimensional vectors"}
+    {"id": "eq-dot-product-of-vectors", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[ \\begin{array}{c} v_1 \\\\ v_2 \\\\ \\vdots \\\\ v_m \\end{array} \\right] \\cdot \\left[ \\begin{array}{c} w_1 \\\\ w_2 \\\\ \\vdots \\\\ w_m \\end{array} \\right] = v_1w_1 + v_2w_2 + \\ldots + v_mw_m", "anchor": "6.1-dot-product-general"},
+    {"id": "eq-dot-product-two-dimensional", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left[\\begin{array}{r}v_1 \\\\ v_2 \\end{array}\\right]\\cdot\\left[\\begin{array}{r}w_1 \\\\ w_2 \\end{array}\\right] = v_1w_1 + v_2w_2", "condition": "two-dimensional vectors", "anchor": "6.1-two-dimensional"}
    ]
   },
   {
@@ -82,9 +82,9 @@
    "name": "Properties of the dot product",
    "statement": "As with ordinary multiplication, the dot product enjoys some familiar algebraic properties, such as commutativity and distributivity. It doesn't matter in which order we compute the dot product of two vectors, v·w = w·v; if s is a scalar, (sv)·w = s(v·w); and we may distribute the dot product across linear combinations, (c₁v₁ + c₂v₂)·w = c₁v₁·w + c₂v₂·w. If v₁·w = 4 and v₂·w = −7, then (−3v₁ + 2v₂)·w = −3(4) + 2(−7) = −26.",
    "forms": [
-    {"id": "eq-dot-product-distributive", "latex": "(c_1{\\mathbf v}_1+c_2{\\mathbf v}_2)\\cdot{\\mathbf w} = c_1{\\mathbf v}_1\\cdot{\\mathbf w} + c_2{\\mathbf v}_2\\cdot{\\mathbf w}"},
-    {"id": "eq-dot-product-commutative", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = {\\mathbf w}\\cdot{\\mathbf v}"},
-    {"id": "eq-dot-product-scalar-multiple", "latex": "(s{\\mathbf v})\\cdot{\\mathbf w} = s({\\mathbf v}\\cdot{\\mathbf w})"}
+    {"id": "eq-dot-product-distributive", "latex": "(c_1{\\mathbf v}_1+c_2{\\mathbf v}_2)\\cdot{\\mathbf w} = c_1{\\mathbf v}_1\\cdot{\\mathbf w} + c_2{\\mathbf v}_2\\cdot{\\mathbf w}", "anchor": "6.1-assemblage-dot-properties"},
+    {"id": "eq-dot-product-commutative", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = {\\mathbf w}\\cdot{\\mathbf v}", "anchor": "6.1-assemblage-dot-properties"},
+    {"id": "eq-dot-product-scalar-multiple", "latex": "(s{\\mathbf v})\\cdot{\\mathbf w} = s({\\mathbf v}\\cdot{\\mathbf w})", "anchor": "6.1-assemblage-dot-properties"}
    ]
   },
   {
@@ -95,8 +95,8 @@
    "terms": ["length"],
    "statement": "The length of a vector v, which we denote as |v|, may be found using the Pythagorean theorem: the vector v = [3, 2] forms the hypotenuse of a right triangle having a horizontal leg of length 3 and a vertical leg of length 2, so |v| = √(3² + 2²) = √13. The dot product of v with itself is v·v = 3(3) + 2(2) = 13 = |v|², and this is true in general: v·v = |v|².",
    "forms": [
-    {"id": "eq-length-squared-as-dot-product", "latex": "{\\mathbf v}\\cdot{\\mathbf v} = \\left|{\\mathbf v}\\right|^2"},
-    {"id": "eq-length-by-pythagoras", "latex": "\\left|{\\mathbf v}\\right| = \\sqrt{3^2 + 2^2} = \\sqrt{13}", "condition": "v = [3, 2], Figure 6.1.4"}
+    {"id": "eq-length-squared-as-dot-product", "latex": "{\\mathbf v}\\cdot{\\mathbf v} = \\left|{\\mathbf v}\\right|^2", "anchor": "6.1-true-in-general"},
+    {"id": "eq-length-by-pythagoras", "latex": "\\left|{\\mathbf v}\\right| = \\sqrt{3^2 + 2^2} = \\sqrt{13}", "condition": "v = [3, 2], Figure 6.1.4", "anchor": "6.1-length"}
    ]
   },
   {
@@ -107,8 +107,8 @@
    "symbol": "theta",
    "statement": "The dot product of two vectors records information about the angle between them. Applying the Law of Cosines to the triangle formed by v, w and w − v, |w − v|² = |v|² + |w|² − 2|v||w| cos θ, and writing each length as a dot product, the upshot is that v·w = |v||w| cos θ, where θ is the angle between v and w. Together with v·v = |v|², this is the geometric information the dot product gives us; the angle between v and w is θ = arccos(v·w / (|v||w|)).",
    "forms": [
-    {"id": "eq-dot-product-cosine", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta"},
-    {"id": "eq-law-of-cosines-for-vectors", "latex": "\\left|{\\mathbf w}-{\\mathbf v}\\right|^2 = \\left|{\\mathbf v}\\right|^2 + \\left|{\\mathbf w}\\right|^2 - 2\\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta"},
+    {"id": "eq-dot-product-cosine", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = \\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta", "anchor": "6.1-upshot"},
+    {"id": "eq-law-of-cosines-for-vectors", "latex": "\\left|{\\mathbf w}-{\\mathbf v}\\right|^2 = \\left|{\\mathbf v}\\right|^2 + \\left|{\\mathbf w}\\right|^2 - 2\\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|\\cos\\theta", "anchor": "6.1-law-of-cosines"},
     {"id": "eq-angle-from-dot-product", "latex": "\\theta = \\arccos\\left(\\frac{{\\mathbf v}\\cdot{\\mathbf w}}{\\left|{\\mathbf v}\\right|\\left|{\\mathbf w}\\right|}\\right)", "condition": "Activity 6.1.2"}
    ]
   },
@@ -120,7 +120,7 @@
    "terms": ["orthogonal", "perpendicular"],
    "statement": "When vectors v and w are perpendicular, the angle between them is θ = 90° and v·w = |v||w| cos 90° = 0, so the dot product between perpendicular vectors must be zero. We say that vectors v and w are orthogonal if v·w = 0. In practical terms, two perpendicular vectors are orthogonal; the concept of orthogonality is somewhat more general because it allows one or both of the vectors to be the zero vector 0.",
    "forms": [
-    {"id": "eq-orthogonal-vectors", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = 0"}
+    {"id": "eq-orthogonal-vectors", "latex": "{\\mathbf v}\\cdot{\\mathbf w} = 0", "anchor": "6.1-definition-6-1-7"}
    ]
   },
   {
@@ -153,7 +153,7 @@
    "terms": ["centroid"],
    "statement": "The centroid, or the average, of a set of vectors v₁, v₂, …, vₙ is (1/n)(v₁ + v₂ + … + vₙ). The centroid lies in the center of the points defined by the vectors: the centroid of [1, 1], [4, 1] and [4, 4] is c = [3, 2].",
    "forms": [
-    {"id": "eq-centroid", "latex": "\\frac1n\\left({\\mathbf v}_1+{\\mathbf v}_2+\\ldots+{\\mathbf v}_n\\right)", "condition": "the centroid of v₁, v₂, …, vₙ"}
+    {"id": "eq-centroid", "latex": "\\frac1n\\left({\\mathbf v}_1+{\\mathbf v}_2+\\ldots+{\\mathbf v}_n\\right)", "condition": "the centroid of v₁, v₂, …, vₙ", "anchor": "6.1-algorithm"}
    ]
   },
   {
@@ -164,8 +164,8 @@
    "terms": ["k-means clustering"],
    "statement": "To break the data points into k clusters, choose k points c₁, c₂, …, c_k at random from the dataset; construct the cluster C₁ as the set of data points closest to c₁, C₂ as the set of data points closest to c₂, and so forth; then repeat until the clusters no longer change: find the centroids c₁, c₂, …, c_k of the current clusters and update the clusters C₁, C₂, …, C_k. The clusterings we find depend on the initial random choice of points: for the four points of Activity 6.1.4, the initial choice c₁ = v₂, c₂ = v₃ leads to C₁ = {v₁}, C₂ = {v₂, v₃, v₄}, while c₁ = v₃, c₂ = v₄ leads to C₁ = {v₁, v₂, v₃}, C₂ = {v₄}.",
    "forms": [
-    {"id": "eq-k-means-first-clustering", "latex": "\\begin{array}{rcl} C_1 & {}={} & \\{{\\mathbf v}_1\\} \\\\ C_2 & {}={} & \\{{\\mathbf v}_2, {\\mathbf v}_3,{\\mathbf v}_4\\} \\end{array}", "condition": "the initial choice c₁ = v₂, c₂ = v₃"},
-    {"id": "eq-k-means-second-clustering", "latex": "\\begin{array}{rcl} C_1 & {}={} & \\{{\\mathbf v}_1, {\\mathbf v}_2, {\\mathbf v}_3\\} \\\\ C_2 & {}={} & \\{{\\mathbf v}_4\\} \\end{array}", "condition": "the initial choice c₁ = v₃, c₂ = v₄"}
+    {"id": "eq-k-means-first-clustering", "latex": "\\begin{array}{rcl} C_1 & {}={} & \\{{\\mathbf v}_1\\} \\\\ C_2 & {}={} & \\{{\\mathbf v}_2, {\\mathbf v}_3,{\\mathbf v}_4\\} \\end{array}", "condition": "the initial choice c₁ = v₂, c₂ = v₃", "anchor": "6.1-depends-on-start"},
+    {"id": "eq-k-means-second-clustering", "latex": "\\begin{array}{rcl} C_1 & {}={} & \\{{\\mathbf v}_1, {\\mathbf v}_2, {\\mathbf v}_3\\} \\\\ C_2 & {}={} & \\{{\\mathbf v}_4\\} \\end{array}", "condition": "the initial choice c₁ = v₃, c₂ = v₄", "anchor": "6.1-other-start"}
    ]
   },
   {
@@ -176,7 +176,7 @@
    "terms": ["objective"],
    "statement": "To determine which of two clusterings is the better, we define a function, called the objective, which measures the average of the square of the distance from each point to the centroid of the cluster to which that point belongs. A clustering with a smaller objective will have clusters more tightly centered around their centroids, which should result in a better clustering. For the clustering C₁ = {v₁, v₂, v₃}, C₂ = {v₄} with centroids c₁ = [0, 4/3] and c₂ = v₄ = [3, 2], the objective is ¼(|v₁ − c₁|² + |v₂ − c₁|² + |v₃ − c₁|² + |v₄ − c₂|²) = 5/3, while the clustering C₁ = {v₁}, C₂ = {v₂, v₃, v₄} has the smaller objective 5/6 and is the tighter.",
    "forms": [
-    {"id": "eq-clustering-objective-example", "latex": "\\frac14\\left( \\left|{\\mathbf v}_1-c_1\\right|^2 + \\left|{\\mathbf v}_2-c_1\\right|^2 + \\left|{\\mathbf v}_3-c_1\\right|^2 + \\left|{\\mathbf v}_4-c_2\\right|^2 \\right) = \\frac 53", "condition": "the clustering C₁ = {v₁, v₂, v₃}, C₂ = {v₄}"}
+    {"id": "eq-clustering-objective-example", "latex": "\\frac14\\left( \\left|{\\mathbf v}_1-c_1\\right|^2 + \\left|{\\mathbf v}_2-c_1\\right|^2 + \\left|{\\mathbf v}_3-c_1\\right|^2 + \\left|{\\mathbf v}_4-c_2\\right|^2 \\right) = \\frac 53", "condition": "the clustering C₁ = {v₁, v₂, v₃}, C₂ = {v₄}", "anchor": "6.1-objective-value"}
    ]
   },
   {
@@ -187,7 +187,6 @@
    "terms": ["elbow plot", "elbow"],
    "statement": "For a given value of k, our strategy is to run the algorithm several times and choose the clustering with the smallest objective, since different random choices lead to different clusterings. Plotting the minimal objective against k gives an elbow plot: the objective decreases sharply when k is small and then flattens out, and the location where it transitions from being sharply decreasing to relatively flat, the elbow, is a good choice for k, since increasing k beyond it does not significantly decrease the objective. We could increase k until each data point is its own cluster, but this defeats the point of the technique, which is to group together nearby data points in the hope that they share common features. We don't claim to have found the best clustering; the true test is how it helps us understand the dataset and make predictions about new data."
   },
-
   {
    "id": "orthogonal-complement",
    "kind": "definition",
@@ -205,7 +204,7 @@
    "name": "The orthogonal complement is a subspace",
    "statement": "The orthogonal complement of a subspace W is itself a subspace of ℝᵐ. If w₁ and w₂ form a basis for W, any vector w in W can be written as a linear combination w = c₁w₁ + c₂w₂, and if x is orthogonal to both w₁ and w₂, the distributive property of dot products gives (c₁w₁ + c₂w₂)·x = c₁w₁·x + c₂w₂·x = 0, so x is orthogonal to w. Since every vector in W⊥ is orthogonal to every vector in W, the orthogonal complement of W⊥ is W.",
    "forms": [
-    {"id": "eq-orthogonal-to-a-linear-combination", "latex": "(c_1{\\mathbf w}_1+c_2{\\mathbf w}_2)\\cdot{\\mathbf x} = c_1{\\mathbf w}_1\\cdot{\\mathbf x} + c_2{\\mathbf w}_2\\cdot{\\mathbf x} = 0", "condition": "x orthogonal to w₁ and w₂"}
+    {"id": "eq-orthogonal-to-a-linear-combination", "latex": "(c_1{\\mathbf w}_1+c_2{\\mathbf w}_2)\\cdot{\\mathbf x} = c_1{\\mathbf w}_1\\cdot{\\mathbf x} + c_2{\\mathbf w}_2\\cdot{\\mathbf x} = 0", "condition": "x orthogonal to w₁ and w₂", "anchor": "6.2-example-orthog-comp-gen"}
    ]
   },
   {
@@ -215,8 +214,8 @@
    "name": "Finding an orthogonal complement",
    "statement": "To describe W⊥ when w₁, w₂, …, wₙ is a basis for W, require that x be orthogonal to each basis vector: the equations w₁·x = 0, …, wₙ·x = 0 form a linear system Bx = 0, and its solutions, described parametrically, make up W⊥. For the line L defined by v = [1, −2, 3] in ℝ³, v·x = x₁ − 2x₂ + 3x₃ = 0 gives x = x₂[2, 1, 0] + x₃[−3, 0, 1], so L⊥ is a plane, a two-dimensional subspace spanned by [2, 1, 0] and [−3, 0, 1]. For the 2-dimensional subspace W of ℝ⁵ with basis w₁ = [−1, −2, 2, 3, −4], w₂ = [2, 4, 2, 0, 2], the system Bx = 0 has the solutions x = x₂[−2, 1, 0, 0, 0] + x₄[1, 0, −1, 1, 0] + x₅[−2, 0, 1, 0, 1], so W⊥ is a 3-dimensional subspace with basis v₁, v₂, v₃, each orthogonal to both w₁ and w₂.",
    "forms": [
-    {"id": "eq-orthogonal-complement-of-a-line", "latex": "{\\mathbf v}\\cdot{\\mathbf x} = x_1-2x_2+3x_3 = 0", "condition": "the line defined by v = [1, −2, 3], Example 6.2.4"},
-    {"id": "eq-orthogonal-complement-of-a-line-parametric", "latex": "{\\mathbf x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right] = x_2\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r}-3 \\\\ 0 \\\\ 1 \\end{array}\\right]", "condition": "Example 6.2.4"}
+    {"id": "eq-orthogonal-complement-of-a-line", "latex": "{\\mathbf v}\\cdot{\\mathbf x} = x_1-2x_2+3x_3 = 0", "condition": "the line defined by v = [1, −2, 3], Example 6.2.4", "anchor": "6.2-example-orthog-comp-line"},
+    {"id": "eq-orthogonal-complement-of-a-line-parametric", "latex": "{\\mathbf x}=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right] = x_2\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r}-3 \\\\ 0 \\\\ 1 \\end{array}\\right]", "condition": "Example 6.2.4", "anchor": "6.2-example-orthog-comp-line"}
    ]
   },
   {
@@ -229,7 +228,7 @@
    "type": "matrix",
    "statement": "The transpose of the m × n matrix A is the n × m matrix Aᵀ whose rows are the columns of A. If A = [4 −3 0 5; −1 2 1 3], then Aᵀ = [4 −1; −3 2; 0 1; 5 3]. This new matrix operation makes explicit the connection between the orthogonal complement of a subspace and the solution set of a linear system.",
    "forms": [
-    {"id": "eq-transpose-example", "latex": "A=\\begin{bmatrix} 4 & -3 & 0 & 5 \\\\ -1 & 2 & 1 & 3 \\end{bmatrix}, \\qquad A^T=\\begin{bmatrix} 4 & -1 \\\\ -3 & 2 \\\\ 0 & 1 \\\\ 5 & 3 \\end{bmatrix}", "condition": "Example 6.2.7"}
+    {"id": "eq-transpose-example", "latex": "A=\\begin{bmatrix} 4 & -3 & 0 & 5 \\\\ -1 & 2 & 1 & 3 \\end{bmatrix}, \\qquad A^T=\\begin{bmatrix} 4 & -1 \\\\ -3 & 2 \\\\ 0 & 1 \\\\ 5 & 3 \\end{bmatrix}", "condition": "Example 6.2.7", "anchor": "6.2-example-6-2-7"}
    ]
   },
   {
@@ -239,7 +238,7 @@
    "name": "Transpose times a vector as dot products",
    "statement": "If A is the matrix whose columns are v₁, v₂, …, vₙ, then Aᵀx = [v₁·x; v₂·x; …; vₙ·x] (Proposition 6.2.8): the components of the product Aᵀx are simply the dot products of the columns of A with x. We make frequent use of this observation. Viewing a vector as a matrix having one column, x·y = xᵀy, so that x·(Ay) = (Aᵀx)·y.",
    "forms": [
-    {"id": "eq-transpose-times-a-vector", "latex": "A^T{\\mathbf x} = \\begin{bmatrix} {\\mathbf v}_1\\cdot{\\mathbf x} \\\\ {\\mathbf v}_2\\cdot{\\mathbf x} \\\\ \\vdots \\\\ {\\mathbf v}_n\\cdot{\\mathbf x} \\end{bmatrix}", "condition": "A the matrix whose columns are v₁, v₂, …, vₙ"},
+    {"id": "eq-transpose-times-a-vector", "latex": "A^T{\\mathbf x} = \\begin{bmatrix} {\\mathbf v}_1\\cdot{\\mathbf x} \\\\ {\\mathbf v}_2\\cdot{\\mathbf x} \\\\ \\vdots \\\\ {\\mathbf v}_n\\cdot{\\mathbf x} \\end{bmatrix}", "condition": "A the matrix whose columns are v₁, v₂, …, vₙ", "anchor": "6.2-prop-transpose-multiplication"},
     {"id": "eq-dot-product-as-a-transpose-product", "latex": "{\\mathbf x}\\cdot{\\mathbf y} = {\\mathbf x}^T{\\mathbf y}", "condition": "a vector viewed as a matrix having one column (Exercise 6.2.9)"}
    ]
   },
@@ -250,8 +249,8 @@
    "name": "Orthogonal complement of the column space",
    "statement": "For any matrix A, the orthogonal complement of Col(A) is Nul(Aᵀ); that is, Col(A)⊥ = Nul(Aᵀ) (Proposition 6.2.10). If the columns w₁, w₂ of A form a basis of W, then W = Col(A), and a vector x is in W⊥ exactly when Aᵀx = [w₁·x; w₂·x] = 0, so describing W⊥ is the familiar task of describing the solution set of Aᵀx = 0, which is the null space of Aᵀ.",
    "forms": [
-    {"id": "eq-col-perp-is-nul-transpose", "latex": "\\text{Col}(A)^\\perp = \\text{Nul}(A^T)"},
-    {"id": "eq-orthogonal-complement-system", "latex": "A^T{\\mathbf x} = \\left[\\begin{array}{r}{\\mathbf w}_1\\cdot{\\mathbf x} \\\\ {\\mathbf w}_2\\cdot{\\mathbf x} \\end{array}\\right] = \\left[\\begin{array}{r}0 \\\\ 0 \\end{array}\\right]", "condition": "x in W⊥, A = [w₁ w₂], Example 6.2.9"}
+    {"id": "eq-col-perp-is-nul-transpose", "latex": "\\text{Col}(A)^\\perp = \\text{Nul}(A^T)", "anchor": "6.2-prop-col-orthog"},
+    {"id": "eq-orthogonal-complement-system", "latex": "A^T{\\mathbf x} = \\left[\\begin{array}{r}{\\mathbf w}_1\\cdot{\\mathbf x} \\\\ {\\mathbf w}_2\\cdot{\\mathbf x} \\end{array}\\right] = \\left[\\begin{array}{r}0 \\\\ 0 \\end{array}\\right]", "condition": "x in W⊥, A = [w₁ w₂], Example 6.2.9", "anchor": "6.2-example-6-2-9"}
    ]
   },
   {
@@ -261,7 +260,7 @@
    "name": "Transpose of a product",
    "statement": "If AB is defined, then (AB)ᵀ = BᵀAᵀ. Notice that the order of the multiplication is reversed; the product AᵀBᵀ need not even be defined, as when A is 2 × 3 and B is 3 × 4.",
    "forms": [
-    {"id": "eq-transpose-of-a-product", "latex": "(AB)^T = B^TA^T", "condition": "AB defined"}
+    {"id": "eq-transpose-of-a-product", "latex": "(AB)^T = B^TA^T", "condition": "AB defined", "anchor": "6.2-assemblage-prop-transpose"}
    ]
   },
   {
@@ -271,7 +270,7 @@
    "name": "Determinant of the transpose",
    "statement": "If C is a square matrix, then det(C) = det(Cᵀ).",
    "forms": [
-    {"id": "eq-determinant-of-the-transpose", "latex": "\\det(C) = \\det(C^T)", "condition": "C a square matrix"}
+    {"id": "eq-determinant-of-the-transpose", "latex": "\\det(C) = \\det(C^T)", "condition": "C a square matrix", "anchor": "6.2-assemblage-prop-transpose"}
    ]
   },
   {
@@ -281,10 +280,10 @@
    "name": "Properties of the transpose",
    "statement": "The transpose satisfies these properties, expressed in terms of general matrices A, B and a square matrix C: if A + B is defined, then (A + B)ᵀ = Aᵀ + Bᵀ; (sA)ᵀ = sAᵀ; (Aᵀ)ᵀ = A; Iᵀ = I; and if C is invertible, then Cᵀ is invertible and (Cᵀ)⁻¹ = (C⁻¹)ᵀ, since (CC⁻¹)ᵀ = (C⁻¹)ᵀCᵀ = Iᵀ = I.",
    "forms": [
-    {"id": "eq-transpose-of-a-sum", "latex": "(A+B)^T = A^T+B^T", "condition": "A + B defined"},
-    {"id": "eq-transpose-of-a-scalar-multiple", "latex": "(sA)^T = sA^T"},
-    {"id": "eq-transpose-of-a-transpose", "latex": "(A^T)^T = A"},
-    {"id": "eq-inverse-of-a-transpose", "latex": "(C^T)^{-1} = (C^{-1})^T", "condition": "C invertible"}
+    {"id": "eq-transpose-of-a-sum", "latex": "(A+B)^T = A^T+B^T", "condition": "A + B defined", "anchor": "6.2-assemblage-prop-transpose"},
+    {"id": "eq-transpose-of-a-scalar-multiple", "latex": "(sA)^T = sA^T", "anchor": "6.2-assemblage-prop-transpose"},
+    {"id": "eq-transpose-of-a-transpose", "latex": "(A^T)^T = A", "anchor": "6.2-assemblage-prop-transpose"},
+    {"id": "eq-inverse-of-a-transpose", "latex": "(C^T)^{-1} = (C^{-1})^T", "condition": "C invertible", "anchor": "6.2-assemblage-prop-transpose"}
    ]
   },
   {
@@ -294,7 +293,7 @@
    "name": "Rank of the transpose",
    "statement": "For any matrix A, we have rank(A) = rank(Aᵀ) (Proposition 6.2.12). Why this is true is explained in Section 7.4; it is important because it implies a relationship between the dimensions of a subspace and its orthogonal complement.",
    "forms": [
-    {"id": "eq-rank-of-the-transpose", "latex": "\\operatorname{rank}(A) = \\operatorname{rank}(A^T)"}
+    {"id": "eq-rank-of-the-transpose", "latex": "\\operatorname{rank}(A) = \\operatorname{rank}(A^T)", "anchor": "6.2-prop-col-row-rank"}
    ]
   },
   {
@@ -304,12 +303,11 @@
    "name": "Dimension of the orthogonal complement",
    "statement": "If W is a subspace of ℝᵐ, then dim W + dim W⊥ = m (Proposition 6.2.13). If W is n-dimensional with basis w₁, w₂, …, wₙ and A = [w₁ w₂ … wₙ], then Col(A) = W so that rank(A) = dim Col(A) = dim W = n; the transpose Aᵀ is an n × m matrix having rank(Aᵀ) = rank(A) = n, and since W⊥ = Nul(Aᵀ), dim W⊥ = dim Nul(Aᵀ) = m − rank(Aᵀ) = m − n = m − dim W. The orthogonal complement of a line in ℝ³ has dimension 3 − 1 = 2, which explains why it is a plane, and that of a 2-dimensional subspace of ℝ⁵ is 5 − 2 = 3-dimensional.",
    "forms": [
-    {"id": "eq-dimension-of-the-orthogonal-complement", "latex": "\\dim W + \\dim W^\\perp = m", "condition": "W a subspace of ℝᵐ"},
-    {"id": "eq-rank-of-a-basis-matrix", "latex": "\\operatorname{rank}(A) = \\dim\\text{Col}(A) = \\dim W = n", "condition": "A = [w₁ w₂ … wₙ], a basis of W"},
-    {"id": "eq-dimension-of-w-perp", "latex": "\\dim W^\\perp = \\dim\\text{Nul}(A^T) = m - \\operatorname{rank}(A^T) = m-n = m-\\dim W"}
+    {"id": "eq-dimension-of-the-orthogonal-complement", "latex": "\\dim W + \\dim W^\\perp = m", "condition": "W a subspace of ℝᵐ", "anchor": "6.2-prop-orthog-dim"},
+    {"id": "eq-rank-of-a-basis-matrix", "latex": "\\operatorname{rank}(A) = \\dim\\text{Col}(A) = \\dim W = n", "condition": "A = [w₁ w₂ … wₙ], a basis of W", "anchor": "6.2-dimension-argument"},
+    {"id": "eq-dimension-of-w-perp", "latex": "\\dim W^\\perp = \\dim\\text{Nul}(A^T) = m - \\operatorname{rank}(A^T) = m-n = m-\\dim W", "anchor": "6.2-dimension-argument"}
    ]
   },
-
   {
    "id": "orthogonal-set",
    "kind": "definition",
@@ -318,7 +316,7 @@
    "terms": ["orthogonal set"],
    "statement": "By an orthogonal set of vectors, we mean a set of nonzero vectors each of which is orthogonal to the others. The 3-dimensional vectors w₁ = [1, −1, 1], w₂ = [1, 1, 0], w₃ = [1, −1, −2] form an orthogonal set, which can be verified by computing w₁·w₂ = 0, w₁·w₃ = 0, w₂·w₃ = 0, and this set forms a basis for ℝ³; three orthogonal 4-dimensional vectors form a basis for a 3-dimensional subspace W of ℝ⁴ rather than for ℝ⁴.",
    "forms": [
-    {"id": "eq-orthogonal-set-dot-products", "latex": "\\begin{array}{rcl} {\\mathbf w}_1\\cdot{\\mathbf w}_2 & {}={} & 0 \\\\ {\\mathbf w}_1\\cdot{\\mathbf w}_3 & {}={} & 0 \\\\ {\\mathbf w}_2\\cdot{\\mathbf w}_3 & {}={} & 0 \\end{array}", "condition": "the orthogonal set of Example 6.3.2"}
+    {"id": "eq-orthogonal-set-dot-products", "latex": "\\begin{array}{rcl} {\\mathbf w}_1\\cdot{\\mathbf w}_2 & {}={} & 0 \\\\ {\\mathbf w}_1\\cdot{\\mathbf w}_3 & {}={} & 0 \\\\ {\\mathbf w}_2\\cdot{\\mathbf w}_3 & {}={} & 0 \\end{array}", "condition": "the orthogonal set of Example 6.3.2", "anchor": "6.3-example-orthogonal-basis"}
    ]
   },
   {
@@ -328,8 +326,8 @@
    "name": "Weights of a linear combination of an orthogonal set",
    "statement": "If a vector b is a linear combination of an orthogonal set of vectors w₁, w₂, …, wₙ, then b = (b·w₁)/(w₁·w₁) w₁ + (b·w₂)/(w₂·w₂) w₂ + ⋯ + (b·wₙ)/(wₙ·wₙ) wₙ (Proposition 6.3.4). The weight c₁ is found by dotting both sides of c₁w₁ + c₂w₂ + ⋯ + cₙwₙ = b with w₁ and applying the distributive property of dot products: the presence of an orthogonal set causes most of the terms in the sum to vanish, leaving c₁w₁·w₁ = b·w₁, and in the same way cᵢ = (b·wᵢ)/(wᵢ·wᵢ). In the past we wrote a vector as a linear combination of basis vectors by solving a linear system; the task is simplified when the basis vectors are orthogonal to each other.",
    "forms": [
-    {"id": "eq-expansion-in-an-orthogonal-set", "latex": "{\\mathbf b} = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 + \\cdots + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_n}{{\\mathbf w}_n\\cdot{\\mathbf w}_n}{\\mathbf w}_n", "condition": "b a linear combination of the orthogonal set w₁, w₂, …, wₙ"},
-    {"id": "eq-weight-in-an-orthogonal-set", "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}"}
+    {"id": "eq-expansion-in-an-orthogonal-set", "latex": "{\\mathbf b} = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 + \\cdots + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_n}{{\\mathbf w}_n\\cdot{\\mathbf w}_n}{\\mathbf w}_n", "condition": "b a linear combination of the orthogonal set w₁, w₂, …, wₙ", "anchor": "6.3-terms-vanish"},
+    {"id": "eq-weight-in-an-orthogonal-set", "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}", "anchor": "6.3-terms-vanish"}
    ]
   },
   {
@@ -339,7 +337,7 @@
    "name": "An orthogonal set is linearly independent",
    "statement": "An orthogonal set of vectors w₁, w₂, …, wₙ is linearly independent (Proposition 6.3.5). If one of the vectors were a linear combination of the others, say w₃ = c₁w₁ + c₂w₂, we would know that w₃ = (w₃·w₁)/(w₁·w₁) w₁ + (w₃·w₂)/(w₂·w₂) w₂ = 0, which cannot happen since w₃ is nonzero.",
    "forms": [
-    {"id": "eq-orthogonal-dependence-impossible", "latex": "{\\mathbf w}_3 = \\frac{{\\mathbf w}_3\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 + \\frac{{\\mathbf w}_3\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 = {\\mathbf 0}", "condition": "if w₃ were a linear combination of w₁ and w₂"}
+    {"id": "eq-orthogonal-dependence-impossible", "latex": "{\\mathbf w}_3 = \\frac{{\\mathbf w}_3\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 + \\frac{{\\mathbf w}_3\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 = {\\mathbf 0}", "condition": "if w₃ were a linear combination of w₁ and w₂", "anchor": "6.3-orthogonal-independent"}
    ]
   },
   {
@@ -358,7 +356,7 @@
    "terms": ["unit vectors", "unit vector"],
    "statement": "A vector having length 1 is called a unit vector. We may multiply any nonzero vector w by a scalar so that the new vector has length 1: if s is a positive scalar, then |sw| = s|w|.",
    "forms": [
-    {"id": "eq-length-of-a-scalar-multiple", "latex": "\\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right|", "condition": "s a positive scalar"}
+    {"id": "eq-length-of-a-scalar-multiple", "latex": "\\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right|", "condition": "s a positive scalar", "anchor": "6.3-unit-length"}
    ]
   },
   {
@@ -368,8 +366,8 @@
    "name": "Scaling a vector to unit length",
    "statement": "To obtain a vector u having unit length parallel to a nonzero vector w, we want |u| = |sw| = s|w| = 1, so that s = 1/|w|. Therefore u = (1/|w|) w becomes a unit vector parallel to w: from w₁ = [1, −1, 1], with |w₁| = √3, we find u₁ = [1/√3, −1/√3, 1/√3].",
    "forms": [
-    {"id": "eq-unit-vector-parallel", "latex": "{\\mathbf u} = \\frac{1}{\\left|{\\mathbf w}\\right|}{\\mathbf w}"},
-    {"id": "eq-unit-length-condition", "latex": "\\left|{\\mathbf u}\\right| = \\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right| = 1"}
+    {"id": "eq-unit-vector-parallel", "latex": "{\\mathbf u} = \\frac{1}{\\left|{\\mathbf w}\\right|}{\\mathbf w}", "anchor": "6.3-unit-length"},
+    {"id": "eq-unit-length-condition", "latex": "\\left|{\\mathbf u}\\right| = \\left|s{\\mathbf w}\\right| = s\\left|{\\mathbf w}\\right| = 1", "anchor": "6.3-unit-length"}
    ]
   },
   {
@@ -395,8 +393,8 @@
    "name": "QᵀQ for orthonormal columns",
    "statement": "If the columns of the m × n matrix Q form an orthonormal set, then QᵀQ = Iₙ, the n × n identity matrix (Proposition 6.3.8), because this product computes the dot products between the columns of Q: for Q = [u₁ u₂], QᵀQ = [u₁·u₁ u₁·u₂; u₂·u₁ u₂·u₂] = [1 0; 0 1].",
    "forms": [
-    {"id": "eq-qtq-identity", "latex": "Q^TQ = I_n", "condition": "the columns of the m × n matrix Q an orthonormal set"},
-    {"id": "eq-qtq-dot-products", "latex": "Q^TQ = \\begin{bmatrix} {\\mathbf u}_1\\cdot{\\mathbf u}_1 & {\\mathbf u}_1\\cdot{\\mathbf u}_2 \\\\ {\\mathbf u}_2\\cdot{\\mathbf u}_1 & {\\mathbf u}_2\\cdot{\\mathbf u}_2 \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix}", "condition": "Q = [u₁ u₂], Example 6.3.7"}
+    {"id": "eq-qtq-identity", "latex": "Q^TQ = I_n", "condition": "the columns of the m × n matrix Q an orthonormal set", "anchor": "6.3-prop-orthonormal-QTQ"},
+    {"id": "eq-qtq-dot-products", "latex": "Q^TQ = \\begin{bmatrix} {\\mathbf u}_1\\cdot{\\mathbf u}_1 & {\\mathbf u}_1\\cdot{\\mathbf u}_2 \\\\ {\\mathbf u}_2\\cdot{\\mathbf u}_1 & {\\mathbf u}_2\\cdot{\\mathbf u}_2 \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix}", "condition": "Q = [u₁ u₂], Example 6.3.7", "anchor": "6.3-example-6-3-7"}
    ]
   },
   {
@@ -406,7 +404,7 @@
    "name": "Orthogonality gives the closest vector",
    "statement": "Given a line L in ℝ² defined by the vector w and a vector b not on the line, the vector b̂ on the line closest to b is found by requiring that b − b̂ be orthogonal to L. If y is another vector on the line, then the Pythagorean theorem implies that |b − y|² = |b − b̂|² + |b̂ − y|², which means that |b − y| ≥ |b − b̂|; therefore b̂ is closer to b than any other vector on the line L.",
    "forms": [
-    {"id": "eq-pythagorean-closest-vector", "latex": "\\left|{\\mathbf b}-{\\mathbf y}\\right|^2 = |{\\mathbf b}-\\widehat{{\\mathbf b}}|^2 + |\\widehat{{\\mathbf b}}-{\\mathbf y}|^2", "condition": "y another vector on the line L, b − b̂ orthogonal to L"}
+    {"id": "eq-pythagorean-closest-vector", "latex": "\\left|{\\mathbf b}-{\\mathbf y}\\right|^2 = |{\\mathbf b}-\\widehat{{\\mathbf b}}|^2 + |\\widehat{{\\mathbf b}}-{\\mathbf y}|^2", "condition": "y another vector on the line L, b − b̂ orthogonal to L", "anchor": "6.3-orthogonal-closest"}
    ]
   },
   {
@@ -419,7 +417,7 @@
    "type": "vector",
    "statement": "Given a vector b in ℝᵐ and a subspace W of ℝᵐ, the orthogonal projection of b onto W is the vector b̂ in W that is closest to b, meaning the distance between b̂ and b is as small as possible. It is characterized by the property that b − b̂ is orthogonal to W: (b − b̂)·w = 0 for any vector w in W.",
    "forms": [
-    {"id": "eq-orthogonal-projection-condition", "latex": "({\\mathbf b}-\\widehat{{\\mathbf b}})\\cdot{\\mathbf w} = 0", "condition": "for any vector w in W"}
+    {"id": "eq-orthogonal-projection-condition", "latex": "({\\mathbf b}-\\widehat{{\\mathbf b}})\\cdot{\\mathbf w} = 0", "condition": "for any vector w in W", "anchor": "6.3-looking-for-bhat"}
    ]
   },
   {
@@ -429,8 +427,8 @@
    "name": "Orthogonal projection onto a line",
    "statement": "The orthogonal projection of b onto the line defined by w is b̂ = (b·w)/(w·w) w. Since b̂ = sw for some scalar s and b − sw is orthogonal to w, the dot product (b − sw)·w = 0, and the distributive property of dot products gives s = (b·w)/(w·w); for w = [2, 1] and b = [2, 4], b̂ = [16/5, 8/5].",
    "forms": [
-    {"id": "eq-projection-onto-a-line", "latex": "\\widehat{{\\mathbf b}}= \\frac{{\\mathbf b}\\cdot{\\mathbf w}}{{\\mathbf w}\\cdot{\\mathbf w}}~{\\mathbf w}", "condition": "the line defined by w"},
-    {"id": "eq-projection-onto-a-line-condition", "latex": "({\\mathbf b}-s{\\mathbf w})\\cdot{\\mathbf w} = 0", "condition": "b̂ = sw"}
+    {"id": "eq-projection-onto-a-line", "latex": "\\widehat{{\\mathbf b}}= \\frac{{\\mathbf b}\\cdot{\\mathbf w}}{{\\mathbf w}\\cdot{\\mathbf w}}~{\\mathbf w}", "condition": "the line defined by w", "anchor": "6.3-sim-projection-onto-line"},
+    {"id": "eq-projection-onto-a-line-condition", "latex": "({\\mathbf b}-s{\\mathbf w})\\cdot{\\mathbf w} = 0", "condition": "b̂ = sw", "anchor": "6.3-sim-projection-onto-line"}
    ]
   },
   {
@@ -441,9 +439,9 @@
    "terms": ["projection formula"],
    "statement": "If W is a subspace of ℝᵐ having an orthogonal basis w₁, w₂, …, wₙ and b is a vector in ℝᵐ, then the orthogonal projection of b onto W is b̂ = (b·w₁)/(w₁·w₁) w₁ + (b·w₂)/(w₂·w₂) w₂ + ⋯ + (b·wₙ)/(wₙ·wₙ) wₙ (Proposition 6.3.15, the projection formula). Writing b̂ = c₁w₁ + c₂w₂ + ⋯ + cₙwₙ and requiring (b − b̂)·wᵢ = 0 gives b·wᵢ = cᵢwᵢ·wᵢ, so cᵢ = (b·wᵢ)/(wᵢ·wᵢ). The formula applies only when the basis of W is orthogonal. If u₁, u₂, …, uₙ is an orthonormal basis for W, it simplifies to b̂ = (b·u₁)u₁ + (b·u₂)u₂ + ⋯ + (b·uₙ)uₙ.",
    "forms": [
-    {"id": "eq-projection-formula", "latex": "\\widehat{{\\mathbf b}}= \\frac{{\\mathbf b}\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}~{\\mathbf w}_1 + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}~{\\mathbf w}_2 + \\cdots + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_n}{{\\mathbf w}_n\\cdot{\\mathbf w}_n}~{\\mathbf w}_n", "condition": "w₁, w₂, …, wₙ an orthogonal basis of W"},
-    {"id": "eq-projection-formula-orthonormal", "latex": "\\widehat{{\\mathbf b}}= ({\\mathbf b}\\cdot{\\mathbf u}_1)~{\\mathbf u}_1 + ({\\mathbf b}\\cdot{\\mathbf u}_2)~{\\mathbf u}_2 + \\cdots + ({\\mathbf b}\\cdot{\\mathbf u}_n)~{\\mathbf u}_n", "condition": "u₁, u₂, …, uₙ an orthonormal basis of W"},
-    {"id": "eq-projection-formula-weight", "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}", "condition": "b̂ = c₁w₁ + c₂w₂ + ⋯ + cₙwₙ"}
+    {"id": "eq-projection-formula", "latex": "\\widehat{{\\mathbf b}}= \\frac{{\\mathbf b}\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}~{\\mathbf w}_1 + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}~{\\mathbf w}_2 + \\cdots + \\frac{{\\mathbf b}\\cdot{\\mathbf w}_n}{{\\mathbf w}_n\\cdot{\\mathbf w}_n}~{\\mathbf w}_n", "condition": "w₁, w₂, …, wₙ an orthogonal basis of W", "anchor": "6.3-prop-proj-formula"},
+    {"id": "eq-projection-formula-orthonormal", "latex": "\\widehat{{\\mathbf b}}= ({\\mathbf b}\\cdot{\\mathbf u}_1)~{\\mathbf u}_1 + ({\\mathbf b}\\cdot{\\mathbf u}_2)~{\\mathbf u}_2 + \\cdots + ({\\mathbf b}\\cdot{\\mathbf u}_n)~{\\mathbf u}_n", "condition": "u₁, u₂, …, uₙ an orthonormal basis of W", "anchor": "6.3-orthonormal-simplifies"},
+    {"id": "eq-projection-formula-weight", "latex": "c_i = \\frac{{\\mathbf b}\\cdot{\\mathbf w}_i}{{\\mathbf w}_i\\cdot{\\mathbf w}_i}", "condition": "b̂ = c₁w₁ + c₂w₂ + ⋯ + cₙwₙ", "anchor": "6.3-drv-projection-formula"}
    ]
   },
   {
@@ -455,8 +453,8 @@
    "type": "matrix",
    "statement": "If u₁, u₂, …, uₙ is an orthonormal basis for a subspace W of ℝᵐ, then the matrix transformation that projects vectors in ℝᵐ orthogonally onto W is represented by the matrix P = QQᵀ, where Q = [u₁ u₂ … uₙ] (Proposition 6.3.16): b̂ = (b·u₁)u₁ + ⋯ + (b·uₙ)uₙ = [u₁ u₂ … uₙ][u₁·b; u₂·b; …; uₙ·b] = QQᵀb. For the plane W of Example 6.3.17, QQᵀ = [29/45 4/9 8/45; 4/9 4/9 −2/9; 8/45 −2/9 41/45], and Col(P) = W, so that rank(P) = dim W.",
    "forms": [
-    {"id": "eq-projection-matrix", "latex": "P = QQ^T", "condition": "Q = [u₁ u₂ … uₙ], an orthonormal basis of W"},
-    {"id": "eq-projection-by-qqt", "latex": "\\widehat{{\\mathbf b}} = QQ^T{\\mathbf b}"}
+    {"id": "eq-projection-matrix", "latex": "P = QQ^T", "condition": "Q = [u₁ u₂ … uₙ], an orthonormal basis of W", "anchor": "6.3-prop-proj-orthonormal"},
+    {"id": "eq-projection-by-qqt", "latex": "\\widehat{{\\mathbf b}} = QQ^T{\\mathbf b}", "anchor": "6.3-drv-projection-matrix"}
    ]
   },
   {
@@ -466,7 +464,7 @@
    "name": "Decomposition into a projection and its complement",
    "statement": "If W is a subspace of ℝⁿ with orthogonal complement W⊥, then any n-dimensional vector b can be uniquely written as b = b̂ + b⊥ where b̂ is in W and b⊥ is in W⊥ (Proposition 6.3.18). The vector b̂ is the orthogonal projection of b onto W and b⊥ = b − b̂, which is orthogonal to W, is the orthogonal projection of b onto W⊥.",
    "forms": [
-    {"id": "eq-orthogonal-decomposition", "latex": "{\\mathbf b} = \\widehat{{\\mathbf b}} + {\\mathbf b}^\\perp", "condition": "b̂ in W, b⊥ in W⊥"}
+    {"id": "eq-orthogonal-decomposition", "latex": "{\\mathbf b} = \\widehat{{\\mathbf b}} + {\\mathbf b}^\\perp", "condition": "b̂ in W, b⊥ in W⊥", "anchor": "6.3-prop-orthog-decomp"}
    ]
   },
   {
@@ -476,7 +474,7 @@
    "name": "When a matrix with orthonormal columns is invertible",
    "statement": "If Q is a matrix whose columns u₁, u₂, …, uₙ form an orthonormal set in ℝᵐ, then QᵀQ = Iₙ, because this product computes the dot products between the columns of Q, and QQᵀ is the matrix that projects vectors orthogonally onto W, the subspace spanned by u₁, …, uₙ; matrix multiplication depends on the order. Because QᵀQ = I, there is a temptation to say that Q is invertible, but an invertible matrix must be square, and Q is square only if n = m. In that case W is ℝᵐ, so QQᵀb, the closest vector in ℝᵐ to b, must be b itself: QQᵀ = I, and Q is invertible. A 3 × 2 matrix Q with orthonormal columns has QᵀQ = I₂ and QQᵀ projecting onto a plane, but is not square and cannot be invertible.",
    "forms": [
-    {"id": "eq-qqt-identity-when-square", "latex": "QQ^T{\\mathbf b} = {\\mathbf b}", "condition": "n = m, so that W = ℝᵐ"}
+    {"id": "eq-qqt-identity-when-square", "latex": "QQ^T{\\mathbf b} = {\\mathbf b}", "condition": "n = m, so that W = ℝᵐ", "anchor": "6.3-invertibility-temptation"}
    ]
   },
   {
@@ -495,11 +493,10 @@
    "name": "Inverse of an orthogonal matrix",
    "statement": "An orthogonal matrix Q is invertible and its inverse is Q⁻¹ = Qᵀ (Proposition 6.3.23): since QᵀQ = I and QQᵀ = I, finding the inverse of Q is as simple as writing its transpose. The 3 × 3 matrix whose columns are u₁ = [1/√3, −1/√3, 1/√3], u₂ = [1/√2, 1/√2, 0], u₃ = [1/√6, −1/√6, −2/√6] is orthogonal.",
    "forms": [
-    {"id": "eq-orthogonal-matrix-inverse", "latex": "Q^{-1} = Q^T", "condition": "Q an orthogonal matrix"},
-    {"id": "eq-orthogonal-matrix-products", "latex": "QQ^T=Q^TQ = I", "condition": "Q an orthogonal matrix"}
+    {"id": "eq-orthogonal-matrix-inverse", "latex": "Q^{-1} = Q^T", "condition": "Q an orthogonal matrix", "anchor": "6.3-prop-orthog-matrix"},
+    {"id": "eq-orthogonal-matrix-products", "latex": "QQ^T=Q^TQ = I", "condition": "Q an orthogonal matrix", "anchor": "6.3-example-6-3-21"}
    ]
   },
-
   {
    "id": "gram-schmidt-process",
    "kind": "skill",
@@ -508,9 +505,9 @@
    "terms": ["Gram-Schmidt orthogonalization", "Gram-Schmidt algorithm"],
    "statement": "Gram-Schmidt orthogonalization begins with a basis v₁, v₂, …, vₙ for a subspace W of ℝᵐ and produces an orthogonal basis w₁, w₂, …, wₙ for W: w₁ = v₁, w₂ = v₂ − (v₂·w₁)/(w₁·w₁) w₁, w₃ = v₃ − (v₃·w₁)/(w₁·w₁) w₁ − (v₃·w₂)/(w₂·w₂) w₂, and so on, each wⱼ being vⱼ minus its orthogonal projection onto the subspace spanned by the earlier vectors. The algorithm relies on our construction of the orthogonal projection, which formed b̂ by requiring that b − b̂ be orthogonal to W, for this allows us to create a vector that is orthogonal to a given subspace. From here, an orthonormal basis is formed by constructing a unit vector parallel to each vector in the orthogonal basis, uⱼ = (1/|wⱼ|) wⱼ. Applied to a linearly dependent set, the algorithm produces a zero vector and fails to give a basis.",
    "forms": [
-    {"id": "eq-gram-schmidt", "latex": "\\begin{aligned} {\\mathbf w}_1 & = {\\mathbf v}_1 \\\\ {\\mathbf w}_2 & = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 \\\\ {\\mathbf w}_3 & = {\\mathbf v}_3 - \\frac{{\\mathbf v}_3\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 - \\frac{{\\mathbf v}_3\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 \\\\ & \\vdots \\\\ {\\mathbf w}_n & = {\\mathbf v}_n - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 - \\ldots - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_{n-1}} {{\\mathbf w}_{n-1}\\cdot{\\mathbf w}_{n-1}}{\\mathbf w}_{n-1} \\end{aligned}", "condition": "v₁, v₂, …, vₙ a basis for a subspace W of ℝᵐ"},
-    {"id": "eq-gram-schmidt-second-vector", "latex": "{\\mathbf w}_2 = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1"},
-    {"id": "eq-gram-schmidt-normalization", "latex": "{\\mathbf u}_j = \\frac{1}{\\left|{\\mathbf w}_j\\right|}~{\\mathbf w}_j"}
+    {"id": "eq-gram-schmidt", "latex": "\\begin{aligned} {\\mathbf w}_1 & = {\\mathbf v}_1 \\\\ {\\mathbf w}_2 & = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 \\\\ {\\mathbf w}_3 & = {\\mathbf v}_3 - \\frac{{\\mathbf v}_3\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 - \\frac{{\\mathbf v}_3\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 \\\\ & \\vdots \\\\ {\\mathbf w}_n & = {\\mathbf v}_n - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1 - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_2}{{\\mathbf w}_2\\cdot{\\mathbf w}_2}{\\mathbf w}_2 - \\ldots - \\frac{{\\mathbf v}_n\\cdot{\\mathbf w}_{n-1}} {{\\mathbf w}_{n-1}\\cdot{\\mathbf w}_{n-1}}{\\mathbf w}_{n-1} \\end{aligned}", "condition": "v₁, v₂, …, vₙ a basis for a subspace W of ℝᵐ", "anchor": "6.4-gram-schmidt-general"},
+    {"id": "eq-gram-schmidt-second-vector", "latex": "{\\mathbf w}_2 = {\\mathbf v}_2 - \\frac{{\\mathbf v}_2\\cdot{\\mathbf w}_1}{{\\mathbf w}_1\\cdot{\\mathbf w}_1}{\\mathbf w}_1", "anchor": "6.4-example-gram-schmidt"},
+    {"id": "eq-gram-schmidt-normalization", "latex": "{\\mathbf u}_j = \\frac{1}{\\left|{\\mathbf w}_j\\right|}~{\\mathbf w}_j", "anchor": "6.4-orthonormal-from-orthogonal"}
    ]
   },
   {
@@ -520,8 +517,8 @@
    "name": "Gram-Schmidt preserves the span",
    "statement": "At each step of Gram-Schmidt, the new vectors span the same subspace as the old: Span{w₁, w₂, …, wⱼ} = Span{v₁, v₂, …, vⱼ}. In Example 6.4.4, w₂ = v₂ + w₁, so v₂ = −w₁ + w₂ and any linear combination c₁v₁ + c₂v₂ = c₁w₁ + c₂(−w₁ + w₂) = (c₁ − c₂)w₁ + c₂w₂ is a linear combination of w₁ and w₂; this tells us that W₂ = Span{w₁, w₂} = Span{v₁, v₂}, so w₁ and w₂ are an orthogonal basis for W₂, the 2-dimensional subspace that is the span of v₁ and v₂, and finally Span{w₁, w₂, w₃} = Span{v₁, v₂, v₃}, a new orthogonal basis for ℝ³.",
    "forms": [
-    {"id": "eq-gram-schmidt-span", "latex": "W_2 = \\text{Span}\\left\\{{\\mathbf w}_1,{\\mathbf w}_2\\right\\} = \\text{Span}\\left\\{{\\mathbf v}_1,{\\mathbf v}_2\\right\\}"},
-    {"id": "eq-gram-schmidt-combination-rewritten", "latex": "c_1{\\mathbf v}_1 + c_2{\\mathbf v}_2 = c_1{\\mathbf w}_1 + c_2(-{\\mathbf w}_1+{\\mathbf w}_2) = (c_1-c_2){\\mathbf w}_1 + c_2{\\mathbf w}_2", "condition": "v₂ = −w₁ + w₂, Example 6.4.4"}
+    {"id": "eq-gram-schmidt-span", "latex": "W_2 = \\text{Span}\\left\\{{\\mathbf w}_1,{\\mathbf w}_2\\right\\} = \\text{Span}\\left\\{{\\mathbf v}_1,{\\mathbf v}_2\\right\\}", "anchor": "6.4-example-gram-schmidt"},
+    {"id": "eq-gram-schmidt-combination-rewritten", "latex": "c_1{\\mathbf v}_1 + c_2{\\mathbf v}_2 = c_1{\\mathbf w}_1 + c_2(-{\\mathbf w}_1+{\\mathbf w}_2) = (c_1-c_2){\\mathbf w}_1 + c_2{\\mathbf w}_2", "condition": "v₂ = −w₁ + w₂, Example 6.4.4", "anchor": "6.4-example-gram-schmidt"}
    ]
   },
   {
@@ -532,7 +529,7 @@
    "terms": ["QR factorization"],
    "statement": "If A is an m × n matrix whose columns are linearly independent, we may write A = QR where Q is an m × n matrix whose columns form an orthonormal basis for Col(A) and R is an n × n upper triangular matrix (Proposition 6.4.5). When the columns of A are linearly independent, they form a basis for Col(A), so we can perform the Gram-Schmidt algorithm, and writing each column of A as a linear combination of the orthonormal basis gives the columns of R. The value of the QR factorization becomes clear in solving least-squares problems.",
    "forms": [
-    {"id": "eq-qr-factorization", "latex": "A = QR", "condition": "the columns of A linearly independent; Q m × n with orthonormal columns, R n × n upper triangular"}
+    {"id": "eq-qr-factorization", "latex": "A = QR", "condition": "the columns of A linearly independent; Q m × n with orthonormal columns, R n × n upper triangular", "anchor": "6.4-prop-qr"}
    ]
   },
   {
@@ -542,11 +539,10 @@
    "name": "Finding a QR factorization",
    "statement": "To find the QR factorization of A = [v₁ v₂ v₃], apply Gram-Schmidt to the columns to obtain the orthogonal basis w₁, w₂, w₃ and the orthonormal basis u₁, u₂, u₃; since wⱼ = |wⱼ|uⱼ, each column is a combination of the uⱼ. In Example 6.4.6, v₁ = w₁ = 3u₁, v₂ = −w₁ + w₂ = −3u₁ + 3u₂ and v₃ = −w₁ + 2w₂ + w₃ = −3u₁ + 6u₂ + 3u₃, so with Q = [u₁ u₂ u₃] we have A = Q[3 −3 −3; 0 3 6; 0 0 3] = QR. The jth column rⱼ of R holds the weights with Qrⱼ = vⱼ, and R is upper triangular because vⱼ involves only u₁, …, uⱼ.",
    "forms": [
-    {"id": "eq-qr-example", "latex": "A = Q\\begin{bmatrix} 3 & -3 & -3 \\\\ 0 & 3 & 6 \\\\ 0 & 0 & 3 \\end{bmatrix} =QR", "condition": "A = [2 −3 −2; −1 3 7; 2 0 1], Example 6.4.6"},
-    {"id": "eq-qr-column-relations", "latex": "\\begin{aligned} {\\mathbf v}_1 & {}={} 3{\\mathbf u}_1 \\\\ {\\mathbf v}_2 & {}={} -3{\\mathbf u}_1 + 3{\\mathbf u}_2 \\\\ {\\mathbf v}_3 & {}={} -3{\\mathbf u}_1 + 6{\\mathbf u}_2 + 3{\\mathbf u}_3 \\end{aligned}", "condition": "Example 6.4.6"}
+    {"id": "eq-qr-example", "latex": "A = Q\\begin{bmatrix} 3 & -3 & -3 \\\\ 0 & 3 & 6 \\\\ 0 & 0 & 3 \\end{bmatrix} =QR", "condition": "A = [2 −3 −2; −1 3 7; 2 0 1], Example 6.4.6", "anchor": "6.4-example-6-4-6"},
+    {"id": "eq-qr-column-relations", "latex": "\\begin{aligned} {\\mathbf v}_1 & {}={} 3{\\mathbf u}_1 \\\\ {\\mathbf v}_2 & {}={} -3{\\mathbf u}_1 + 3{\\mathbf u}_2 \\\\ {\\mathbf v}_3 & {}={} -3{\\mathbf u}_1 + 6{\\mathbf u}_2 + 3{\\mathbf u}_3 \\end{aligned}", "condition": "Example 6.4.6", "anchor": "6.4-example-6-4-6"}
    ]
   },
-
   {
    "id": "least-squares-problem",
    "kind": "idea",
@@ -555,8 +551,8 @@
    "terms": ["orthogonal least squares", "least-squares"],
    "statement": "When Ax = b is inconsistent, we instead solve the consistent system Ax = b̂, where b̂ is the orthogonal projection of b onto Col(A), the closest vector in Col(A) to b. If the data points are denoted (xᵢ, yᵢ), the search for a line b + mx = y passing through them gives the equation Ax = b with A = [1 x₁; 1 x₂; 1 x₃], b = [y₁; y₂; y₃] and x = [b; m], which is inconsistent when no such line exists. Solving Ax = b̂ finds the vector x so that Ax = [b + mx₁; b + mx₂; b + mx₃] is as close to b as possible: the square of the distance |b − Ax|² = (y₁ − (b + mx₁))² + (y₂ − (b + mx₂))² + (y₃ − (b + mx₃))² is made as small as possible, which is why we call this a least-squares problem.",
    "forms": [
-    {"id": "eq-least-squares-system", "latex": "A = \\begin{bmatrix} 1 & x_1 \\\\ 1 & x_2 \\\\ 1 & x_3 \\end{bmatrix},\\hspace{24pt} {\\mathbf b} = \\left[\\begin{array}{r}y_1 \\\\ y_2 \\\\ y_3 \\end{array}\\right]", "condition": "the line b + mx = y through the data points (xᵢ, yᵢ), x = [b; m]"},
-    {"id": "eq-sum-of-squares", "latex": "\\left|{\\mathbf b} - A{\\mathbf x}\\right|^2 = \\left(y_1-(b+mx_1)\\right)^2 + \\left(y_2-(b+mx_2)\\right)^2 + \\left(y_3-(b+mx_3)\\right)^2"}
+    {"id": "eq-least-squares-system", "latex": "A = \\begin{bmatrix} 1 & x_1 \\\\ 1 & x_2 \\\\ 1 & x_3 \\end{bmatrix},\\hspace{24pt} {\\mathbf b} = \\left[\\begin{array}{r}y_1 \\\\ y_2 \\\\ y_3 \\end{array}\\right]", "condition": "the line b + mx = y through the data points (xᵢ, yᵢ), x = [b; m]", "anchor": "6.5-orthogonal-least-squares"},
+    {"id": "eq-sum-of-squares", "latex": "\\left|{\\mathbf b} - A{\\mathbf x}\\right|^2 = \\left(y_1-(b+mx_1)\\right)^2 + \\left(y_2-(b+mx_2)\\right)^2 + \\left(y_3-(b+mx_3)\\right)^2", "anchor": "6.5-distance-squared"}
    ]
   },
   {
@@ -568,7 +564,7 @@
    "type": "curve",
    "statement": "Drawing the line defined by the vector x = [b; m], the quantity yᵢ − (b + mxᵢ) reflects the vertical distance between the line and the data point (xᵢ, yᵢ), so the square of the distance |b − Ax|² is a measure of how much the line defined by x misses the data points. The solution to the least-squares problem is the line that misses the data points by the smallest amount possible, the line of best fit: for the points (1, 1), (2, 1), (3, 3), x = [−1/3; 1], the line having vertical intercept b = −1/3 and slope 1.",
    "forms": [
-    {"id": "eq-line-of-best-fit-example", "latex": "{\\mathbf x}=\\left[\\begin{array}{r}-1/3 \\\\ 1 \\end{array}\\right]", "condition": "the data points (1, 1), (2, 1), (3, 3), Activity 6.5.2"}
+    {"id": "eq-line-of-best-fit-example", "latex": "{\\mathbf x}=\\left[\\begin{array}{r}-1/3 \\\\ 1 \\end{array}\\right]", "condition": "the data points (1, 1), (2, 1), (3, 3), Activity 6.5.2", "anchor": "6.5-sim-three-point-fit"}
    ]
   },
   {
@@ -581,7 +577,7 @@
    "type": "vector",
    "statement": "Given an inconsistent system Ax = b, we seek the vector x that minimizes the distance from Ax to b; in other words, x satisfies Ax = b̂, where b̂ is the orthogonal projection of b onto the column space Col(A). This equation is consistent since b̂ is in Col(A), and there is only one solution if we assume that the columns of A are linearly independent. We usually denote the solution of Ax = b̂ by x̂ and call this vector the least-squares approximate solution of Ax = b, to distinguish it from a (possibly non-existent) solution of Ax = b.",
    "forms": [
-    {"id": "eq-least-squares-solution", "latex": "A\\widehat{{\\mathbf x}} = \\widehat{{\\mathbf b}}", "condition": "b̂ the orthogonal projection of b onto Col(A)"}
+    {"id": "eq-least-squares-solution", "latex": "A\\widehat{{\\mathbf x}} = \\widehat{{\\mathbf b}}", "condition": "b̂ the orthogonal projection of b onto Col(A)", "anchor": "6.5-least-squares-solution"}
    ]
   },
   {
@@ -592,9 +588,9 @@
    "terms": ["normal equation", "normal equations"],
    "statement": "If the columns of A are linearly independent, then there is a unique least-squares approximate solution x̂ to the equation Ax = b given by the normal equation AᵀAx̂ = Aᵀb (Proposition 6.5.4). This method does not involve first finding b̂: since b̂ − b is orthogonal to Col(A), it is in Col(A)⊥ = Nul(Aᵀ), so Aᵀ(b̂ − b) = 0; because Ax̂ = b̂, this rearranges to Aᵀ(Ax̂ − b) = 0 and AᵀAx̂ − Aᵀb = 0. For A = [2 1; 2 0; −1 3] and b = [16, −1, 7], the normal equation [9 −1; −1 10]x̂ = [23; 37] has the solution x̂ = [3; 4].",
    "forms": [
-    {"id": "eq-normal-equation", "latex": "A^TA\\widehat{{\\mathbf x}} = A^T{\\mathbf b}", "condition": "the columns of A linearly independent"},
-    {"id": "eq-normal-equation-origin", "latex": "A^T(\\widehat{\\mathbf b}-{\\mathbf b}) = {\\mathbf 0}", "condition": "b̂ − b in Col(A)⊥ = Nul(Aᵀ)"},
-    {"id": "eq-normal-equation-example", "latex": "A^TA\\widehat{{\\mathbf x}} = \\begin{bmatrix} 9 & -1 \\\\ -1 & 10 \\end{bmatrix} \\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}23 \\\\ 37 \\end{array}\\right] = A^T{\\mathbf b}", "condition": "Example 6.5.5"}
+    {"id": "eq-normal-equation", "latex": "A^TA\\widehat{{\\mathbf x}} = A^T{\\mathbf b}", "condition": "the columns of A linearly independent", "anchor": "6.5-normal-equation"},
+    {"id": "eq-normal-equation-origin", "latex": "A^T(\\widehat{\\mathbf b}-{\\mathbf b}) = {\\mathbf 0}", "condition": "b̂ − b in Col(A)⊥ = Nul(Aᵀ)", "anchor": "6.5-alternative-method"},
+    {"id": "eq-normal-equation-example", "latex": "A^TA\\widehat{{\\mathbf x}} = \\begin{bmatrix} 9 & -1 \\\\ -1 & 10 \\end{bmatrix} \\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}23 \\\\ 37 \\end{array}\\right] = A^T{\\mathbf b}", "condition": "Example 6.5.5", "anchor": "6.5-example-6-5-5"}
    ]
   },
   {
@@ -605,8 +601,8 @@
    "terms": ["linear regression"],
    "statement": "Linear regression is the approach in which a collection of data is modeled using a linear function found by solving a least-squares problem. The chirp rate C of a cricket and the outdoor temperature T are related by β₀ + β₁C = T: the 15 data points give a system Ax = b, with A the 15 × 2 matrix whose first column is all 1's and whose second column is the chirp rates and b the temperatures, whose least-squares approximate solution is x̂ = [β₀; β₁] = [22.8; 3.4]. Once we have the linear function that best fits the data, we can make predictions about situations that we haven't encountered in the data, such as 97.9 degrees at 22 chirps per second. A linear function of several input variables, such as β₀ + β₁w + β₂h + β₃a + β₄r + β₅n = BFI for the body fat index, is fit the same way.",
    "forms": [
-    {"id": "eq-linear-regression-model", "latex": "\\beta_0 + \\beta_1 C = T", "condition": "the chirp rate C and the temperature T, Activity 6.5.3"},
-    {"id": "eq-cricket-solution", "latex": "\\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right] = \\left[\\begin{array}{r}22.8 \\\\ 3.4 \\end{array}\\right]", "condition": "Activity 6.5.3"}
+    {"id": "eq-linear-regression-model", "latex": "\\beta_0 + \\beta_1 C = T", "condition": "the chirp rate C and the temperature T, Activity 6.5.3", "anchor": "6.5-linear-regression"},
+    {"id": "eq-cricket-solution", "latex": "\\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right] = \\left[\\begin{array}{r}22.8 \\\\ 3.4 \\end{array}\\right]", "condition": "Activity 6.5.3", "anchor": "6.5-linear-regression"}
    ]
   },
   {
@@ -628,8 +624,8 @@
    "symbol": "R_squared",
    "statement": "The square of the distance |b − Ax̂|² measures the amount by which the line fails to pass through the data points, but the size of this measure depends on the scale of the data: two lines may seem to fit the data equally well while |b − Ax̂|² is 100 times larger for one. The coefficient of determination R² = 1 − |b − Ax̂|²/|b̃|², where b̃ is the vector obtained by demeaning b, normalizes |b − Ax̂|² so that it is independent of the scale. We have 0 ≤ R² ≤ 1, and the closer R² is to 1, the better the line fits the data: R² = 0.75 for the three points of Figure 6.5.6 and R² = 0.69 for the cricket chirp rates. Assessing the confidence we have in predictions can require considerable thought, and it would be naive to rely only on the value of R².",
    "forms": [
-    {"id": "eq-coefficient-of-determination", "latex": "R^2 = 1 - \\frac{|{\\mathbf b} - A\\widehat{{\\mathbf x}}|^2} {|\\widetilde{{\\mathbf b}}|^2}", "condition": "b̃ the vector obtained by demeaning b"},
-    {"id": "eq-r-squared-bounds", "latex": "0\\leq R^2 \\leq 1"}
+    {"id": "eq-coefficient-of-determination", "latex": "R^2 = 1 - \\frac{|{\\mathbf b} - A\\widehat{{\\mathbf x}}|^2} {|\\widetilde{{\\mathbf b}}|^2}", "condition": "b̃ the vector obtained by demeaning b", "anchor": "6.5-definition-6-5-7"},
+    {"id": "eq-r-squared-bounds", "latex": "0\\leq R^2 \\leq 1", "anchor": "6.5-r-squared-bounds"}
    ]
   },
   {
@@ -639,9 +635,9 @@
    "name": "Least squares by a QR factorization",
    "statement": "If the columns of A are linearly independent and we have the QR factorization A = QR, then the least-squares approximate solution x̂ to the equation Ax = b is given by x̂ = R⁻¹Qᵀb (Proposition 6.5.8). Since the columns of Q form an orthonormal basis for Col(A), b̂ = QQᵀb and the equation Ax̂ = b̂ becomes QRx̂ = QQᵀb; multiplying both sides by Qᵀ, with QᵀQ = I, gives Rx̂ = Qᵀb, a relatively simple equation to solve using back substitution because R is upper triangular. Solving the normal equation can be problematic, since small rounding errors can accumulate and lead to inaccurate final results; this method is preferable as it is numerically more reliable.",
    "forms": [
-    {"id": "eq-least-squares-by-qr", "latex": "\\widehat{{\\mathbf x}} = R^{-1}Q^T{\\mathbf b}", "condition": "A = QR, the columns of A linearly independent"},
-    {"id": "eq-least-squares-r-equation", "latex": "R\\widehat{{\\mathbf x}} = Q^T{\\mathbf b}"},
-    {"id": "eq-least-squares-qr-equation", "latex": "QR\\widehat{{\\mathbf x}} = QQ^T{\\mathbf b}"}
+    {"id": "eq-least-squares-by-qr", "latex": "\\widehat{{\\mathbf x}} = R^{-1}Q^T{\\mathbf b}", "condition": "A = QR, the columns of A linearly independent", "anchor": "6.5-proposition-6-5-8"},
+    {"id": "eq-least-squares-r-equation", "latex": "R\\widehat{{\\mathbf x}} = Q^T{\\mathbf b}", "anchor": "6.5-qr-method"},
+    {"id": "eq-least-squares-qr-equation", "latex": "QR\\widehat{{\\mathbf x}} = QQ^T{\\mathbf b}", "anchor": "6.5-qr-method"}
    ]
   },
   {
@@ -652,8 +648,8 @@
    "terms": ["polynomial regression"],
    "statement": "Sometimes a polynomial, such as a quadratic function, may be more appropriate than a linear function, and the techniques of least squares are still useful. To fit β₀ + β₁x + β₂x² = y to the points (0, 2), (1, 1), (2, 3), (3, 3), each data point gives an equation β₀ + xᵢβ₁ + xᵢ²β₂ = yᵢ; the four equations form Ax = b with x = [β₀; β₁; β₂], and the least-squares approximate solution x̂ = [7/4; −1/4; 1/4], found from a QR factorization, gives the quadratic 7/4 − x/4 + x²/4 = y with R² = 0.54, while a cubic passes through each data point with R² = 1. Higher degree polynomials fit the data better, but a polynomial whose degree is too high wiggles more than we would expect: it tries too hard to fit data that contains some uncertainty, the noise, and gives the noise too much weight in the model. Fitting with a degree that is too high is called overfitting; we would like k large enough to capture the essential features of the data but not so large that we build the noise into the model.",
    "forms": [
-    {"id": "eq-quadratic-model", "latex": "\\beta_0 + \\beta_1 x + \\beta_2 x^2 = y"},
-    {"id": "eq-quadratic-fit-example", "latex": "\\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}7/4 \\\\ -1/4 \\\\ 1/4 \\end{array}\\right]", "condition": "the points (0, 2), (1, 1), (2, 3), (3, 3), Activity 6.5.5"}
+    {"id": "eq-quadratic-model", "latex": "\\beta_0 + \\beta_1 x + \\beta_2 x^2 = y", "anchor": "6.5-polynomial-models"},
+    {"id": "eq-quadratic-fit-example", "latex": "\\widehat{{\\mathbf x}} = \\left[\\begin{array}{r}7/4 \\\\ -1/4 \\\\ 1/4 \\end{array}\\right]", "condition": "the points (0, 2), (1, 1), (2, 3), (3, 3), Activity 6.5.5", "anchor": "6.5-polynomial-models"}
    ]
   },
   {
@@ -665,7 +661,7 @@
    "type": "matrix",
    "statement": "If the data points are labeled (xᵢ, yᵢ) and we seek a degree k polynomial, the matrix A of the least-squares problem has the special form A = [1 x₁ x₁² … x₁ᵏ; 1 x₂ x₂² … x₂ᵏ; ⋮; 1 x_m x_m² … x_mᵏ]. This is called a Vandermonde matrix of degree k.",
    "forms": [
-    {"id": "eq-vandermonde-matrix", "latex": "A = \\begin{bmatrix} 1 & x_1 & x_1^2 & \\ldots & x_1^k \\\\ 1 & x_2 & x_2^2 & \\ldots & x_2^k \\\\ \\vdots & \\vdots & \\vdots & \\ddots & \\vdots \\\\ 1 & x_m & x_m^2 & \\ldots & x_m^k \\end{bmatrix}", "condition": "a degree k polynomial fit to the data points (xᵢ, yᵢ)"}
+    {"id": "eq-vandermonde-matrix", "latex": "A = \\begin{bmatrix} 1 & x_1 & x_1^2 & \\ldots & x_1^k \\\\ 1 & x_2 & x_2^2 & \\ldots & x_2^k \\\\ \\vdots & \\vdots & \\vdots & \\ddots & \\vdots \\\\ 1 & x_m & x_m^2 & \\ldots & x_m^k \\end{bmatrix}", "condition": "a degree k polynomial fit to the data points (xᵢ, yᵢ)", "anchor": "6.5-special-form"}
    ]
   }
  ],
@@ -692,7 +688,6 @@
   {"concept": "clustering-objective", "prereq": "distance-between-vectors"},
   {"concept": "choosing-the-number-of-clusters", "prereq": "k-means-clustering"},
   {"concept": "choosing-the-number-of-clusters", "prereq": "clustering-objective"},
-
   {"concept": "orthogonal-complement", "prereq": "orthogonal-vectors"},
   {"concept": "orthogonal-complement", "prereq": "subspace"},
   {"concept": "orthogonal-complement-is-a-subspace", "prereq": "orthogonal-complement"},
@@ -721,7 +716,6 @@
   {"concept": "dimension-of-the-orthogonal-complement", "prereq": "orthogonal-complement-of-the-column-space"},
   {"concept": "dimension-of-the-orthogonal-complement", "prereq": "dimension-of-the-null-space"},
   {"concept": "dimension-of-the-orthogonal-complement", "prereq": "basis-and-dimension-of-the-column-space"},
-
   {"concept": "orthogonal-set", "prereq": "orthogonal-vectors"},
   {"concept": "coordinates-in-an-orthogonal-basis", "prereq": "orthogonal-set"},
   {"concept": "orthogonal-set-is-linearly-independent", "prereq": "coordinates-in-an-orthogonal-basis"},
@@ -760,7 +754,6 @@
   {"concept": "inverse-of-an-orthogonal-matrix", "prereq": "orthogonal-matrix"},
   {"concept": "inverse-of-an-orthogonal-matrix", "prereq": "orthonormal-columns-and-invertibility"},
   {"concept": "inverse-of-an-orthogonal-matrix", "prereq": "matrix-inverse"},
-
   {"concept": "gram-schmidt-process", "prereq": "vector-projection"},
   {"concept": "gram-schmidt-process", "prereq": "projection-onto-a-subspace"},
   {"concept": "gram-schmidt-process", "prereq": "normalization"},
@@ -771,7 +764,6 @@
   {"concept": "qr-factorization", "prereq": "matrix-product"},
   {"concept": "qr-factorization", "prereq": "orthonormal-basis"},
   {"concept": "finding-a-qr-factorization", "prereq": "qr-factorization"},
-
   {"concept": "least-squares-problem", "prereq": "inconsistent-system"},
   {"concept": "least-squares-problem", "prereq": "orthogonal-projection"},
   {"concept": "least-squares-problem", "prereq": "column-space"},

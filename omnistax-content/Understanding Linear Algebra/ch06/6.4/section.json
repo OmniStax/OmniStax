@@ -378,13 +378,12 @@
     "after": "sim-gram-schmidt-plane"
    },
    "cite": "sim-gram-schmidt-plane",
-   "prompt": "<p>Suppose we have a basis for ${\\mathbb R}^2$ consisting of the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}0 \\\\ 2 \\end{array}\\right] $$<p>as shown in Figure 6.4.1. Notice that this basis is not orthogonal.</p><ol type=\"a\"><li>Find the vector $\\kvecvtwohat$ that is the orthogonal projection of $\\kvecvtwo$ onto the line defined by $\\kvecvone$.</li><li>Explain why $\\kvecvtwo - \\kvecvtwohat$ is orthogonal to $\\kvecvone$.</li><li>Define the new vectors $\\kvecwone=\\kvecvone$ and $\\kvecwtwo=\\kvecvtwo-\\kvecvtwohat$ and sketch them in Figure 6.4.2. Explain why $\\kvecwone$ and $\\kvecwtwo$ define an orthogonal basis for ${\\mathbb R}^2$.</li><li>Write the vector $\\kvecb=\\left[\\begin{array}{r}8 \\\\ -10 \\end{array}\\right]$ as a linear combination of $\\kvecwone$ and $\\kvecwtwo$.</li><li>Scale the vectors $\\kvecwone$ and $\\kvecwtwo$ to produce an orthonormal basis $\\kvecuone$ and $\\kvecutwo$ for ${\\mathbb R}^2$.</li></ol>",
+   "prompt": "<p>Suppose we have a basis for ${\\mathbb R}^2$ consisting of the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}0 \\\\ 2 \\end{array}\\right] $$<p>as shown in Figure 6.4.1. Notice that this basis is not orthogonal.</p><ol type=\"a\"><li>Find the vector $\\kvecvtwohat$ that is the orthogonal projection of $\\kvecvtwo$ onto the line defined by $\\kvecvone$.</li><li>Explain why $\\kvecvtwo - \\kvecvtwohat$ is orthogonal to $\\kvecvone$.</li><li>Define the new vectors $\\kvecwone=\\kvecvone$ and $\\kvecwtwo=\\kvecvtwo-\\kvecvtwohat$ and sketch them in <a href=\"#6.4-sim-gram-schmidt-plane\">Figure 6.4.2</a><sup class=\"fn\" data-note=\"fn-a1-figure-6-4-2\"></sup>. Explain why $\\kvecwone$ and $\\kvecwtwo$ define an orthogonal basis for ${\\mathbb R}^2$.</li><li>Write the vector $\\kvecb=\\left[\\begin{array}{r}8 \\\\ -10 \\end{array}\\right]$ as a linear combination of $\\kvecwone$ and $\\kvecwtwo$.</li><li>Scale the vectors $\\kvecwone$ and $\\kvecwtwo$ to produce an orthonormal basis $\\kvecuone$ and $\\kvecutwo$ for ${\\mathbb R}^2$.</li></ol>",
    "answer": {
     "type": "open",
     "generated_by": "source",
     "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecvtwohat = \\kvecvone$.</li><li>The orthogonal projection $\\kvecvtwohat$ is defined so that $\\kvecvtwo-\\kvecvtwohat$ is orthogonal to $\\kvecvone$.</li><li>$\\kvecwone = \\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and $\\kvecwtwo=\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$ are othogonal, which can be checked with the dot product.</li><li>The projection formula gives $\\kvecb = -\\kvecwone -9\\kvecwtwo$.</li><li>$\\kvecuone=\\frac1{\\sqrt{2}}\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and $\\kvecutwo=\\frac1{\\sqrt{2}}\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$.</li></ol>"
-   },
-   "changes": "The empty grid of part c, Figure 6.4.2, is not printed; Figure 6.4.1 draws $\\kvecwone$ and $\\kvecwtwo$."
+   }
   },
   {
    "id": "a2",
@@ -832,6 +831,11 @@
    "id": "e5-answer-a",
    "kind": "correction",
    "html": "The book prints $\\kvecw$; the vector that comes out zero is $\\kvecwthree$, as the solution says."
+  },
+  {
+   "id": "fn-a1-figure-6-4-2",
+   "kind": "correction",
+   "html": "Figure 6.4.2 is the book’s empty grid for the reader’s sketch and is not reproduced here; the citation opens Figure 6.4.1, which draws $\\kvecwone$ and $\\kvecwtwo$ as they are formed from $\\kvecvone$ and $\\kvecvtwo$."
   }
  ]
 }
