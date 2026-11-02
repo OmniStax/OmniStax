@@ -22,7 +22,8 @@
     "ch01",
     "ch02",
     "ch03",
-    "ch04"
+    "ch04",
+    "ch05"
   ],
   "intro": {
     "module": "preface"
@@ -583,6 +584,103 @@
     {
       "sym": "A_k_count",
       "latex": "A_k"
+    },
+    {
+      "sym": "A_1",
+      "latex": "A_1",
+      "macro": "\\kAone"
+    },
+    {
+      "sym": "A_2",
+      "latex": "A_2",
+      "macro": "\\kAtwo"
+    },
+    {
+      "sym": "A_3",
+      "latex": "A_3",
+      "macro": "\\kAthree"
+    },
+    {
+      "sym": "E_2",
+      "latex": "E_2",
+      "macro": "\\kEtwo"
+    },
+    {
+      "sym": "E_3",
+      "latex": "E_3",
+      "macro": "\\kEthree"
+    },
+    {
+      "sym": "c_vec",
+      "latex": "\\mathbf{c}",
+      "macro": "\\kvecc"
+    },
+    {
+      "sym": "L_inv",
+      "latex": "L^{-1}",
+      "macro": "\\kLinv"
+    },
+    {
+      "sym": "U_inv",
+      "latex": "U^{-1}",
+      "macro": "\\kUinv"
+    },
+    {
+      "sym": "x_1_vec",
+      "latex": "\\mathbf{x}_1",
+      "macro": "\\kvecxone"
+    },
+    {
+      "sym": "x_2_vec",
+      "latex": "\\mathbf{x}_2",
+      "macro": "\\kvecxtwo"
+    },
+    {
+      "sym": "x_3_vec",
+      "latex": "\\mathbf{x}_3",
+      "macro": "\\kvecxthree"
+    },
+    {
+      "sym": "x_k_bar_vec",
+      "latex": "\\overline{\\mathbf{x}}_k",
+      "macro": "\\kvecxkbar"
+    },
+    {
+      "sym": "x_1_bar_vec",
+      "latex": "\\overline{\\mathbf{x}}_1",
+      "macro": "\\kvecxonebar"
+    },
+    {
+      "sym": "x_2_bar_vec",
+      "latex": "\\overline{\\mathbf{x}}_2",
+      "macro": "\\kvecxtwobar"
+    },
+    {
+      "sym": "x_3_bar_vec",
+      "latex": "\\overline{\\mathbf{x}}_3",
+      "macro": "\\kvecxthreebar"
+    },
+    {
+      "sym": "v_bar_vec",
+      "latex": "\\overline{\\mathbf{v}}",
+      "macro": "\\kvecvbar"
+    },
+    {
+      "sym": "lambda_4",
+      "latex": "\\lambda_4",
+      "macro": "\\klambdafour"
+    },
+    {
+      "sym": "m_k",
+      "latex": "m_k"
+    },
+    {
+      "sym": "s",
+      "latex": "s"
+    },
+    {
+      "sym": "N",
+      "latex": "N"
     }
   ],
   "exercise_kinds": [
@@ -1086,7 +1184,8 @@
         {
           "id": "eq-line-of-vectors",
           "latex": "c\\mathbf{v} + \\mathbf{w}",
-          "condition": "c any scalar"
+          "condition": "c any scalar",
+          "anchor": "2.1-line-of-vectors"
         }
       ]
     },
@@ -1099,11 +1198,13 @@
       "forms": [
         {
           "id": "eq-vector-addition-commutative",
-          "latex": "\\mathbf{v} + \\mathbf{w} = \\mathbf{w} + \\mathbf{v}"
+          "latex": "\\mathbf{v} + \\mathbf{w} = \\mathbf{w} + \\mathbf{v}",
+          "anchor": "2.1-observation-2-1-8"
         },
         {
           "id": "eq-scalar-multiplication-distributive",
-          "latex": "a(\\mathbf{v} + \\mathbf{w}) = a\\mathbf{v} + a\\mathbf{w}"
+          "latex": "a(\\mathbf{v} + \\mathbf{w}) = a\\mathbf{v} + a\\mathbf{w}",
+          "anchor": "2.1-observation-2-1-8"
         }
       ]
     },
@@ -1127,7 +1228,8 @@
       "forms": [
         {
           "id": "eq-linear-combination",
-          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n"
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n",
+          "anchor": "2.1-definition-2-1-9"
         }
       ]
     },
@@ -1140,11 +1242,13 @@
       "forms": [
         {
           "id": "eq-linear-combination-augmented-matrix",
-          "latex": "\\left[ \\begin{array}{rrrr|r} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n & \\mathbf{b} \\end{array} \\right]"
+          "latex": "\\left[ \\begin{array}{rrrr|r} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n & \\mathbf{b} \\end{array} \\right]",
+          "anchor": "2.1-prop-system-comb"
         },
         {
           "id": "eq-linear-combination-equals-b",
-          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{b}"
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{b}",
+          "anchor": "2.1-prop-system-comb"
         }
       ]
     },
@@ -1171,7 +1275,8 @@
       "forms": [
         {
           "id": "eq-matrix-scalar-multiple",
-          "latex": "c\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} c\\mathbf{v}_1 & c\\mathbf{v}_2 & \\cdots & c\\mathbf{v}_n \\end{array} \\right]"
+          "latex": "c\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} c\\mathbf{v}_1 & c\\mathbf{v}_2 & \\cdots & c\\mathbf{v}_n \\end{array} \\right]",
+          "anchor": "2.2-matrix-operations"
         }
       ]
     },
@@ -1184,7 +1289,8 @@
       "forms": [
         {
           "id": "eq-matrix-sum",
-          "latex": "\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] + \\left[\\begin{array}{rrrr} \\mathbf{w}_1 & \\mathbf{w}_2 & \\cdots & \\mathbf{w}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} \\mathbf{v}_1+\\mathbf{w}_1 & \\mathbf{v}_2+\\mathbf{w}_2 & \\cdots & \\mathbf{v}_n+\\mathbf{w}_n \\end{array} \\right]"
+          "latex": "\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] + \\left[\\begin{array}{rrrr} \\mathbf{w}_1 & \\mathbf{w}_2 & \\cdots & \\mathbf{w}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} \\mathbf{v}_1+\\mathbf{w}_1 & \\mathbf{v}_2+\\mathbf{w}_2 & \\cdots & \\mathbf{v}_n+\\mathbf{w}_n \\end{array} \\right]",
+          "anchor": "2.2-matrix-operations"
         }
       ]
     },
@@ -1202,11 +1308,13 @@
       "forms": [
         {
           "id": "eq-identity-matrix-3",
-          "latex": "I_3 = \\left[ \\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array} \\right]"
+          "latex": "I_3 = \\left[ \\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array} \\right]",
+          "anchor": "2.2-same-shape"
         },
         {
           "id": "eq-identity-times-vector",
-          "latex": "I\\mathbf{x} = \\mathbf{x}"
+          "latex": "I\\mathbf{x} = \\mathbf{x}",
+          "anchor": "2.2-same-shape"
         }
       ]
     },
@@ -1223,7 +1331,8 @@
         {
           "id": "eq-matrix-vector-product",
           "latex": "A\\mathbf{x} = c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n",
-          "condition": "A = [v₁ v₂ … vₙ], x the vector of weights c₁, …, cₙ"
+          "condition": "A = [v₁ v₂ … vₙ], x the vector of weights c₁, …, cₙ",
+          "anchor": "2.2-definition-2-2-2"
         }
       ]
     },
@@ -1259,15 +1368,18 @@
       "forms": [
         {
           "id": "eq-matrix-times-zero-vector",
-          "latex": "A\\mathbf{0} = \\mathbf{0}"
+          "latex": "A\\mathbf{0} = \\mathbf{0}",
+          "anchor": "2.2-prop-matrix-mult-prop"
         },
         {
           "id": "eq-matrix-scalar-linearity",
-          "latex": "A(c\\mathbf{v}) = cA\\mathbf{v}"
+          "latex": "A(c\\mathbf{v}) = cA\\mathbf{v}",
+          "anchor": "2.2-prop-matrix-mult-prop"
         },
         {
           "id": "eq-matrix-sum-linearity",
-          "latex": "A(\\mathbf{v}+\\mathbf{w}) = A\\mathbf{v} + A\\mathbf{w}"
+          "latex": "A(\\mathbf{v}+\\mathbf{w}) = A\\mathbf{v} + A\\mathbf{w}",
+          "anchor": "2.2-prop-matrix-mult-prop"
         }
       ]
     },
@@ -1280,11 +1392,13 @@
       "forms": [
         {
           "id": "eq-matrix-equation",
-          "latex": "A\\mathbf{x} = \\mathbf{b}"
+          "latex": "A\\mathbf{x} = \\mathbf{b}",
+          "anchor": "2.2-turn-around"
         },
         {
           "id": "eq-matrix-augmented-by-a-vector",
-          "latex": "\\left[\\begin{array}{rrrr|r} \\mathbf{v}_1&\\mathbf{v}_2&\\cdots&\\mathbf{v}_n&\\mathbf{b}\\end{array}\\right] = \\left[ \\begin{array}{r|r} A & \\mathbf{b} \\end{array}\\right]"
+          "latex": "\\left[\\begin{array}{rrrr|r} \\mathbf{v}_1&\\mathbf{v}_2&\\cdots&\\mathbf{v}_n&\\mathbf{b}\\end{array}\\right] = \\left[ \\begin{array}{r|r} A & \\mathbf{b} \\end{array}\\right]",
+          "anchor": "2.2-augmented-by"
         }
       ]
     },
@@ -1297,7 +1411,8 @@
       "forms": [
         {
           "id": "eq-matrix-equation-as-a-linear-combination",
-          "latex": "x_1\\mathbf{v}_1 + x_2\\mathbf{v}_2 + \\ldots + x_n\\mathbf{v}_n = \\mathbf{b}"
+          "latex": "x_1\\mathbf{v}_1 + x_2\\mathbf{v}_2 + \\ldots + x_n\\mathbf{v}_n = \\mathbf{b}",
+          "anchor": "2.2-prop-matrix-eq-solution"
         }
       ]
     },
@@ -1311,7 +1426,8 @@
         {
           "id": "eq-solution-space-in-vector-form",
           "latex": "\\mathbf{x} = \\mathbf{v} + x_3\\mathbf{w}",
-          "condition": "one free variable x₃"
+          "condition": "one free variable x₃",
+          "anchor": "2.2-vector-form"
         }
       ]
     },
@@ -1330,7 +1446,8 @@
         {
           "id": "eq-matrix-product-columns",
           "latex": "AB = \\left[\\begin{array}{rrrr} A\\mathbf{v}_1 & A\\mathbf{v}_2 & \\cdots & A\\mathbf{v}_p \\end{array}\\right]",
-          "condition": "B = [v₁ v₂ … vₚ]"
+          "condition": "B = [v₁ v₂ … vₚ]",
+          "anchor": "2.2-definition-2-2-6"
         }
       ]
     },
@@ -1350,15 +1467,18 @@
       "forms": [
         {
           "id": "eq-matrix-associativity",
-          "latex": "A(BC) = (AB)C"
+          "latex": "A(BC) = (AB)C",
+          "anchor": "2.2-properties-matrix-multiplication"
         },
         {
           "id": "eq-matrix-left-distributivity",
-          "latex": "A(B+C) = AB+AC"
+          "latex": "A(B+C) = AB+AC",
+          "anchor": "2.2-properties-matrix-multiplication"
         },
         {
           "id": "eq-matrix-right-distributivity",
-          "latex": "(A+B)C = AC+BC"
+          "latex": "(A+B)C = AC+BC",
+          "anchor": "2.2-properties-matrix-multiplication"
         }
       ]
     },
@@ -1372,7 +1492,8 @@
         {
           "id": "eq-matrix-noncommutativity",
           "latex": "AB \\neq BA",
-          "condition": "in general"
+          "condition": "in general",
+          "anchor": "2.2-caution"
         }
       ]
     },
@@ -1397,7 +1518,8 @@
       "forms": [
         {
           "id": "eq-span-notation",
-          "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}"
+          "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}",
+          "anchor": "2.3-convention-2-3-9"
         }
       ]
     },
@@ -1432,7 +1554,8 @@
         {
           "id": "eq-span-is-whole-space",
           "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\} = {\\mathbb R}^m",
-          "condition": "the matrix [v₁ v₂ … vₙ] has a pivot position in every row"
+          "condition": "the matrix [v₁ v₂ … vₙ] has a pivot position in every row",
+          "anchor": "2.3-prop-pivot-row"
         }
       ]
     },
@@ -1446,7 +1569,8 @@
         {
           "id": "eq-span-bound",
           "latex": "n \\geq m",
-          "condition": "n vectors spanning ℝᵐ"
+          "condition": "n vectors spanning ℝᵐ",
+          "anchor": "2.3-prop-span-bound"
         }
       ]
     },
@@ -1478,7 +1602,8 @@
         {
           "id": "eq-span-unchanged-by-a-dependent-vector",
           "latex": "\\text{Span}\\left\\{\\mathbf{w}_1,\\mathbf{w}_2,\\mathbf{w}_3\\right\\} = \\text{Span}\\left\\{\\mathbf{w}_1,\\mathbf{w}_2\\right\\}",
-          "condition": "w₃ a linear combination of w₁ and w₂"
+          "condition": "w₃ a linear combination of w₁ and w₂",
+          "anchor": "2.4-example-span-plane"
         }
       ]
     },
@@ -1508,7 +1633,8 @@
       "forms": [
         {
           "id": "eq-homogeneous-equation",
-          "latex": "A\\mathbf{x} = \\mathbf{0}"
+          "latex": "A\\mathbf{x} = \\mathbf{0}",
+          "anchor": "2.4-homogeneous"
         }
       ]
     },
@@ -1522,7 +1648,8 @@
         {
           "id": "eq-linear-dependence-relation",
           "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{0}",
-          "condition": "weights not all zero"
+          "condition": "weights not all zero",
+          "anchor": "2.4-proposition-2-4-9"
         }
       ]
     },
@@ -1554,12 +1681,14 @@
       "forms": [
         {
           "id": "eq-matrix-transformation",
-          "latex": "T(\\mathbf{x}) = A\\mathbf{x}"
+          "latex": "T(\\mathbf{x}) = A\\mathbf{x}",
+          "anchor": "2.5-definition-2-5-3"
         },
         {
           "id": "eq-matrix-transformation-domain",
           "latex": "T:{\\mathbb R}^n\\to{\\mathbb R}^m",
-          "condition": "A an m × n matrix"
+          "condition": "A an m × n matrix",
+          "anchor": "2.5-compatible-shapes"
         }
       ]
     },
@@ -1574,7 +1703,8 @@
       "forms": [
         {
           "id": "eq-standard-basis-vectors",
-          "latex": "\\mathbf{e}_1 = \\left[\\begin{array}{c} 1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\mathbf{e}_2 = \\left[\\begin{array}{c} 0 \\\\ 1 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\ldots,~~~ \\mathbf{e}_n = \\left[\\begin{array}{c} 0 \\\\ 0 \\\\ \\vdots \\\\ 1 \\end{array}\\right]"
+          "latex": "\\mathbf{e}_1 = \\left[\\begin{array}{c} 1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\mathbf{e}_2 = \\left[\\begin{array}{c} 0 \\\\ 1 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\ldots,~~~ \\mathbf{e}_n = \\left[\\begin{array}{c} 0 \\\\ 0 \\\\ \\vdots \\\\ 1 \\end{array}\\right]",
+          "anchor": "2.5-standard-vectors"
         }
       ]
     },
@@ -1587,11 +1717,13 @@
       "forms": [
         {
           "id": "eq-matrix-columns-from-a-transformation",
-          "latex": "A = \\left[\\begin{array}{rrrr} T(\\mathbf{e}_1) & T(\\mathbf{e}_2) & \\cdots & T(\\mathbf{e}_n) \\end{array}\\right]"
+          "latex": "A = \\left[\\begin{array}{rrrr} T(\\mathbf{e}_1) & T(\\mathbf{e}_2) & \\cdots & T(\\mathbf{e}_n) \\end{array}\\right]",
+          "anchor": "2.5-prop-linear-trans-columns"
         },
         {
           "id": "eq-transformation-of-a-standard-vector",
-          "latex": "T(\\mathbf{e}_j) = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n \\end{array}\\right] ~\\mathbf{e}_j = \\mathbf{v}_j"
+          "latex": "T(\\mathbf{e}_j) = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n \\end{array}\\right] ~\\mathbf{e}_j = \\mathbf{v}_j",
+          "anchor": "2.5-standard-vectors"
         }
       ]
     },
@@ -1614,12 +1746,14 @@
       "forms": [
         {
           "id": "eq-composition-of-matrix-transformations",
-          "latex": "(S\\circ T)(\\mathbf{x}) = S(T(\\mathbf{x})) = S(A\\mathbf{x}) = BA\\mathbf{x} = (BA)\\mathbf{x}"
+          "latex": "(S\\circ T)(\\mathbf{x}) = S(T(\\mathbf{x})) = S(A\\mathbf{x}) = BA\\mathbf{x} = (BA)\\mathbf{x}",
+          "anchor": "2.5-composing-matrix-transformations"
         },
         {
           "id": "eq-function-composition",
           "latex": "(h\\circ g)(x) = h(g(x))",
-          "condition": "functions of one variable"
+          "condition": "functions of one variable",
+          "anchor": "2.5-composition-named"
         }
       ]
     },
@@ -1657,11 +1791,13 @@
       "forms": [
         {
           "id": "eq-discrete-dynamical-system",
-          "latex": "\\mathbf{x}_{k+1}=A\\mathbf{x}_k"
+          "latex": "\\mathbf{x}_{k+1}=A\\mathbf{x}_k",
+          "anchor": "2.5-discrete-dynamical-system"
         },
         {
           "id": "eq-state-after-two-steps",
-          "latex": "\\mathbf{x}_2 = T(\\mathbf{x}_1) = (T\\circ T)(\\mathbf{x}_0)= A^2\\mathbf{x}_0"
+          "latex": "\\mathbf{x}_2 = T(\\mathbf{x}_1) = (T\\circ T)(\\mathbf{x}_0)= A^2\\mathbf{x}_0",
+          "anchor": "2.5-state-evolution"
         }
       ]
     },
@@ -1679,7 +1815,8 @@
         {
           "id": "eq-reflection-across-the-horizontal-axis",
           "latex": "\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\end{array}\\right]",
-          "condition": "reflection across the horizontal axis"
+          "condition": "reflection across the horizontal axis",
+          "anchor": "2.6-sim-reflection"
         },
         {
           "id": "eq-horizontal-stretch",
@@ -1744,7 +1881,8 @@
         {
           "id": "eq-rotation-by-45-degrees",
           "latex": "A = \\left[\\begin{array}{rr} \\frac{1}{\\sqrt{2}} & -\\frac{1}{\\sqrt{2}} \\\\ \\frac{1}{\\sqrt{2}} & \\frac{1}{\\sqrt{2}} \\end{array}\\right]",
-          "condition": "rotation by 45°"
+          "condition": "rotation by 45°",
+          "anchor": "2.6-rotation-45-matrix"
         }
       ]
     },
@@ -1757,11 +1895,13 @@
       "forms": [
         {
           "id": "eq-transformation-scalar-linearity",
-          "latex": "T(c\\mathbf{v}) = cT(\\mathbf{v})"
+          "latex": "T(c\\mathbf{v}) = cT(\\mathbf{v})",
+          "anchor": "2.6-prop-linear-trans-characterization"
         },
         {
           "id": "eq-transformation-sum-linearity",
-          "latex": "T(\\mathbf{v} + \\mathbf{w}) = T(\\mathbf{v}) + T(\\mathbf{w})"
+          "latex": "T(\\mathbf{v} + \\mathbf{w}) = T(\\mathbf{v}) + T(\\mathbf{w})",
+          "anchor": "2.6-prop-linear-trans-characterization"
         }
       ]
     },
@@ -1801,20 +1941,24 @@
       "forms": [
         {
           "id": "eq-homogeneous-coordinates",
-          "latex": "\\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right]"
+          "latex": "\\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right]",
+          "anchor": "2.6-homogeneous-vectors"
         },
         {
           "id": "eq-homogeneous-coordinate-matrix",
-          "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right]"
+          "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right]",
+          "anchor": "2.6-sim-stick-figure"
         },
         {
           "id": "eq-homogeneous-coordinate-transformation",
-          "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{c}ax+by+c \\\\ dx+ey+f \\\\ 1 \\end{array}\\right]"
+          "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{c}ax+by+c \\\\ dx+ey+f \\\\ 1 \\end{array}\\right]",
+          "anchor": "2.6-sim-stick-figure"
         },
         {
           "id": "eq-translation-matrix",
           "latex": "\\left[\\begin{array}{rrr} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{array}\\right]",
-          "condition": "translation by two units horizontally and one unit vertically"
+          "condition": "translation by two units horizontally and one unit vertically",
+          "anchor": "2.6-sim-stick-figure"
         }
       ]
     },
@@ -3486,6 +3630,307 @@
           "latex": "H_n = \\left[\\begin{array}{rrrr} \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\vdots & \\vdots & \\ddots & \\vdots \\\\ \\frac1n & \\frac1n & \\ldots & \\frac1n \\\\ \\end{array}\\right]"
         }
       ]
+    },
+    {
+      "id": "round-off-error",
+      "kind": "definition",
+      "section": "5.1",
+      "name": "Round off error",
+      "terms": [
+        "round off error"
+      ],
+      "statement": "Computers do not perform arithmetic operations exactly. They compute in base 2, so a number such as 0.1, simple in decimal form, has the repeating base-2 expansion 0.000110011001100… and can only be held approximately; and the operations themselves are prone to error: a computer keeping three decimal digits represents 1.023 as 1.02 and 0.023421 as 0.0234, and reports their sum 1.046421 as 1.04, whose last digit is not correctly rounded. This problem, called round off error, appears whenever we add numbers of significantly different magnitudes. Gaussian elimination on a 1000 × 1000 matrix requires roughly a billion operations, and the errors introduced in each could accumulate; we can never completely avoid them, but we can take steps to mitigate them.",
+      "forms": [
+        {
+          "id": "eq-round-off-three-digits",
+          "latex": "1.02 + 0.0234 = 1.04",
+          "condition": "a computer keeping three decimal digits, for 1.023 + 0.023421 = 1.046421"
+        },
+        {
+          "id": "eq-one-tenth-in-base-two",
+          "latex": "0.1 = 0.000110011001100110011001100110011001100110011\\ldots",
+          "condition": "the right-hand side in base 2"
+        }
+      ]
+    },
+    {
+      "id": "sensitivity-of-a-solution-to-small-errors",
+      "kind": "idea",
+      "section": "5.1",
+      "name": "Sensitivity of a solution to small errors",
+      "statement": "The order of the equations has no effect on the solution space, but when arithmetic is only approximate, interchanging equations can dramatically improve the accuracy of the approximate solution. For 0.0001x + y = 1, x + y = 2 the exact solution is x = 1.00010001…, y = 0.99989998…, and a three-digit computer can at best find x ≈ 1.00, y ≈ 1.00. Either order gives y ≈ 1.00; the difference comes when y is substituted into the first equation. Each equation is a line and the solution their intersection; along the nearly horizontal line 0.0001x + y = 1 a small change in y leads to a large change in x, so the slight error in y gives x ≈ 0.00, while along the line x + y = 2 of slope −1 a small change in y changes x only a little, so x ≈ 1.00. Simply interchanging the order of the equations produces a much more accurate solution.",
+      "forms": [
+        {
+          "id": "eq-partial-pivot-exact-solution",
+          "latex": "x = 1.00010001\\ldots, \\qquad y = 0.99989998\\ldots",
+          "condition": "the exact solution of 0.0001x + y = 1, x + y = 2"
+        },
+        {
+          "id": "eq-partial-pivot-computed-solutions",
+          "latex": "x \\approx 0.00,\\ y \\approx 1.00 \\quad\\text{against}\\quad x \\approx 1.00,\\ y \\approx 1.00",
+          "condition": "a three-digit computer, the equations in their original order and interchanged"
+        }
+      ]
+    },
+    {
+      "id": "partial-pivoting",
+      "kind": "definition",
+      "section": "5.1",
+      "name": "Partial pivoting",
+      "terms": [
+        "partial pivoting"
+      ],
+      "statement": "Computing exactly, we only need to perform a row interchange when a zero occurs in a pivot position. Computers instead perform a row interchange at each step to put the entry having the largest possible absolute value into the pivot position: for the matrix with first column 2, 1, −3, Gaussian elimination begins by interchanging the first and third rows so that the upper left entry has the largest possible absolute value. This technique is called partial pivoting, and it means that, in practice, many more row interchanges are performed than when computing by hand; it is what Sage's LU command uses.",
+      "forms": [
+        {
+          "id": "eq-partial-pivoting-interchange",
+          "latex": "\\left[\\begin{array}{rrrr} 2 & 1 & 2 & 3 \\\\ 1 & -3 & -2 & 1 \\\\ -3 & 2 & 3 & -2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} -3 & 2 & 3 & -2 \\\\ 1 & -3 & -2 & 1 \\\\ 2 & 1 & 2 & 3 \\end{array}\\right]",
+          "condition": "the first step, interchanging rows so that the pivot has the largest absolute value"
+        }
+      ]
+    },
+    {
+      "id": "finding-an-lu-factorization",
+      "kind": "skill",
+      "section": "5.1",
+      "name": "Finding an LU factorization",
+      "statement": "To factor A as a product of two triangular matrices, A = LU with L lower triangular and U upper triangular, apply the Gaussian elimination algorithm without partial pivoting and represent each row replacement by an elementary matrix, so that E₃E₂E₁A = U is upper triangular. Then A = (E₃E₂E₁)⁻¹U = E₁⁻¹E₂⁻¹E₃⁻¹U = LU, and L is lower triangular because the elementary matrices E₁, E₂, E₃ of row replacements are. For A = [2 −3 1; −4 5 0; 2 −2 2], L = [1 0 0; −2 1 0; 1 −1 1] and U = [2 −3 1; 0 −1 2; 0 0 3].",
+      "forms": [
+        {
+          "id": "eq-lu-from-elementary-matrices",
+          "latex": "A = (E_3E_2E_1)^{-1}U = E_1^{-1}E_2^{-1}E_3^{-1}U = LU"
+        },
+        {
+          "id": "eq-elimination-by-elementary-matrices",
+          "latex": "E_3E_2E_1A = U",
+          "condition": "the row replacements of Gaussian elimination, without partial pivoting"
+        },
+        {
+          "id": "eq-lu-example-5-1-1",
+          "latex": "A = LU = \\begin{bmatrix} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ 1 & -1 & 1 \\end{bmatrix} \\begin{bmatrix} 2 & -3 & 1 \\\\ 0 & -1 & 2 \\\\ 0 & 0 & 3 \\end{bmatrix}",
+          "condition": "Example 5.1.1"
+        }
+      ]
+    },
+    {
+      "id": "forward-substitution",
+      "kind": "skill",
+      "section": "5.1",
+      "name": "Forward substitution",
+      "statement": "Because L is lower triangular, the equation Lc = b is solved by reading the components of c off one at a time from the top: for L = [1 0 0; −2 1 0; 1 −1 1] and b = [8, −13, 8], the first equation gives c₁ = 8, then −2c₁ + c₂ = −13 gives c₂ = 3, and c₁ − c₂ + c₃ = 8 gives c₃ = 3. Solving a triangular system is simplified because we only need to perform a sequence of substitutions, working downward for a lower triangular matrix as back substitution works upward for an upper triangular one.",
+      "forms": [
+        {
+          "id": "eq-forward-substitution-example",
+          "latex": "c_1 = 8, \\qquad -2c_1 + c_2 = -13, \\qquad c_1 - c_2 + c_3 = 8",
+          "condition": "Lc = b for L = [1 0 0; −2 1 0; 1 −1 1] and b = [8, −13, 8]"
+        }
+      ]
+    },
+    {
+      "id": "solving-a-system-with-an-lu-factorization",
+      "kind": "skill",
+      "section": "5.1",
+      "name": "Solving a system with an LU factorization",
+      "statement": "An LU factorization allows us to trade in one equation Ax = b for two simpler equations: writing Ax = L(Ux) = b and defining the unknown vector c = Ux, we first solve Lc = b by forward substitution and then Ux = c by back substitution. In Example 5.1.1, c = [8, 3, 3] and x = [2, −1, 1]. To solve Ax = b for a different right-hand side b, we simply repeat the two-step process with the same L and U.",
+      "forms": [
+        {
+          "id": "eq-lu-two-triangular-systems",
+          "latex": "L\\mathbf{c} = \\mathbf{b}, \\qquad U\\mathbf{x} = \\mathbf{c}"
+        },
+        {
+          "id": "eq-lu-solve-split",
+          "latex": "A\\mathbf{x} = LU\\mathbf{x} = L(U\\mathbf{x}) = \\mathbf{b}"
+        }
+      ]
+    },
+    {
+      "id": "efficiency-of-the-lu-factorization",
+      "kind": "result",
+      "section": "5.1",
+      "name": "Efficiency of the LU factorization",
+      "statement": "Solving an equation with an n × n triangular matrix requires approximately ½n² operations, so once we have A = LU, solving Ax = b by the two triangular equations takes about n² operations: for a 1000 × 1000 matrix, about one million steps against the roughly a billion, ⅔n³, that Gaussian elimination needs. Finding the LU factorization requires roughly the same amount of work as Gaussian elimination, but once we have it we can use it to solve Ax = b for different right-hand sides b without performing the elimination again.",
+      "forms": [
+        {
+          "id": "eq-lu-solve-operations",
+          "latex": "n^2",
+          "condition": "operations to solve Ax = b once A = LU is known, against ⅔n³ for Gaussian elimination"
+        },
+        {
+          "id": "eq-triangular-solve-operations",
+          "latex": "\\tfrac{1}{2}n^2",
+          "condition": "operations to solve one equation with an n × n triangular matrix"
+        }
+      ]
+    },
+    {
+      "id": "plu-factorization",
+      "kind": "definition",
+      "section": "5.1",
+      "name": "LU factorization with a permutation matrix",
+      "statement": "Gaussian elimination sometimes requires row interchanges in addition to row replacements, and a row interchange is represented by a permutation matrix such as P = [0 0 1; 0 1 0; 1 0 0], which is not triangular and so disrupts the structure of the factorization. Linear algebra software packages therefore provide a permutation matrix P that describes how the rows are permuted in the Gaussian elimination process, and write PA = LU with L lower triangular and U upper triangular; Sage's P, L, U = A.LU() returns them, found with partial pivoting. To solve Ax = b, multiply both sides by P to obtain PAx = LUx = Pb, then solve Lc = Pb and Ux = c.",
+      "forms": [
+        {
+          "id": "eq-plu-factorization",
+          "latex": "PA = LU",
+          "condition": "P a permutation matrix, L lower triangular, U upper triangular"
+        },
+        {
+          "id": "eq-plu-two-triangular-systems",
+          "latex": "L\\mathbf{c} = P\\mathbf{b}, \\qquad U\\mathbf{x} = \\mathbf{c}"
+        },
+        {
+          "id": "eq-plu-solve",
+          "latex": "PA\\mathbf{x} = LU\\mathbf{x} = P\\mathbf{b}"
+        }
+      ]
+    },
+    {
+      "id": "limits-of-exact-eigenvalue-computation",
+      "kind": "idea",
+      "section": "5.2",
+      "name": "Why eigenvalues are not computed exactly in practice",
+      "statement": "We have found the eigenvalues of a square matrix A as the roots of the characteristic polynomial det(A − λI) = 0 and the eigenvectors as the null space Nul(A − λI). This is not practical for large matrices: finding the characteristic polynomial of a large matrix requires considerable computation, as does finding the roots of that polynomial, and finding the null space of a singular matrix is plagued by numerical problems, since round off error can make A − λI appear to have a pivot in every row, as when Sage reports the reduced row echelon form of A − I as the identity for a positive stochastic matrix A. For this reason, the power method finds numerical approximations to the eigenvalues and eigenvectors instead."
+    },
+    {
+      "id": "dominant-eigenvalue",
+      "kind": "definition",
+      "section": "5.2",
+      "name": "Dominant eigenvalue",
+      "terms": [
+        "dominant eigenvalue",
+        "dominant"
+      ],
+      "symbol": "lambda_1",
+      "type": "eigenvalue",
+      "statement": "The eigenvalue of a matrix A having the largest absolute value is called the dominant eigenvalue. For the positive stochastic matrix [0.7 0.6; 0.3 0.4], with eigenvalues 1 and 0.1, the dominant eigenvalue is λ₁ = 1; for [2 1; 1 2], with eigenvalues 3 and 1, it is λ₁ = 3; for [−5.1 5.7; −3.8 4.4] it is λ₁ = −1.3, since |−1.3| > |0.6|."
+    },
+    {
+      "id": "power-iteration-convergence",
+      "kind": "result",
+      "section": "5.2",
+      "name": "Repeated multiplication approaches the dominant eigenspace",
+      "statement": "Beginning with a vector x₀ and defining the sequence x_{k+1} = Ax_k, so that x_k = Aᵏx₀, the vectors x_k become increasingly close in direction to the eigenspace of the dominant eigenvalue. If x₀ = c₁v₁ + c₂v₂ with λ₁ dominant, then x_k = c₁λ₁ᵏv₁ + c₂λ₂ᵏv₂, and the contribution of v₂ shrinks relative to v₁'s: for the stochastic matrix of Example 5.2.1, x_k = ⅓v₁ − ⅓(0.1)ᵏv₂ ≈ ⅓v₁ when k is large, which is the convergence of a Markov chain to its steady-state vector restated, and essentially how PageRank finds a basis vector of E₁; for A = [2 1; 1 2], x_k = 3ᵏ½v₁ − ½v₂ is stretched by 3 in the v₁ direction and not at all in the v₂ direction, so the vectors become increasingly long but their direction becomes closer to that of v₁ = [1, 1].",
+      "forms": [
+        {
+          "id": "eq-power-method-sequence",
+          "latex": "\\mathbf{x}_{k+1} = A\\mathbf{x}_k",
+          "condition": "x₀ chosen"
+        },
+        {
+          "id": "eq-power-method-iterate",
+          "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = c_1\\lambda_1^k\\mathbf{v}_1 + c_2\\lambda_2^k\\mathbf{v}_2",
+          "condition": "x₀ = c₁v₁ + c₂v₂, λ₁ dominant"
+        },
+        {
+          "id": "eq-power-method-stochastic-example",
+          "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = \\tfrac13\\mathbf{v}_1 - \\tfrac13(0.1)^k\\mathbf{v}_2",
+          "condition": "Example 5.2.1, A = [0.7 0.6; 0.3 0.4], x₀ = [1, 0]"
+        },
+        {
+          "id": "eq-power-method-growing-example",
+          "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = 3^k\\tfrac12\\mathbf{v}_1 - \\tfrac12\\mathbf{v}_2",
+          "condition": "Example 5.2.2, A = [2 1; 1 2], x₀ = [1, 0]"
+        }
+      ]
+    },
+    {
+      "id": "power-method",
+      "kind": "skill",
+      "section": "5.2",
+      "name": "Power method",
+      "terms": [
+        "power method"
+      ],
+      "statement": "To find an eigenvector associated to the dominant eigenvalue, we prevent the length of the vectors x_k from growing arbitrarily large by scaling: given x_k, identify its component having the largest absolute value, call it m_k, and define x̄_k = (1/m_k)x_k, whose component of largest absolute value is 1; then form x_{k+1} = Ax̄_k and repeat. Beginning with x₀ = [1, 0] and A = [2 1; 1 2], x₁ = [2, 1] with m₁ = 2 gives x̄₁ = [1, 1/2], then x₂ = Ax̄₁ = [5/2, 2] with m₂ = 5/2 gives x̄₂ = [1, 4/5], and the vectors x̄_k approach the eigenvector v₁ = [1, 1]. This is the power method for finding an eigenvector associated to the dominant eigenvalue of a matrix; the Sage command power(A, x0, N) prints m and x̄_k for N steps.",
+      "forms": [
+        {
+          "id": "eq-power-method-normalization",
+          "latex": "\\overline{\\mathbf{x}}_k = \\frac{1}{m_k}\\mathbf{x}_k",
+          "condition": "m_k the component of x_k having the largest absolute value"
+        },
+        {
+          "id": "eq-power-method-next-step",
+          "latex": "\\mathbf{x}_{k+1} = A\\overline{\\mathbf{x}}_k"
+        }
+      ]
+    },
+    {
+      "id": "multipliers-approach-the-dominant-eigenvalue",
+      "kind": "result",
+      "section": "5.2",
+      "name": "The multipliers approach the dominant eigenvalue",
+      "statement": "The power method gives not only an eigenvector v but also its associated eigenvalue: the multipliers m_k approach the eigenvalue λ having the largest absolute value. For A = [−5.1 5.7; −3.8 4.4] with eigenvector v = [3, 2], scaling by ⅓ gives v̄ = [1, 2/3] and Av̄ = [−1.30, −0.86], whose first component still has the largest absolute value, so the multiplier m = −1.3 is the eigenvalue corresponding to the eigenvector; in Activity 5.2.2 the multipliers converge to 0.9 and to 1.3 in absolute value.",
+      "forms": [
+        {
+          "id": "eq-multipliers-limit",
+          "latex": "m_k \\to \\lambda_1",
+          "condition": "λ₁ the dominant eigenvalue, as k grows"
+        },
+        {
+          "id": "eq-multiplier-example",
+          "latex": "A\\overline{\\mathbf{v}} = \\left[\\begin{array}{r} -1.30 \\\\ -0.86 \\end{array}\\right] = -1.3\\left[\\begin{array}{r} 1 \\\\ \\frac23 \\end{array}\\right]",
+          "condition": "A = [−5.1 5.7; −3.8 4.4], v̄ = [1, 2/3]"
+        }
+      ]
+    },
+    {
+      "id": "initial-vector-of-the-power-method",
+      "kind": "idea",
+      "section": "5.2",
+      "name": "Choice of the initial vector",
+      "statement": "The power method requires us to choose an initial vector x₀. For most choices it finds the eigenvalue having the largest absolute value, but an unfortunate choice may not: had we chosen x₀ = v₂, the vectors x_k = Aᵏx₀ = λ₂ᵏv₂ would never detect the eigenvector v₁. It usually happens, however, that our initial guess x₀ has some contribution from v₁ that enables us to find it.",
+      "forms": [
+        {
+          "id": "eq-unlucky-initial-vector",
+          "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = \\lambda_2^k\\mathbf{v}_2",
+          "condition": "x₀ = v₂"
+        }
+      ]
+    },
+    {
+      "id": "inverse-power-method",
+      "kind": "skill",
+      "section": "5.2",
+      "name": "Inverse power method",
+      "statement": "The eigenvectors of A are the same as those of A⁻¹: if Av = λv, then multiplying by A⁻¹ and λ⁻¹ gives A⁻¹v = λ⁻¹v, so λ⁻¹ is an eigenvalue of A⁻¹. Since |λ₂| < |λ₁| gives |λ₂⁻¹| > |λ₁⁻¹|, the eigenvalue of A having the smallest absolute value is the reciprocal of the dominant eigenvalue of A⁻¹, and the power method applied to A⁻¹ finds it, together with an eigenvector. Computing A⁻¹ is not efficient, so instead of x_{k+1} = A⁻¹x_k we solve Ax_{k+1} = x_k at each step, which an LU factorization of A makes cheap for many right-hand sides; the multipliers 1/m_k approximate the eigenvalue of A. For [−5.1 5.7; −3.8 4.4] the inverse power method gives λ₂ = 0.6 with eigenvector [1, 1]; if A is not invertible, its eigenvalue of smallest absolute value is 0.",
+      "forms": [
+        {
+          "id": "eq-eigenvalue-of-an-inverse",
+          "latex": "A^{-1}\\mathbf{v} = \\lambda^{-1}\\mathbf{v}",
+          "condition": "Av = λv, A invertible"
+        },
+        {
+          "id": "eq-inverse-power-step",
+          "latex": "A\\mathbf{x}_{k+1} = \\mathbf{x}_k",
+          "condition": "solved in place of x_{k+1} = A⁻¹x_k"
+        }
+      ]
+    },
+    {
+      "id": "shifted-inverse-power-method",
+      "kind": "skill",
+      "section": "5.2",
+      "name": "Finding the eigenvalue closest to a number",
+      "statement": "The absolute value of a number is its distance from 0, so the inverse power method finds the eigenvalue closest to 0; one more modification finds all the eigenvalues. If Av = λv, then (A − sI)v = (λ − s)v for any scalar s, so v is an eigenvector of A − sI with eigenvalue λ − s, and the eigenvalue of A closest to s is the eigenvalue of A − sI closest to 0. Applying the inverse power method to A − sI therefore gives the eigenvalue of A closest to s, as 1/m_k + s, with an eigenvector; the Sage command find_closest_eigenvalue(A, s, x, N) does this. For the 4 × 4 matrix of Activity 5.2.4, the power and inverse power methods give λ₁ = 16.35 and λ₂ = 0.75, the other eigenvalues lie between −λ₁ and λ₁ (Figure 5.2.3), and probing s = −10 and s = 10 finds −4.823 and 7.526. The technique assumes that the eigenvalues of A are real and distinct.",
+      "forms": [
+        {
+          "id": "eq-eigenvalue-of-a-shifted-matrix",
+          "latex": "(A - sI)\\mathbf{v} = (\\lambda - s)\\mathbf{v}",
+          "condition": "Av = λv"
+        },
+        {
+          "id": "eq-shifted-inverse-power-estimate",
+          "latex": "\\lambda \\approx \\frac{1}{m_k} + s",
+          "condition": "m_k the multipliers of the inverse power method applied to A − sI"
+        }
+      ]
+    },
+    {
+      "id": "limitations-of-the-power-method",
+      "kind": "idea",
+      "section": "5.2",
+      "name": "When the power method fails",
+      "statement": "The power method as presented assumes that the eigenvalues of A are real and distinct, and it fails for certain unlucky matrices. When two eigenvalues have the same absolute value, as for [0 −1; −4 0] with eigenvalues 2 and −2, neither the power method nor the inverse power method converges, and looking for the eigenvalue closest to some other number breaks the symmetry; when the dominant eigenvalue is negative and the largest component changes place from step to step, as for [1 2; 2 1] under the inverse power method, the vectors x̄_k flip sign and the multipliers converge to the wrong value, which a fixed component's ratio corrects; a complex eigenvalue rotates the vectors at every step so they never converge; a repeated eigenvalue with a one-dimensional eigenspace, as for [1 1; 0 1], is still found, and two different eigenvectors found for the same eigenvalue show that its eigenspace has dimension greater than one. If A has repeated or complex eigenvalues, the technique needs to be modified."
     }
   ],
   "concept_prereqs": [
@@ -5068,6 +5513,134 @@
     {
       "concept": "modified-google-matrix",
       "prereq": "pagerank-by-markov-chain"
+    },
+    {
+      "concept": "round-off-error",
+      "prereq": "computational-effort-of-row-reduction"
+    },
+    {
+      "concept": "sensitivity-of-a-solution-to-small-errors",
+      "prereq": "round-off-error"
+    },
+    {
+      "concept": "sensitivity-of-a-solution-to-small-errors",
+      "prereq": "solution-sets-as-lines-and-planes"
+    },
+    {
+      "concept": "partial-pivoting",
+      "prereq": "sensitivity-of-a-solution-to-small-errors"
+    },
+    {
+      "concept": "partial-pivoting",
+      "prereq": "pivot"
+    },
+    {
+      "concept": "finding-an-lu-factorization",
+      "prereq": "lu-factorization"
+    },
+    {
+      "concept": "finding-an-lu-factorization",
+      "prereq": "gauss-jordan-elimination"
+    },
+    {
+      "concept": "forward-substitution",
+      "prereq": "triangular-matrix"
+    },
+    {
+      "concept": "forward-substitution",
+      "prereq": "backsubstitution"
+    },
+    {
+      "concept": "solving-a-system-with-an-lu-factorization",
+      "prereq": "lu-factorization"
+    },
+    {
+      "concept": "solving-a-system-with-an-lu-factorization",
+      "prereq": "forward-substitution"
+    },
+    {
+      "concept": "efficiency-of-the-lu-factorization",
+      "prereq": "solving-a-system-with-an-lu-factorization"
+    },
+    {
+      "concept": "efficiency-of-the-lu-factorization",
+      "prereq": "computational-effort-of-row-reduction"
+    },
+    {
+      "concept": "plu-factorization",
+      "prereq": "solving-a-system-with-an-lu-factorization"
+    },
+    {
+      "concept": "plu-factorization",
+      "prereq": "permutation-matrix"
+    },
+    {
+      "concept": "plu-factorization",
+      "prereq": "partial-pivoting"
+    },
+    {
+      "concept": "limits-of-exact-eigenvalue-computation",
+      "prereq": "characteristic-polynomial"
+    },
+    {
+      "concept": "limits-of-exact-eigenvalue-computation",
+      "prereq": "finding-an-eigenvector"
+    },
+    {
+      "concept": "limits-of-exact-eigenvalue-computation",
+      "prereq": "round-off-error"
+    },
+    {
+      "concept": "dominant-eigenvalue",
+      "prereq": "eigenvalue"
+    },
+    {
+      "concept": "power-iteration-convergence",
+      "prereq": "dominant-eigenvalue"
+    },
+    {
+      "concept": "power-iteration-convergence",
+      "prereq": "long-term-behavior-from-eigenvectors"
+    },
+    {
+      "concept": "power-iteration-convergence",
+      "prereq": "eigenspace"
+    },
+    {
+      "concept": "power-iteration-convergence",
+      "prereq": "convergence-of-a-markov-chain"
+    },
+    {
+      "concept": "power-method",
+      "prereq": "power-iteration-convergence"
+    },
+    {
+      "concept": "multipliers-approach-the-dominant-eigenvalue",
+      "prereq": "power-method"
+    },
+    {
+      "concept": "initial-vector-of-the-power-method",
+      "prereq": "power-method"
+    },
+    {
+      "concept": "inverse-power-method",
+      "prereq": "multipliers-approach-the-dominant-eigenvalue"
+    },
+    {
+      "concept": "inverse-power-method",
+      "prereq": "solving-a-system-with-an-lu-factorization"
+    },
+    {
+      "concept": "shifted-inverse-power-method",
+      "prereq": "inverse-power-method"
+    },
+    {
+      "concept": "limitations-of-the-power-method",
+      "prereq": "power-method"
+    },
+    {
+      "concept": "limitations-of-the-power-method",
+      "prereq": "complex-eigenvalue"
     }
   ],
   "sheets": [],

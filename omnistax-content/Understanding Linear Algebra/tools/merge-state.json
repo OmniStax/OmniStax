@@ -133,5 +133,30 @@
       "A_k_count"
     ],
     "types": []
+  },
+  "ch05": {
+    "symbols": [
+      "A_1",
+      "A_2",
+      "A_3",
+      "E_2",
+      "E_3",
+      "c_vec",
+      "L_inv",
+      "U_inv",
+      "x_1_vec",
+      "x_2_vec",
+      "x_3_vec",
+      "x_k_bar_vec",
+      "x_1_bar_vec",
+      "x_2_bar_vec",
+      "x_3_bar_vec",
+      "v_bar_vec",
+      "lambda_4",
+      "m_k",
+      "s",
+      "N"
+    ],
+    "types": []
   }
 }
