@@ -22,8 +22,16 @@ export const focusedArticle = (): HTMLElement | null =>
   activePane(layoutStore.layout.focus)?.querySelector<HTMLElement>('article[data-doc]') ?? document.querySelector<HTMLElement>('.pane:not([hidden]) article[data-doc]');
 /* The book an element of book content belongs to, read off the nearest root that says. */
 export const bookOfEl = (el: Element): BookId | null => { const b = el.closest<HTMLElement>('[data-book]')?.dataset.book; return b ? bookId(b) : null; };
+/* A page qualifies every id of its text by its section ("2.3-prop-pivot-row"); a link written by hand in a
+   card or from another page may name the bare id, which lands on the qualified element of the same book. */
+const QUALIFIED = /^(?:\d+\.\w+|intro|summary)-/;
+const qualifiedEls = (book: BookId, id: string): HTMLElement[] =>
+  Array.from(document.querySelectorAll<HTMLElement>(`[id$="-${cssId(id)}"]`))
+    .filter((e) => QUALIFIED.test(e.id) && e.id.slice(e.id.indexOf('-') + 1) === id && e.closest<HTMLElement>(`[data-book="${cssId(book)}"]`) !== null && !e.closest('[data-fig-probe]'));
 export const findEl = (book: BookId, id: string): HTMLElement | null => {
-  const all = allEls(book, id); if (all.length < 2) return all[0] ?? null;
+  let all = allEls(book, id);
+  if (all.length === 0 && !QUALIFIED.test(id)) all = qualifiedEls(book, id);
+  if (all.length < 2) return all[0] ?? null;
   const ap = activePane(layoutStore.layout.focus);
   return all.find((e) => ap?.contains(e)) ?? all.find((e) => { const p = paneOf(e); return p !== null && !p.hidden; }) ?? all.find((e) => paneOf(e)) ?? all[0];
 };
