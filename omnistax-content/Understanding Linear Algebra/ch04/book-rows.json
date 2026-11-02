@@ -90,7 +90,8 @@
   },
   {
    "sym": "Q",
-   "latex": "Q"
+   "latex": "Q",
+   "macro": "\\kQ"
   },
   {
    "sym": "P_k",
