@@ -46,7 +46,7 @@ Sections N.M; subsections N.M.k. Figures, tables, definitions, examples, theorem
 
 ## Licence and attribution
 
-CC BY 4.0, `license_url` https://creativecommons.org/licenses/by/4.0/. Copyright David Austin, who publishes it himself at https://understandinglinearalgebra.org (`publisher`, `copyright`, `source_url`). The footer generates the attribution from `book.json`: the title, David Austin, the home page and CC BY 4.0, the page named as adapted. Adapted pages are shared under CC BY 4.0. The iris illustration of 7.3 (Figure 7.3.5, "Artwork by @allison_horst", CC0) keeps its credit in the caption.
+CC BY 4.0, `license_url` https://creativecommons.org/licenses/by/4.0/. Copyright David Austin, who publishes it himself at https://understandinglinearalgebra.org (`publisher`, `copyright`, `source_url`). The footer generates the attribution from `book.json`: the title, David Austin, the home page and CC BY 4.0, the page named as adapted. Adapted pages are shared under CC BY 4.0. Two images of 7.3 keep their credits in the caption: the iris photograph (Figure 7.3.4, from Wikipedia under the GFDL 1.2, credited as the book credits it) and the penguin artwork (Figure 7.3.5, "Artwork by @allison_horst", CC0).
 
 ## Types
 

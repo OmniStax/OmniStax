@@ -24,7 +24,8 @@
     "ch03",
     "ch04",
     "ch05",
-    "ch06"
+    "ch06",
+    "ch07"
   ],
   "intro": {
     "module": "preface"
@@ -972,6 +973,462 @@
     {
       "sym": "R_squared",
       "latex": "R^2"
+    },
+    {
+      "sym": "d_j_vec",
+      "latex": "\\mathbf{d}_j",
+      "macro": "\\kvecdj"
+    },
+    {
+      "sym": "d_1_vec",
+      "latex": "\\mathbf{d}_1",
+      "macro": "\\kvecdone"
+    },
+    {
+      "sym": "d_2_vec",
+      "latex": "\\mathbf{d}_2",
+      "macro": "\\kvecdtwo"
+    },
+    {
+      "sym": "d_3_vec",
+      "latex": "\\mathbf{d}_3",
+      "macro": "\\kvecdthree"
+    },
+    {
+      "sym": "d_bar_vec",
+      "latex": "\\overline{\\mathbf{d}}",
+      "macro": "\\kvecdbar"
+    },
+    {
+      "sym": "d_j_tilde_vec",
+      "latex": "\\widetilde{\\mathbf{d}}_j",
+      "macro": "\\kvecdjtilde"
+    },
+    {
+      "sym": "d_1_tilde_vec",
+      "latex": "\\widetilde{\\mathbf{d}}_1",
+      "macro": "\\kvecdonetilde"
+    },
+    {
+      "sym": "d_2_tilde_vec",
+      "latex": "\\widetilde{\\mathbf{d}}_2",
+      "macro": "\\kvecdtwotilde"
+    },
+    {
+      "sym": "d_3_tilde_vec",
+      "latex": "\\widetilde{\\mathbf{d}}_3",
+      "macro": "\\kvecdthreetilde"
+    },
+    {
+      "sym": "u_4_vec",
+      "latex": "\\mathbf{u}_4",
+      "macro": "\\kvecufour"
+    },
+    {
+      "sym": "u_5_vec",
+      "latex": "\\mathbf{u}_5",
+      "macro": "\\kvecufive"
+    },
+    {
+      "sym": "u_m_vec",
+      "latex": "\\mathbf{u}_m",
+      "macro": "\\kvecum"
+    },
+    {
+      "sym": "u_r_vec",
+      "latex": "\\mathbf{u}_r",
+      "macro": "\\kvecur"
+    },
+    {
+      "sym": "u_r1_vec",
+      "latex": "\\mathbf{u}_{r+1}",
+      "macro": "\\kvecurone"
+    },
+    {
+      "sym": "u_k_vec",
+      "latex": "\\mathbf{u}_k",
+      "macro": "\\kvecuk"
+    },
+    {
+      "sym": "v_j_vec",
+      "latex": "\\mathbf{v}_j",
+      "macro": "\\kvecvj"
+    },
+    {
+      "sym": "v_r_vec",
+      "latex": "\\mathbf{v}_r",
+      "macro": "\\kvecvr"
+    },
+    {
+      "sym": "v_r1_vec",
+      "latex": "\\mathbf{v}_{r+1}",
+      "macro": "\\kvecvrone"
+    },
+    {
+      "sym": "v_k_vec",
+      "latex": "\\mathbf{v}_k",
+      "macro": "\\kvecvk"
+    },
+    {
+      "sym": "m_vec",
+      "latex": "\\mathbf{m}",
+      "macro": "\\kvecm"
+    },
+    {
+      "sym": "Sigma",
+      "latex": "\\Sigma",
+      "macro": "\\kSigma"
+    },
+    {
+      "sym": "Sigma_T",
+      "latex": "\\Sigma^T",
+      "macro": "\\kSigmaT"
+    },
+    {
+      "sym": "Sigma_inv",
+      "latex": "\\Sigma^{-1}",
+      "macro": "\\kSigmainv"
+    },
+    {
+      "sym": "Sigma_r",
+      "latex": "\\Sigma_r",
+      "macro": "\\kSigmar"
+    },
+    {
+      "sym": "Sigma_r_inv",
+      "latex": "\\Sigma_r^{-1}",
+      "macro": "\\kSigmarinv"
+    },
+    {
+      "sym": "Sigma_k",
+      "latex": "\\Sigma_k",
+      "macro": "\\kSigmak"
+    },
+    {
+      "sym": "Sigma_2",
+      "latex": "\\Sigma_2",
+      "macro": "\\kSigmatwo"
+    },
+    {
+      "sym": "Sigma_sup_k",
+      "latex": "\\Sigma^{(k)}",
+      "macro": "\\kSigmasupk"
+    },
+    {
+      "sym": "V",
+      "latex": "V",
+      "macro": "\\kV"
+    },
+    {
+      "sym": "V_T",
+      "latex": "V^T",
+      "macro": "\\kVT"
+    },
+    {
+      "sym": "V_r",
+      "latex": "V_r",
+      "macro": "\\kVr"
+    },
+    {
+      "sym": "V_k",
+      "latex": "V_k",
+      "macro": "\\kVk"
+    },
+    {
+      "sym": "V_2",
+      "latex": "V_2",
+      "macro": "\\kVtwo"
+    },
+    {
+      "sym": "U_T",
+      "latex": "U^T",
+      "macro": "\\kUT"
+    },
+    {
+      "sym": "U_r",
+      "latex": "U_r",
+      "macro": "\\kUr"
+    },
+    {
+      "sym": "U_k",
+      "latex": "U_k",
+      "macro": "\\kUk"
+    },
+    {
+      "sym": "U_2",
+      "latex": "U_2",
+      "macro": "\\kUtwo"
+    },
+    {
+      "sym": "Gamma",
+      "latex": "\\Gamma",
+      "macro": "\\kGamma"
+    },
+    {
+      "sym": "Gamma_k",
+      "latex": "\\Gamma_k",
+      "macro": "\\kGammak"
+    },
+    {
+      "sym": "Gamma_2",
+      "latex": "\\Gamma_2",
+      "macro": "\\kGammatwo"
+    },
+    {
+      "sym": "A_plus",
+      "latex": "A^+",
+      "macro": "\\kAplus"
+    },
+    {
+      "sym": "A_k_sub",
+      "latex": "A_k",
+      "macro": "\\kAksub"
+    },
+    {
+      "sym": "A_4",
+      "latex": "A_4",
+      "macro": "\\kAfour"
+    },
+    {
+      "sym": "A_r",
+      "latex": "A_r",
+      "macro": "\\kAr"
+    },
+    {
+      "sym": "H",
+      "latex": "H",
+      "macro": "\\kH"
+    },
+    {
+      "sym": "C_1",
+      "latex": "C_1",
+      "macro": "\\kCone"
+    },
+    {
+      "sym": "C_2",
+      "latex": "C_2",
+      "macro": "\\kCtwo"
+    },
+    {
+      "sym": "D_1",
+      "latex": "D_1",
+      "macro": "\\kDone"
+    },
+    {
+      "sym": "D_2",
+      "latex": "D_2",
+      "macro": "\\kDtwo"
+    },
+    {
+      "sym": "D_T",
+      "latex": "D^T",
+      "macro": "\\kDT"
+    },
+    {
+      "sym": "D_inv",
+      "latex": "D^{-1}",
+      "macro": "\\kDinv"
+    },
+    {
+      "sym": "Row",
+      "latex": "\\text{Row}",
+      "macro": "\\kRow"
+    },
+    {
+      "sym": "W_3",
+      "latex": "W_3",
+      "macro": "\\kWthree"
+    },
+    {
+      "sym": "W_n",
+      "latex": "W_n",
+      "macro": "\\kWn"
+    },
+    {
+      "sym": "E_0",
+      "latex": "E_0",
+      "macro": "\\kEzero"
+    },
+    {
+      "sym": "E_5",
+      "latex": "E_5",
+      "macro": "\\kEfive"
+    },
+    {
+      "sym": "E_m1",
+      "latex": "E_{-1}",
+      "macro": "\\kEmone"
+    },
+    {
+      "sym": "sigma",
+      "latex": "\\sigma",
+      "macro": "\\ksigma"
+    },
+    {
+      "sym": "sigma_1",
+      "latex": "\\sigma_1",
+      "macro": "\\ksigmaone"
+    },
+    {
+      "sym": "sigma_2",
+      "latex": "\\sigma_2",
+      "macro": "\\ksigmatwo"
+    },
+    {
+      "sym": "sigma_3",
+      "latex": "\\sigma_3",
+      "macro": "\\ksigmathree"
+    },
+    {
+      "sym": "sigma_i",
+      "latex": "\\sigma_i",
+      "macro": "\\ksigmai"
+    },
+    {
+      "sym": "sigma_j",
+      "latex": "\\sigma_j",
+      "macro": "\\ksigmaj"
+    },
+    {
+      "sym": "sigma_k",
+      "latex": "\\sigma_k",
+      "macro": "\\ksigmak"
+    },
+    {
+      "sym": "sigma_r",
+      "latex": "\\sigma_r",
+      "macro": "\\ksigmar"
+    },
+    {
+      "sym": "sigma_n",
+      "latex": "\\sigma_n",
+      "macro": "\\ksigman"
+    },
+    {
+      "sym": "lambda_m",
+      "latex": "\\lambda_m",
+      "macro": "\\klambdam"
+    },
+    {
+      "sym": "lambda_i",
+      "latex": "\\lambda_i",
+      "macro": "\\klambdai"
+    },
+    {
+      "sym": "V_u",
+      "latex": "V_{\\mathbf{u}}",
+      "macro": "\\kVu"
+    },
+    {
+      "sym": "V_u_1",
+      "latex": "V_{\\mathbf{u}_1}",
+      "macro": "\\kVuone"
+    },
+    {
+      "sym": "V_u_2",
+      "latex": "V_{\\mathbf{u}_2}",
+      "macro": "\\kVutwo"
+    },
+    {
+      "sym": "V_u_3",
+      "latex": "V_{\\mathbf{u}_3}",
+      "macro": "\\kVuthree"
+    },
+    {
+      "sym": "V_u_4",
+      "latex": "V_{\\mathbf{u}_4}",
+      "macro": "\\kVufour"
+    },
+    {
+      "sym": "V_u_i",
+      "latex": "V_{\\mathbf{u}_i}",
+      "macro": "\\kVui"
+    },
+    {
+      "sym": "V_u_j",
+      "latex": "V_{\\mathbf{u}_j}",
+      "macro": "\\kVuj"
+    },
+    {
+      "sym": "V_u_n",
+      "latex": "V_{\\mathbf{u}_n}",
+      "macro": "\\kVun"
+    },
+    {
+      "sym": "V_W",
+      "latex": "V_W",
+      "macro": "\\kVW"
+    },
+    {
+      "sym": "V_x",
+      "latex": "V_x",
+      "macro": "\\kVx"
+    },
+    {
+      "sym": "V_y",
+      "latex": "V_y",
+      "macro": "\\kVy"
+    },
+    {
+      "sym": "V_v_1",
+      "latex": "V_{\\mathbf{v}_1}",
+      "macro": "\\kVvone"
+    },
+    {
+      "sym": "V_v_2",
+      "latex": "V_{\\mathbf{v}_2}",
+      "macro": "\\kVvtwo"
+    },
+    {
+      "sym": "V_w",
+      "latex": "V_{\\mathbf{w}}",
+      "macro": "\\kVw"
+    },
+    {
+      "sym": "V_e_1",
+      "latex": "V_{\\mathbf{e}_1}",
+      "macro": "\\kVeone"
+    },
+    {
+      "sym": "V_e_2",
+      "latex": "V_{\\mathbf{e}_2}",
+      "macro": "\\kVetwo"
+    },
+    {
+      "sym": "q",
+      "latex": "q"
+    },
+    {
+      "sym": "q_A",
+      "latex": "q_A"
+    },
+    {
+      "sym": "q_D",
+      "latex": "q_D"
+    },
+    {
+      "sym": "q_G",
+      "latex": "q_G"
+    },
+    {
+      "sym": "q_C",
+      "latex": "q_C"
+    },
+    {
+      "sym": "q_H",
+      "latex": "q_H"
+    },
+    {
+      "sym": "l_A",
+      "latex": "l_A"
+    },
+    {
+      "sym": "x_j_tilde",
+      "latex": "\\widetilde{x}_j"
+    },
+    {
+      "sym": "y_j_tilde",
+      "latex": "\\widetilde{y}_j"
     }
   ],
   "exercise_kinds": [
@@ -5317,6 +5774,661 @@
           "condition": "a degree k polynomial fit to the data points (xᵢ, yᵢ)"
         }
       ]
+    },
+    {
+      "id": "orthogonally-diagonalizable-matrix",
+      "kind": "definition",
+      "section": "7.1",
+      "name": "Orthogonally diagonalizable matrix",
+      "terms": [
+        "orthogonally diagonalizable"
+      ],
+      "type": "matrix",
+      "statement": "If there is an orthonormal basis of ℝⁿ consisting of eigenvectors of the matrix A, we say that A is orthogonally diagonalizable (Definition 7.1.4). Scaling each eigenvector of an orthogonal basis so that its length is 1 and putting these orthonormal vectors into a matrix Q produces an orthogonal matrix, so that Qᵀ = Q⁻¹ and A = QDQ⁻¹ = QDQᵀ, where D is the diagonal matrix of the associated eigenvalues.",
+      "forms": [
+        {
+          "id": "eq-orthogonal-diagonalization",
+          "latex": "A = QDQ^T",
+          "condition": "Q orthogonal, D diagonal"
+        }
+      ]
+    },
+    {
+      "id": "symmetric-matrix",
+      "kind": "definition",
+      "section": "7.1",
+      "name": "Symmetric matrix",
+      "terms": [
+        "symmetric"
+      ],
+      "type": "matrix",
+      "statement": "A symmetric matrix A is one for which A = Aᵀ (Definition 7.1.5), meaning that the matrix equals its transpose. When A is orthogonally diagonalizable, Aᵀ = (QDQᵀ)ᵀ = (Qᵀ)ᵀDᵀQᵀ = QDQᵀ = A, so A is symmetric; the covariance matrix of a dataset and the Gram matrix AᵀA of any matrix are symmetric.",
+      "forms": [
+        {
+          "id": "eq-symmetric",
+          "latex": "A = A^T"
+        }
+      ]
+    },
+    {
+      "id": "spectral-theorem",
+      "kind": "result",
+      "section": "7.1",
+      "name": "Spectral Theorem",
+      "terms": [
+        "Spectral Theorem"
+      ],
+      "statement": "The matrix A is orthogonally diagonalizable if and only if A is symmetric (Theorem 7.1.9). A matrix that is orthogonally diagonalizable must be symmetric, since (QDQᵀ)ᵀ = QDQᵀ; it turns out that any symmetric matrix is orthogonally diagonalizable."
+    },
+    {
+      "id": "finding-an-orthogonal-diagonalization",
+      "kind": "skill",
+      "section": "7.1",
+      "name": "Finding an orthogonal diagonalization",
+      "statement": "To orthogonally diagonalize a symmetric matrix, find a basis for each eigenspace, use it to find an orthogonal basis for each eigenspace (by Gram-Schmidt where needed), and put these together into an orthogonal basis of ℝᵐ consisting of eigenvectors; scaling each to unit length gives the columns of the orthogonal matrix Q, and the associated eigenvalues in the same order give D. For A = [−2 36; 36 −23], with orthogonal eigenvectors [4, 3] and [3, −4] and eigenvalues 25 and −50, Q = [4/5 3/5; 3/5 −4/5], D = [25 0; 0 −50] and A = QDQᵀ (Example 7.1.6)."
+    },
+    {
+      "id": "geometry-of-an-orthogonal-diagonalization",
+      "kind": "idea",
+      "section": "7.1",
+      "name": "Geometry of an orthogonal diagonalization",
+      "statement": "When A = QDQᵀ, multiplying a vector x by A decomposes as Ax = Q(D(Qᵀx)): for A = [1 2; 2 1], Qᵀ = Q⁻¹ rotates x by −45°, the diagonal matrix D stretches and reflects, and Q rotates by 45° (Example 7.1.7). The matrix transformations defined by A and D are equivalent after a 45° rotation, and a similar picture holds any time A is orthogonally diagonalizable.",
+      "forms": [
+        {
+          "id": "eq-orthogonal-diagonalization-as-composition",
+          "latex": "A{\\mathbf x} = Q(D(Q^T{\\mathbf x}))"
+        }
+      ]
+    },
+    {
+      "id": "properties-of-symmetric-matrices",
+      "kind": "result",
+      "section": "7.1",
+      "name": "Properties of symmetric matrices",
+      "statement": "The Spectral Theorem implies that if A is a symmetric m × m matrix, then the eigenvalues of A are real, there is a basis of ℝᵐ consisting of eigenvectors, and two eigenvectors that are associated to different eigenvalues are orthogonal. The book justifies only the third fact, since the first two would take it rather far afield."
+    },
+    {
+      "id": "transpose-across-the-dot-product",
+      "kind": "result",
+      "section": "7.1",
+      "name": "Moving a matrix across the dot product",
+      "statement": "For any matrix A, v·(Aw) = vᵀAw = (Aᵀv)ᵀw = (Aᵀv)·w; in particular, if A is symmetric, then v·(Aw) = (Av)·w (Proposition 7.1.10).",
+      "forms": [
+        {
+          "id": "eq-transpose-across-the-dot-product",
+          "latex": "{\\mathbf v}\\cdot(A{\\mathbf w}) = (A^T{\\mathbf v})\\cdot{\\mathbf w}"
+        },
+        {
+          "id": "eq-symmetric-across-the-dot-product",
+          "latex": "{\\mathbf v}\\cdot(A{\\mathbf w}) = (A{\\mathbf v})\\cdot{\\mathbf w}",
+          "condition": "A symmetric"
+        }
+      ]
+    },
+    {
+      "id": "orthogonal-eigenvectors-of-a-symmetric-matrix",
+      "kind": "result",
+      "section": "7.1",
+      "name": "Orthogonal eigenvectors of a symmetric matrix",
+      "statement": "Two eigenvectors of a symmetric matrix associated to distinct eigenvalues are orthogonal. If v₁ and v₂ have eigenvalues λ₁ = 3 and λ₂ = 10, then (Av₁)·v₂ = 3v₁·v₂ and v₁·(Av₂) = 10v₁·v₂; since these are equal by Proposition 7.1.10, 3v₁·v₂ = 10v₁·v₂, which can only happen if v₁·v₂ = 0 (Example 7.1.11)."
+    },
+    {
+      "id": "variance",
+      "kind": "definition",
+      "section": "7.1",
+      "name": "Variance",
+      "terms": [
+        "variance",
+        "total variance"
+      ],
+      "symbol": "V",
+      "type": "eigenvalue",
+      "statement": "Given a set of data points, their variance measures how spread out the points are. The spread is measured from the centroid, or mean, d̄ = (1/N)Σⱼ dⱼ: the demeaned data points are d̃ⱼ = dⱼ − d̄, and the total variance is the average of the squares of the distances from the origin, V = (1/N)Σⱼ |d̃ⱼ|². For d₁ = [1, 1], d₂ = [2, 1], d₃ = [3, 4], the centroid is [2, 2] and V = 8/3 (Activity 7.1.4).",
+      "forms": [
+        {
+          "id": "eq-total-variance",
+          "latex": "V = \\frac 1N\\sum_j~|\\widetilde{\\mathbf d}_j|^2"
+        }
+      ]
+    },
+    {
+      "id": "variance-in-a-direction",
+      "kind": "definition",
+      "section": "7.1",
+      "name": "Variance in a direction",
+      "symbol": "V_u",
+      "type": "eigenvalue",
+      "statement": "If u is a unit vector, projecting the demeaned data points onto the line defined by u gives the points (d̃ⱼ·u)u, and the variance of these projected points is V_u = (1/N)Σⱼ |(d̃ⱼ·u)u|² = (1/N)Σⱼ (d̃ⱼ·u)². The variances V_x and V_y of the points projected onto the x and y axes are those in the directions of e₁ and e₂, and the total variance is V = V_x + V_y.",
+      "forms": [
+        {
+          "id": "eq-variance-in-a-direction",
+          "latex": "V_{{\\mathbf u}} = \\frac1N\\sum_j~(\\widetilde{\\mathbf d}_j\\cdot{\\mathbf u})^2",
+          "condition": "u a unit vector"
+        }
+      ]
+    },
+    {
+      "id": "additivity-of-variance",
+      "kind": "result",
+      "section": "7.1",
+      "name": "Additivity of Variance",
+      "statement": "If W is a subspace with orthonormal basis u₁, u₂, …, uₙ, then the variance of the points projected onto W is the sum of the variances in the uⱼ directions, V_W = V_{u₁} + V_{u₂} + … + V_{uₙ} (Proposition 7.1.16). For an orthonormal basis u₁, u₂ of ℝ², the Projection Formula gives d̃ⱼ = (d̃ⱼ·u₁)u₁ + (d̃ⱼ·u₂)u₂ and |d̃ⱼ|² = (d̃ⱼ·u₁)² + (d̃ⱼ·u₂)², since u₁·u₂ = 0; averaging over the data points, V = V_{u₁} + V_{u₂}, as the Pythagorean theorem explains. So if u₁ is the direction where the variance is a maximum, the variance in the orthogonal direction u₂ is a minimum.",
+      "forms": [
+        {
+          "id": "eq-additivity-of-variance",
+          "latex": "V_W = V_{{\\mathbf u}_1} + V_{{\\mathbf u}_2} + \\ldots + V_{{\\mathbf u}_n}",
+          "condition": "u₁, …, uₙ an orthonormal basis of W"
+        },
+        {
+          "id": "eq-total-variance-as-a-sum",
+          "latex": "V = V_x + V_y"
+        }
+      ]
+    },
+    {
+      "id": "covariance-matrix",
+      "kind": "definition",
+      "section": "7.1",
+      "name": "Covariance matrix",
+      "terms": [
+        "covariance"
+      ],
+      "symbol": "C",
+      "type": "matrix",
+      "statement": "The covariance matrix of a dataset is C = (1/N)AAᵀ, where A is the matrix of the N demeaned data points, its columns. Since Cᵀ = (1/N)(AAᵀ)ᵀ = (1/N)AAᵀ = C, the covariance matrix is symmetric, and so it is orthogonally diagonalizable. For the demeaned points [−1, −1], [0, −1], [1, 2], C = [2/3 1; 1 2] (Activity 7.1.5).",
+      "forms": [
+        {
+          "id": "eq-covariance-matrix",
+          "latex": "C=\\frac1N~AA^T",
+          "condition": "A the matrix of demeaned data points"
+        }
+      ]
+    },
+    {
+      "id": "variance-from-the-covariance-matrix",
+      "kind": "result",
+      "section": "7.1",
+      "name": "Variance from the covariance matrix",
+      "statement": "If C is the covariance matrix associated to a demeaned dataset and u is a unit vector, then the variance of the demeaned points projected onto the line defined by u is V_u = u·(Cu) (Proposition 7.1.17). The components of Aᵀu are the dot products d̃ⱼ·u, so V_u = (1/N)|Aᵀu|² = (1/N)(Aᵀu)·(Aᵀu) = u·((1/N)AAᵀ)u. For C = [2/3 1; 1 2] and u₁ = [1/√5, 2/√5], V_{u₁} = 38/15.",
+      "forms": [
+        {
+          "id": "eq-variance-from-the-covariance-matrix",
+          "latex": "V_{{\\mathbf u}} = {\\mathbf u}\\cdot C{\\mathbf u}",
+          "condition": "u a unit vector"
+        }
+      ]
+    },
+    {
+      "id": "quadratic-form",
+      "kind": "definition",
+      "section": "7.2",
+      "name": "Quadratic form",
+      "terms": [
+        "quadratic form"
+      ],
+      "symbol": "q_A",
+      "statement": "If A is a symmetric m × m matrix, the quadratic form defined by A is the function q_A: ℝᵐ → ℝ, q_A(x) = x·(Ax) (Definition 7.2.3); its value is a scalar. If A = [a b; b c], then q_A([x₁; x₂]) = ax₁² + 2bx₁x₂ + cx₂², in which the variables x₁ and x₂ are multiplied together, so a quadratic form is not linear; for a diagonal matrix D = [a 0; 0 c], q_D = ax₁² + cx₂² has no cross-term. For A = [1 2; 2 1], q(x) = x₁² + 4x₁x₂ + x₂² (Example 7.2.2). The variance in the direction of a unit vector u is the quadratic form of the covariance matrix, V_u = q_C(u).",
+      "forms": [
+        {
+          "id": "eq-quadratic-form",
+          "latex": "q_A({\\mathbf x}) = {\\mathbf x}\\cdot(A{\\mathbf x})"
+        },
+        {
+          "id": "eq-quadratic-form-of-a-2x2-matrix",
+          "latex": "q_A\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]\\right) = ax_1^2 + 2bx_1x_2 + cx_2^2",
+          "condition": "A = [a b; b c]"
+        }
+      ]
+    },
+    {
+      "id": "scaling-a-quadratic-form",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Scaling the input of a quadratic form",
+      "statement": "Matrix transformations have the property that T(sx) = sT(x), but quadratic forms behave differently: q_A(sx) = (sx)·(A(sx)) = s²x·(Ax) = s²q_A(x). Multiplying x by 2 multiplies q_A by 4, and q_A(−x) = q_A(x) since the scalar is squared.",
+      "forms": [
+        {
+          "id": "eq-scaling-a-quadratic-form",
+          "latex": "q_A(s{\\mathbf x}) = s^2q_A({\\mathbf x})"
+        }
+      ]
+    },
+    {
+      "id": "quadratic-form-on-an-eigenvector",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Quadratic form on an eigenvector",
+      "statement": "Evaluating a quadratic form on an eigenvector has a particularly simple form: if x is an eigenvector of A with associated eigenvalue λ, then q_A(x) = x·(Ax) = λx·x = λ|x|². An eigenvector with eigenvalue −4 and length 7 gives q_A(x) = −196 (Activity 7.2.2), and a unit eigenvector u of a covariance matrix gives V_u = λ.",
+      "forms": [
+        {
+          "id": "eq-quadratic-form-on-an-eigenvector",
+          "latex": "q_A({\\mathbf x}) = \\lambda \\left|{\\mathbf x}\\right|^2",
+          "condition": "x an eigenvector of A with eigenvalue λ"
+        }
+      ]
+    },
+    {
+      "id": "extreme-values-of-a-quadratic-form",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Maximum and minimum of a quadratic form",
+      "statement": "Suppose that A is a symmetric matrix whose eigenvalues are listed in decreasing order λ₁ ≥ λ₂ ≥ … ≥ λ_m, with a basis of associated eigenvectors u₁, u₂, …, u_m. The maximum value of q_A(u) among all unit vectors u is λ₁, which occurs in the direction u₁, and the minimum value is λ_m, which occurs in the direction u_m (Proposition 7.2.5). Writing A = QDQᵀ gives q_A(u) = q_D(v) with v = Qᵀu, which is also a unit vector, and q_D has no cross-term. For A = [−7 −6; −6 2], the maximum is 5 in the direction [1/√5, −2/√5] and the minimum −10 in the direction [2/√5, 1/√5] (Example 7.2.4); for a covariance matrix, the variance is greatest in the direction of the eigenvector with the largest eigenvalue."
+    },
+    {
+      "id": "principal-axes-theorem",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Principal Axes Theorem",
+      "terms": [
+        "Principal Axes Theorem"
+      ],
+      "statement": "If A is a symmetric m × m matrix with eigenvalues λ₁, λ₂, …, λ_m, then the quadratic form q_A can be written, after an orthogonal change of coordinates y = Qᵀx, as q_A(x) = λ₁y₁² + λ₂y₂² + … + λ_my_m² (Theorem 7.2.10). In other words, after a change of coordinates, the quadratic form can be written without cross terms.",
+      "forms": [
+        {
+          "id": "eq-principal-axes",
+          "latex": "q_A({\\mathbf x}) = \\lambda_1y_1^2 + \\lambda_2y_2^2 + \\ldots + \\lambda_my_m^2",
+          "condition": "y = Qᵀx, A = QDQᵀ"
+        }
+      ]
+    },
+    {
+      "id": "positive-definite-matrix",
+      "kind": "definition",
+      "section": "7.2",
+      "name": "Positive definite matrix",
+      "terms": [
+        "positive definite",
+        "positive semidefinite",
+        "negative definite",
+        "indefinite"
+      ],
+      "type": "matrix",
+      "statement": "A symmetric matrix A is called positive definite if its associated quadratic form satisfies q_A(x) > 0 for any nonzero vector x, and positive semidefinite if q_A(x) ≥ 0 for all nonzero vectors x; it is negative definite if q_A(x) < 0 for all nonzero vectors x, and indefinite if q_A(x) > 0 for some x and q_A(x) < 0 for others (Definition 7.2.11). D = [7 0; 0 5] is positive definite, since q_D(x) = 7x₁² + 5x₂² > 0 when either x₁ or x₂ is not zero."
+    },
+    {
+      "id": "definiteness-from-eigenvalues",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Definiteness from the eigenvalues",
+      "statement": "A symmetric matrix is positive definite if all its eigenvalues are positive, and positive semidefinite if all its eigenvalues are nonnegative; it is indefinite if some eigenvalues are positive and some are negative (Proposition 7.2.12). The quadratic form of A = QDQᵀ agrees with that of the diagonal matrix D after the change of coordinates y = Qᵀx, q_A(x) = q_D(y), and the diagonal entries of D are the eigenvalues of A."
+    },
+    {
+      "id": "critical-point-of-a-function-of-two-variables",
+      "kind": "definition",
+      "section": "7.2",
+      "name": "Critical point of a function of two variables",
+      "statement": "Any local maximum or minimum of a differentiable function f(x, y) appears at a critical point (x₀, y₀), where both partial derivatives are zero: f_x(x₀, y₀) = 0 and f_y(x₀, y₀) = 0. The function f(x, y) = 2x³ − 6xy + 3y² has the critical points (0, 0) and (1, 1) (Activity 7.2.5).",
+      "forms": [
+        {
+          "id": "eq-critical-point-of-a-function-of-two-variables",
+          "latex": "f_x(x_0,y_0) = 0,\\hspace{24pt} f_y(x_0,y_0) = 0"
+        }
+      ]
+    },
+    {
+      "id": "quadratic-approximation-near-a-critical-point",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Quadratic approximation near a critical point",
+      "statement": "Near a critical point (x₀, y₀) of f(x, y), the quadratic approximation of f can be written f(x, y) ≈ f(x₀, y₀) + q_A(w), where w = [x − x₀; y − y₀] and A = ½[f_xx f_xy; f_yx f_yy] evaluated at (x₀, y₀). If A is positive definite, then q_A(w) > 0, so f(x, y) > f(x₀, y₀) for nearby points and the critical point is a local minimum. For f(x, y) = 2x³ − 6xy + 3y² at (1, 1), A = [6 −3; −3 3], whose eigenvalues 7.85 and 1.15 are positive (Activity 7.2.5).",
+      "forms": [
+        {
+          "id": "eq-quadratic-approximation-near-a-critical-point",
+          "latex": "f(x,y) \\approx f(x_0, y_0) + q_A({\\mathbf w})",
+          "condition": "w = [x − x₀; y − y₀], A = ½H"
+        }
+      ]
+    },
+    {
+      "id": "hessian-matrix",
+      "kind": "definition",
+      "section": "7.2",
+      "name": "Hessian",
+      "terms": [
+        "Hessian"
+      ],
+      "symbol": "H",
+      "type": "matrix",
+      "statement": "The symmetric matrix of second partial derivatives H = [f_xx(x₀, y₀) f_xy(x₀, y₀); f_yx(x₀, y₀) f_yy(x₀, y₀)] is called the Hessian of f at (x₀, y₀); its eigenvalues determine the nature of the critical point (x₀, y₀). If they are both positive, q_H is positive definite and the critical point is a local minimum.",
+      "forms": [
+        {
+          "id": "eq-hessian",
+          "latex": "H = \\begin{bmatrix} f_{xx}(x_0,y_0) & f_{xy}(x_0,y_0) \\\\ f_{yx}(x_0,y_0) & f_{yy}(x_0,y_0) \\end{bmatrix}"
+        }
+      ]
+    },
+    {
+      "id": "second-derivative-test-by-eigenvalues",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Second Derivative Test",
+      "terms": [
+        "Second Derivative Test"
+      ],
+      "statement": "The nature of a critical point of a multivariable function is determined by the Hessian H of the function at the critical point: if H has all positive eigenvalues, the critical point is a local minimum; if H has all negative eigenvalues, it is a local maximum; and if H has both positive and negative eigenvalues, it is neither a local maximum nor minimum (Proposition 7.2.13)."
+    },
+    {
+      "id": "second-derivative-test-for-functions-of-two-variables",
+      "kind": "result",
+      "section": "7.2",
+      "name": "Second derivative test for functions of two variables",
+      "statement": "Most multivariable calculus texts write the second derivative test for functions of two variables in terms of D = det(H): if D > 0 and f_xx(x₀, y₀) > 0, then (x₀, y₀) is a local minimum; if D > 0 and f_xx(x₀, y₀) < 0, it is a local maximum; and if D < 0, it is neither a local maximum nor minimum. These conditions are simply algebraic criteria that tell us about the definiteness of the Hessian matrix H."
+    },
+    {
+      "id": "principal-component-analysis",
+      "kind": "skill",
+      "section": "7.3",
+      "name": "Principal component analysis",
+      "terms": [
+        "principal component analysis"
+      ],
+      "statement": "Principal component analysis is a technique that enables us to reduce the dimension of a dataset so that it may be visualized or studied in a way so that interesting features more readily stand out. From the demeaned data matrix A we form the covariance matrix C = (1/N)AAᵀ, find its principal components, and project the data onto the subspace spanned by the first few of them, recording the coordinates of the projected points; we use a number of principal components large enough to retain most of the variance but small enough to be manageable. Projecting the UK diet data, four points in ℝ¹⁷, onto two principal components shows Northern Ireland to be fundamentally different from the other three nations (Activity 7.3.4)."
+    },
+    {
+      "id": "dimensional-reduction",
+      "kind": "idea",
+      "section": "7.3",
+      "name": "Dimensional reduction",
+      "terms": [
+        "dimensional reduction"
+      ],
+      "statement": "The eigenvalues of the covariance matrix tell us when data are clustered around, or even wholly contained within, a smaller dimensional subspace: 100 five-dimensional data points whose covariance matrix has eigenvalues 13, 10, 2, 0 and 0 lie in a 3-dimensional subspace of ℝ⁵ (Activity 7.3.2), and we can work with the data as if it were three-dimensional. Typically the presence of noise means the points are not wholly contained in a smaller dimensional subspace, and we may write off the small remaining variance as noise in exchange for the convenience of working with fewer dimensions."
+    },
+    {
+      "id": "principal-component",
+      "kind": "definition",
+      "section": "7.3",
+      "name": "Principal components",
+      "terms": [
+        "principal components"
+      ],
+      "symbol": "u_j_vec",
+      "type": "vector",
+      "statement": "The eigenvectors uⱼ of the covariance matrix C of a dataset are called principal components, ordered so that their associated eigenvalues decrease. The variance in the direction of uⱼ is its eigenvalue, so the first principal component u₁ is the direction in which the variance is as large as possible, and projecting onto any other line retains a smaller amount of variance."
+    },
+    {
+      "id": "variance-retained-by-principal-components",
+      "kind": "result",
+      "section": "7.3",
+      "name": "Variance retained by the principal components",
+      "statement": "If W_n is the subspace spanned by the first n principal components, then the variance of the demeaned data projected onto W_n is the sum of the first n eigenvalues of C, and no other n-dimensional subspace retains more variance when the data is projected onto it. When the eigenvalues are 13, 10, 2, 0, 0, W₁ retains 13/25 = 52% of the total variance, W₂ retains 23/25 = 92%, and W₃ retains all of it, so the data lie in W₃ (Activity 7.3.2)."
+    },
+    {
+      "id": "coordinates-of-projected-data",
+      "kind": "result",
+      "section": "7.3",
+      "name": "Coordinates of the projected data",
+      "statement": "Projecting a data point x onto W₂, the subspace spanned by the first two principal components, gives the vector x̂ = (u₁·x)u₁ + (u₂·x)u₂; to visualize the projections more easily, we record instead their coordinates [u₁·x; u₂·x] in the basis u₁, u₂ and plot them in the plane. If Q = [u₁ u₂], then Qᵀx = [u₁·x; u₂·x], so the columns of QᵀA represent the coordinates of the projected points, and the plot is more spread out along the horizontal, u₁, coordinate than along the vertical.",
+      "forms": [
+        {
+          "id": "eq-coordinates-of-projected-data",
+          "latex": "Q^T{\\mathbf x} = \\left[\\begin{array}{r}{\\mathbf u}_1\\cdot{\\mathbf x} \\\\ {\\mathbf u}_2\\cdot{\\mathbf x} \\end{array}\\right]",
+          "condition": "Q = [u₁ u₂]"
+        }
+      ]
+    },
+    {
+      "id": "gram-matrix",
+      "kind": "definition",
+      "section": "7.4",
+      "name": "Gram matrix",
+      "terms": [
+        "Gram matrix"
+      ],
+      "symbol": "G",
+      "type": "matrix",
+      "statement": "Any matrix A defines a function l_A(x) = |Ax|, which measures the length of Ax; it is not itself a quadratic form, but it becomes one if we square it: (l_A(x))² = |Ax|² = (Ax)·(Ax) = x·(AᵀAx) = q_{AᵀA}(x). We call G = AᵀA the Gram matrix associated to A, a symmetric matrix, and note that l_A(x) = √q_G(x). For A = [1 2; −2 −1], G = [5 4; 4 5].",
+      "forms": [
+        {
+          "id": "eq-gram-matrix",
+          "latex": "G = A^TA"
+        },
+        {
+          "id": "eq-length-from-the-gram-matrix",
+          "latex": "l_A({\\mathbf x}) = \\sqrt{q_G({\\mathbf x})}"
+        }
+      ]
+    },
+    {
+      "id": "singular-value",
+      "kind": "definition",
+      "section": "7.4",
+      "name": "Singular value",
+      "terms": [
+        "singular values",
+        "singular value"
+      ],
+      "symbol": "sigma",
+      "type": "eigenvalue",
+      "statement": "A general matrix, particularly one that is not square, may not have eigenvalues and eigenvectors, but we can discover analogous features, called singular values, by studying the length l_A(x) = |Ax| on unit vectors: the first singular value σ₁ is the maximum value of l_A(x) over all unit vectors, and for a matrix with two columns the second σ₂ is the minimum. Since l_A(x) = √q_G(x), the singular values are the square roots σᵢ = √λᵢ of the eigenvalues of the Gram matrix G = AᵀA, listed by convention in decreasing order σ₁ ≥ σ₂ ≥ …. For A = [1 2; −2 −1], σ₁ = √9 = 3 and σ₂ = √1 = 1 (Activity 7.4.2)."
+    },
+    {
+      "id": "singular-vectors",
+      "kind": "definition",
+      "section": "7.4",
+      "name": "Singular vectors",
+      "terms": [
+        "singular vectors",
+        "right singular vector",
+        "left singular vectors"
+      ],
+      "type": "vector",
+      "statement": "A right singular vector vᵢ is a unit vector describing a direction in which l_A(x) = |Ax| takes the value σᵢ; the right singular vectors are the eigenvectors of the Gram matrix G = AᵀA associated to the eigenvalues σᵢ². The left singular vectors uᵢ are defined by Avᵢ = σᵢuᵢ; because σᵢ = |Avᵢ|, each uᵢ is a unit vector. For A = [1 2; −1 2], v₁ = [0, 1], v₂ = [1, 0], u₁ = [1/√2, 1/√2] and u₂ = [1/√2, −1/√2] (Example 7.4.2).",
+      "forms": [
+        {
+          "id": "eq-left-singular-vector",
+          "latex": "A{\\mathbf v}_i = \\sigma_i{\\mathbf u}_i"
+        }
+      ]
+    },
+    {
+      "id": "left-singular-vectors-are-orthonormal",
+      "kind": "result",
+      "section": "7.4",
+      "name": "Left singular vectors are orthonormal",
+      "statement": "The left singular vectors associated to nonzero singular values form an orthonormal set: σᵢσⱼ(uᵢ·uⱼ) = (σᵢuᵢ)·(σⱼuⱼ) = (Avᵢ)·(Avⱼ) = vᵢ·(AᵀAvⱼ) = vᵢ·(Gvⱼ) = λⱼvᵢ·vⱼ = 0 for i ≠ j, since the right singular vectors are orthogonal."
+    },
+    {
+      "id": "finding-a-singular-value-decomposition",
+      "kind": "skill",
+      "section": "7.4",
+      "name": "Finding a singular value decomposition",
+      "statement": "To find a singular value decomposition of a matrix A, construct the Gram matrix G = AᵀA and find an orthogonal diagonalization to obtain eigenvalues λᵢ and an orthonormal basis of eigenvectors; the singular values of A are σᵢ = √λᵢ, in decreasing order, and the right singular vectors vᵢ, the columns of V, are the associated eigenvectors of G; the left singular vectors uᵢ, the columns of U, are found by Avᵢ = σᵢuᵢ; and Σ has the shape of A with the singular values on its diagonal. If r = rank(A) < m, the remaining left singular vectors u_{r+1}, …, u_m form an orthonormal basis for Nul(Aᵀ), found by solving Aᵀx = 0 and applying Gram-Schmidt."
+    },
+    {
+      "id": "singular-value-decomposition",
+      "kind": "result",
+      "section": "7.4",
+      "name": "Singular value decomposition",
+      "terms": [
+        "singular value decomposition"
+      ],
+      "statement": "An m × n matrix A may be written as A = UΣVᵀ, where U is an orthogonal m × m matrix, V is an orthogonal n × n matrix, and Σ is an m × n matrix whose entries are zero except for the singular values of A, which appear in decreasing order on the diagonal (Theorem 7.4.5). A singular value decomposition is in many ways analogous to an orthogonal diagonalization QDQᵀ, but every matrix has one, whether it is symmetric, or even square, or not; the price of this generalization is two sets of singular vectors forming U and V, where a symmetric matrix has a single set of eigenvectors forming Q. For A = [2 −2 1; −4 −8 −8], Σ = [12 0 0; 0 3 0] (Example 7.4.4).",
+      "forms": [
+        {
+          "id": "eq-singular-value-decomposition",
+          "latex": "A=U\\Sigma V^T"
+        }
+      ]
+    },
+    {
+      "id": "svd-of-the-transpose",
+      "kind": "result",
+      "section": "7.4",
+      "name": "Singular value decomposition of the transpose",
+      "statement": "If A = UΣVᵀ, then Aᵀ = VΣᵀUᵀ. In other words, A and Aᵀ share the same singular values, and the left singular vectors of A are the right singular vectors of Aᵀ and vice-versa (Proposition 7.4.6).",
+      "forms": [
+        {
+          "id": "eq-svd-of-the-transpose",
+          "latex": "A^T = V\\Sigma^T U^T"
+        }
+      ]
+    },
+    {
+      "id": "rank-from-singular-values",
+      "kind": "result",
+      "section": "7.4",
+      "name": "Rank from the singular values",
+      "statement": "If x = c₁v₁ + c₂v₂ + … + cₙvₙ in the right singular vectors, then Ax = σ₁c₁u₁ + … + σ_rc_ru_r, where σ₁, …, σ_r are the nonzero singular values. So the rank r of a matrix A equals the number of nonzero singular values, u₁, u₂, …, u_r form an orthonormal basis for Col(A), and the last n − r right singular vectors form an orthonormal basis for Nul(A) (Example 7.4.7). Since A and Aᵀ share their singular values, rank(A) = rank(Aᵀ) (Proposition 7.4.8)."
+    },
+    {
+      "id": "row-space",
+      "kind": "definition",
+      "section": "7.4",
+      "name": "Row space",
+      "terms": [
+        "row space"
+      ],
+      "symbol": "Row",
+      "type": "region",
+      "statement": "Because the columns of Aᵀ are the rows of A, the subspace Col(Aᵀ) is sometimes called the row space of A and denoted Row(A). A singular value decomposition provides an orthonormal basis for it, the first r right singular vectors."
+    },
+    {
+      "id": "four-fundamental-subspaces",
+      "kind": "definition",
+      "section": "7.4",
+      "name": "Four fundamental subspaces",
+      "terms": [
+        "four fundamental subspaces"
+      ],
+      "type": "region",
+      "statement": "Considered altogether, the subspaces Col(A), Nul(A), Col(Aᵀ) and Nul(Aᵀ) are called the four fundamental subspaces associated to A. Nul(Aᵀ) is the orthogonal complement of Col(A), and Nul(A) the orthogonal complement of Col(Aᵀ)."
+    },
+    {
+      "id": "svd-and-the-four-fundamental-subspaces",
+      "kind": "result",
+      "section": "7.4",
+      "name": "Orthonormal bases of the four fundamental subspaces",
+      "statement": "Suppose A is an m × n matrix having a singular value decomposition A = UΣVᵀ. Then r = rank(A) is the number of nonzero singular values; the columns u₁, u₂, …, u_r form an orthonormal basis for Col(A), and u_{r+1}, …, u_m one for Nul(Aᵀ); the columns v₁, v₂, …, v_r form an orthonormal basis for Col(Aᵀ), and v_{r+1}, …, vₙ one for Nul(A) (Theorem 7.4.9)."
+    },
+    {
+      "id": "reduced-svd",
+      "kind": "result",
+      "section": "7.4",
+      "name": "Reduced singular value decomposition",
+      "terms": [
+        "reduced singular value decomposition"
+      ],
+      "statement": "If A is an m × n matrix having rank r, then A = U_rΣ_rV_rᵀ, where U_r is an m × r matrix whose columns form an orthonormal basis for Col(A), Σ_r is the r × r diagonal, invertible matrix of the nonzero singular values σ₁, …, σ_r, and V_r is an n × r matrix whose columns form an orthonormal basis for Col(Aᵀ) (Proposition 7.4.10). For A = [2 −2 1; −4 −8 −8], of rank 2, Σ_r = [12 0; 0 3] (Example 7.4.11).",
+      "forms": [
+        {
+          "id": "eq-reduced-svd",
+          "latex": "A=U_r \\Sigma_r V_r^T",
+          "condition": "r = rank(A)"
+        }
+      ]
+    },
+    {
+      "id": "least-squares-by-svd",
+      "kind": "result",
+      "section": "7.5",
+      "name": "Least squares by a singular value decomposition",
+      "statement": "If A = U_rΣ_rV_rᵀ is a reduced singular value decomposition of A, then a least-squares approximate solution to Ax = b is given by x̂ = V_rΣ_r⁻¹U_rᵀb (Proposition 7.5.1): the columns of U_r form an orthonormal basis for Col(A), so x̂ satisfies Ax̂ = U_rU_rᵀb = b̂. If the columns of A are linearly independent, the least-squares approximate solution is unique; otherwise this expression produces the solution to Ax̂ = b̂ having the shortest length. For A = [1 0; 1 1; 1 2] and b = [−1, 3, 6], x̂ = [−0.83, 3.50] (Activity 7.5.2).",
+      "forms": [
+        {
+          "id": "eq-least-squares-by-svd",
+          "latex": "\\widehat{{\\mathbf x}} = V_r\\Sigma_r^{-1}U_r^T{\\mathbf b}",
+          "condition": "A = U_rΣ_rV_rᵀ a reduced singular value decomposition"
+        }
+      ]
+    },
+    {
+      "id": "pseudoinverse",
+      "kind": "definition",
+      "section": "7.5",
+      "name": "Moore-Penrose pseudoinverse",
+      "terms": [
+        "Moore-Penrose psuedoinverse"
+      ],
+      "symbol": "A_plus",
+      "type": "matrix",
+      "statement": "The matrix A⁺ = V_rΣ_r⁻¹U_rᵀ, formed from a reduced singular value decomposition of A, is known as the Moore-Penrose psuedoinverse of A; the least-squares approximate solution of Ax = b is x̂ = A⁺b. When A is invertible, A⁻¹ = A⁺.",
+      "forms": [
+        {
+          "id": "eq-pseudoinverse",
+          "latex": "A^+ = V_r\\Sigma_r^{-1}U_r^T"
+        }
+      ]
+    },
+    {
+      "id": "outer-product",
+      "kind": "definition",
+      "section": "7.5",
+      "name": "Outer product",
+      "terms": [
+        "outer product",
+        "inner product"
+      ],
+      "type": "matrix",
+      "statement": "Given two vectors u and v, the matrix u vᵀ is called the outer product of u and v; the dot product u·v = uᵀv is sometimes called the inner product. An outer product will always be a rank 1 matrix, since each of its columns is a scalar multiple of u.",
+      "forms": [
+        {
+          "id": "eq-outer-product",
+          "latex": "{\\mathbf u}~{\\mathbf v}^T"
+        }
+      ]
+    },
+    {
+      "id": "rank-k-approximation",
+      "kind": "definition",
+      "section": "7.5",
+      "name": "Rank k approximation",
+      "symbol": "A_k_sub",
+      "type": "matrix",
+      "statement": "From a singular value decomposition A = UΣVᵀ of a rank r matrix, keeping the first k singular values and setting the others to zero forms Σ⁽ᵏ⁾ and the matrix A_k = UΣ⁽ᵏ⁾Vᵀ, which has rank k since it has k nonzero singular values. With a reduced decomposition, A_k = U_kΣ_kV_kᵀ = σ₁u₁v₁ᵀ + σ₂u₂v₂ᵀ + … + σ_ku_kv_kᵀ, obtained by adding together k rank 1 outer products, each a step closer to A, and A = A_r. There is a sense in which A_k is the closest matrix to A among all rank k matrices; for the A of Activity 7.5.3, with singular values 500, 100, 20, 4, the entries of A − A_k get closer to 0 as k increases.",
+      "forms": [
+        {
+          "id": "eq-rank-k-approximation",
+          "latex": "A_k = U\\Sigma^{(k)}V^T"
+        },
+        {
+          "id": "eq-rank-k-approximation-as-a-sum",
+          "latex": "A_k = \\sigma_1{\\mathbf u}_1{\\mathbf v}_1^T + \\sigma_2{\\mathbf u}_2{\\mathbf v}_2^T + \\ldots + \\sigma_k{\\mathbf u}_k{\\mathbf v}_k^T"
+        }
+      ]
+    },
+    {
+      "id": "pca-by-svd",
+      "kind": "result",
+      "section": "7.5",
+      "name": "Principal component analysis by a singular value decomposition",
+      "statement": "If A is the demeaned data matrix of N points with singular value decomposition A = UΣVᵀ, then C = (1/N)AAᵀ = U((1/N)ΣΣᵀ)Uᵀ is an orthogonal diagonalization of the covariance matrix: the left singular vectors of A are the principal components of the dataset, and the variance in the direction of a principal component is V_{uᵢ} = σᵢ²/N. The approximating matrix A_k represents the data points projected onto the subspace spanned by the first k principal components, and the coordinates of a projected demeaned point are given by the columns of Γ_k = Σ_kV_kᵀ. For the iris data, σ₁ = 25.1 and V_{u₁} = 25.1²/150 = 4.20 (Activity 7.5.4).",
+      "forms": [
+        {
+          "id": "eq-variance-from-a-singular-value",
+          "latex": "V_{{\\mathbf u}_i} = \\frac1N\\sigma_i^2"
+        }
+      ]
+    },
+    {
+      "id": "image-compression-by-svd",
+      "kind": "idea",
+      "section": "7.5",
+      "name": "Image compression by a singular value decomposition",
+      "terms": [
+        "compression ratio"
+      ],
+      "statement": "An image stored as a matrix A of pixel values can be reconstructed from a small number of singular values and vectors, A ≈ A_k = σ₁u₁v₁ᵀ + … + σ_ku_kv_kᵀ, which needs k(1 + m + n) numbers in place of mn. The compression ratio, the ratio of the uncompressed size to the compressed size, is 375/123 = 3.0 for a 25 × 15 image of rank 3 and about 3.1 for a 316 × 310 photograph rebuilt from k = 50 singular values; a higher compression ratio leads to a lower quality reconstruction (Activity 7.5.5)."
+    },
+    {
+      "id": "denoising-by-svd",
+      "kind": "idea",
+      "section": "7.5",
+      "name": "Denoising by a singular value decomposition",
+      "terms": [
+        "denoising"
+      ],
+      "statement": "When the singular values of an image drop off dramatically at some point k, we can think of the noise as being formed by the small singular values; replacing A by its approximation A_k sets them to zero and hence removes much of the noise, as k = 3 cleans up the splotchy image of the letter O (Activity 7.5.5)."
+    },
+    {
+      "id": "svd-of-voting-records",
+      "kind": "idea",
+      "section": "7.5",
+      "name": "Patterns in voting records from a singular value decomposition",
+      "terms": [
+        "swing vote"
+      ],
+      "statement": "A singular value decomposition concentrates the most important features of a matrix into the first singular values and singular vectors, which can extract meaning from a large dataset. For the 9 × 911 matrix of the votes of the second Rehnquist court, an entry +1 when a justice voted with the majority and −1 in the minority, the first left singular vector represents a unanimous decision and the second a 5-4 decision leaning to the conservative justices; among the 5-4 decisions, u₂ essentially records the vote of Sandra Day O'Connor, the swing vote (Activity 7.5.6)."
     }
   ],
   "concept_prereqs": [
@@ -7499,6 +8611,438 @@
     {
       "concept": "vandermonde-matrix",
       "prereq": "polynomial-regression"
+    },
+    {
+      "concept": "orthogonally-diagonalizable-matrix",
+      "prereq": "diagonalizable-matrix"
+    },
+    {
+      "concept": "orthogonally-diagonalizable-matrix",
+      "prereq": "inverse-of-an-orthogonal-matrix"
+    },
+    {
+      "concept": "symmetric-matrix",
+      "prereq": "transpose"
+    },
+    {
+      "concept": "symmetric-matrix",
+      "prereq": "square-matrix"
+    },
+    {
+      "concept": "spectral-theorem",
+      "prereq": "orthogonally-diagonalizable-matrix"
+    },
+    {
+      "concept": "spectral-theorem",
+      "prereq": "symmetric-matrix"
+    },
+    {
+      "concept": "spectral-theorem",
+      "prereq": "transpose-of-a-product"
+    },
+    {
+      "concept": "finding-an-orthogonal-diagonalization",
+      "prereq": "spectral-theorem"
+    },
+    {
+      "concept": "finding-an-orthogonal-diagonalization",
+      "prereq": "gram-schmidt-process"
+    },
+    {
+      "concept": "finding-an-orthogonal-diagonalization",
+      "prereq": "eigenspace"
+    },
+    {
+      "concept": "geometry-of-an-orthogonal-diagonalization",
+      "prereq": "orthogonally-diagonalizable-matrix"
+    },
+    {
+      "concept": "geometry-of-an-orthogonal-diagonalization",
+      "prereq": "rotation-matrix"
+    },
+    {
+      "concept": "geometry-of-an-orthogonal-diagonalization",
+      "prereq": "matrix-product-as-composition"
+    },
+    {
+      "concept": "geometry-of-an-orthogonal-diagonalization",
+      "prereq": "similarity"
+    },
+    {
+      "concept": "properties-of-symmetric-matrices",
+      "prereq": "spectral-theorem"
+    },
+    {
+      "concept": "properties-of-symmetric-matrices",
+      "prereq": "complex-eigenvalue"
+    },
+    {
+      "concept": "transpose-across-the-dot-product",
+      "prereq": "dot-product-via-transpose"
+    },
+    {
+      "concept": "transpose-across-the-dot-product",
+      "prereq": "transpose-of-a-product"
+    },
+    {
+      "concept": "transpose-across-the-dot-product",
+      "prereq": "symmetric-matrix"
+    },
+    {
+      "concept": "orthogonal-eigenvectors-of-a-symmetric-matrix",
+      "prereq": "transpose-across-the-dot-product"
+    },
+    {
+      "concept": "orthogonal-eigenvectors-of-a-symmetric-matrix",
+      "prereq": "eigenvector"
+    },
+    {
+      "concept": "orthogonal-eigenvectors-of-a-symmetric-matrix",
+      "prereq": "orthogonal-vectors"
+    },
+    {
+      "concept": "variance",
+      "prereq": "centroid-of-a-set-of-vectors"
+    },
+    {
+      "concept": "variance",
+      "prereq": "demeaned-vector"
+    },
+    {
+      "concept": "variance",
+      "prereq": "magnitude-of-a-vector"
+    },
+    {
+      "concept": "variance-in-a-direction",
+      "prereq": "variance"
+    },
+    {
+      "concept": "variance-in-a-direction",
+      "prereq": "vector-projection"
+    },
+    {
+      "concept": "variance-in-a-direction",
+      "prereq": "unit-vector"
+    },
+    {
+      "concept": "additivity-of-variance",
+      "prereq": "variance-in-a-direction"
+    },
+    {
+      "concept": "additivity-of-variance",
+      "prereq": "projection-onto-a-subspace"
+    },
+    {
+      "concept": "additivity-of-variance",
+      "prereq": "orthonormal-basis"
+    },
+    {
+      "concept": "covariance-matrix",
+      "prereq": "demeaned-vector"
+    },
+    {
+      "concept": "covariance-matrix",
+      "prereq": "symmetric-matrix"
+    },
+    {
+      "concept": "covariance-matrix",
+      "prereq": "transpose-of-a-product"
+    },
+    {
+      "concept": "variance-from-the-covariance-matrix",
+      "prereq": "covariance-matrix"
+    },
+    {
+      "concept": "variance-from-the-covariance-matrix",
+      "prereq": "variance-in-a-direction"
+    },
+    {
+      "concept": "variance-from-the-covariance-matrix",
+      "prereq": "transpose-across-the-dot-product"
+    },
+    {
+      "concept": "quadratic-form",
+      "prereq": "symmetric-matrix"
+    },
+    {
+      "concept": "quadratic-form",
+      "prereq": "dot-product"
+    },
+    {
+      "concept": "quadratic-form",
+      "prereq": "matrix-vector-product"
+    },
+    {
+      "concept": "scaling-a-quadratic-form",
+      "prereq": "quadratic-form"
+    },
+    {
+      "concept": "scaling-a-quadratic-form",
+      "prereq": "linearity-of-matrix-multiplication"
+    },
+    {
+      "concept": "quadratic-form-on-an-eigenvector",
+      "prereq": "quadratic-form"
+    },
+    {
+      "concept": "quadratic-form-on-an-eigenvector",
+      "prereq": "eigenvector"
+    },
+    {
+      "concept": "quadratic-form-on-an-eigenvector",
+      "prereq": "magnitude-of-a-vector"
+    },
+    {
+      "concept": "extreme-values-of-a-quadratic-form",
+      "prereq": "quadratic-form"
+    },
+    {
+      "concept": "extreme-values-of-a-quadratic-form",
+      "prereq": "spectral-theorem"
+    },
+    {
+      "concept": "principal-axes-theorem",
+      "prereq": "quadratic-form"
+    },
+    {
+      "concept": "principal-axes-theorem",
+      "prereq": "spectral-theorem"
+    },
+    {
+      "concept": "positive-definite-matrix",
+      "prereq": "quadratic-form"
+    },
+    {
+      "concept": "definiteness-from-eigenvalues",
+      "prereq": "positive-definite-matrix"
+    },
+    {
+      "concept": "definiteness-from-eigenvalues",
+      "prereq": "principal-axes-theorem"
+    },
+    {
+      "concept": "quadratic-approximation-near-a-critical-point",
+      "prereq": "critical-point-of-a-function-of-two-variables"
+    },
+    {
+      "concept": "quadratic-approximation-near-a-critical-point",
+      "prereq": "positive-definite-matrix"
+    },
+    {
+      "concept": "hessian-matrix",
+      "prereq": "symmetric-matrix"
+    },
+    {
+      "concept": "hessian-matrix",
+      "prereq": "critical-point-of-a-function-of-two-variables"
+    },
+    {
+      "concept": "second-derivative-test-by-eigenvalues",
+      "prereq": "hessian-matrix"
+    },
+    {
+      "concept": "second-derivative-test-by-eigenvalues",
+      "prereq": "definiteness-from-eigenvalues"
+    },
+    {
+      "concept": "second-derivative-test-by-eigenvalues",
+      "prereq": "quadratic-approximation-near-a-critical-point"
+    },
+    {
+      "concept": "second-derivative-test-for-functions-of-two-variables",
+      "prereq": "second-derivative-test-by-eigenvalues"
+    },
+    {
+      "concept": "second-derivative-test-for-functions-of-two-variables",
+      "prereq": "determinant"
+    },
+    {
+      "concept": "principal-component-analysis",
+      "prereq": "coordinates-of-projected-data"
+    },
+    {
+      "concept": "principal-component-analysis",
+      "prereq": "variance-retained-by-principal-components"
+    },
+    {
+      "concept": "dimensional-reduction",
+      "prereq": "additivity-of-variance"
+    },
+    {
+      "concept": "dimensional-reduction",
+      "prereq": "quadratic-form-on-an-eigenvector"
+    },
+    {
+      "concept": "dimensional-reduction",
+      "prereq": "dimension"
+    },
+    {
+      "concept": "principal-component",
+      "prereq": "covariance-matrix"
+    },
+    {
+      "concept": "principal-component",
+      "prereq": "extreme-values-of-a-quadratic-form"
+    },
+    {
+      "concept": "principal-component",
+      "prereq": "quadratic-form-on-an-eigenvector"
+    },
+    {
+      "concept": "variance-retained-by-principal-components",
+      "prereq": "principal-component"
+    },
+    {
+      "concept": "variance-retained-by-principal-components",
+      "prereq": "additivity-of-variance"
+    },
+    {
+      "concept": "coordinates-of-projected-data",
+      "prereq": "principal-component"
+    },
+    {
+      "concept": "gram-matrix",
+      "prereq": "quadratic-form"
+    },
+    {
+      "concept": "gram-matrix",
+      "prereq": "transpose-across-the-dot-product"
+    },
+    {
+      "concept": "gram-matrix",
+      "prereq": "magnitude-of-a-vector"
+    },
+    {
+      "concept": "singular-value",
+      "prereq": "gram-matrix"
+    },
+    {
+      "concept": "singular-value",
+      "prereq": "extreme-values-of-a-quadratic-form"
+    },
+    {
+      "concept": "singular-vectors",
+      "prereq": "singular-value"
+    },
+    {
+      "concept": "left-singular-vectors-are-orthonormal",
+      "prereq": "singular-vectors"
+    },
+    {
+      "concept": "finding-a-singular-value-decomposition",
+      "prereq": "finding-an-orthogonal-diagonalization"
+    },
+    {
+      "concept": "finding-a-singular-value-decomposition",
+      "prereq": "singular-value-decomposition"
+    },
+    {
+      "concept": "singular-value-decomposition",
+      "prereq": "left-singular-vectors-are-orthonormal"
+    },
+    {
+      "concept": "svd-of-the-transpose",
+      "prereq": "singular-value-decomposition"
+    },
+    {
+      "concept": "rank-from-singular-values",
+      "prereq": "singular-value-decomposition"
+    },
+    {
+      "concept": "rank-from-singular-values",
+      "prereq": "rank"
+    },
+    {
+      "concept": "rank-from-singular-values",
+      "prereq": "column-space"
+    },
+    {
+      "concept": "rank-from-singular-values",
+      "prereq": "kernel"
+    },
+    {
+      "concept": "row-space",
+      "prereq": "column-space"
+    },
+    {
+      "concept": "row-space",
+      "prereq": "transpose"
+    },
+    {
+      "concept": "four-fundamental-subspaces",
+      "prereq": "row-space"
+    },
+    {
+      "concept": "four-fundamental-subspaces",
+      "prereq": "orthogonal-complement-of-the-column-space"
+    },
+    {
+      "concept": "svd-and-the-four-fundamental-subspaces",
+      "prereq": "four-fundamental-subspaces"
+    },
+    {
+      "concept": "svd-and-the-four-fundamental-subspaces",
+      "prereq": "rank-from-singular-values"
+    },
+    {
+      "concept": "svd-and-the-four-fundamental-subspaces",
+      "prereq": "svd-of-the-transpose"
+    },
+    {
+      "concept": "reduced-svd",
+      "prereq": "svd-and-the-four-fundamental-subspaces"
+    },
+    {
+      "concept": "least-squares-by-svd",
+      "prereq": "reduced-svd"
+    },
+    {
+      "concept": "least-squares-by-svd",
+      "prereq": "least-squares-solution"
+    },
+    {
+      "concept": "pseudoinverse",
+      "prereq": "least-squares-by-svd"
+    },
+    {
+      "concept": "outer-product",
+      "prereq": "transpose"
+    },
+    {
+      "concept": "outer-product",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "outer-product",
+      "prereq": "rank"
+    },
+    {
+      "concept": "rank-k-approximation",
+      "prereq": "reduced-svd"
+    },
+    {
+      "concept": "rank-k-approximation",
+      "prereq": "outer-product"
+    },
+    {
+      "concept": "pca-by-svd",
+      "prereq": "rank-k-approximation"
+    },
+    {
+      "concept": "pca-by-svd",
+      "prereq": "coordinates-of-projected-data"
+    },
+    {
+      "concept": "image-compression-by-svd",
+      "prereq": "rank-k-approximation"
+    },
+    {
+      "concept": "denoising-by-svd",
+      "prereq": "rank-k-approximation"
+    },
+    {
+      "concept": "svd-of-voting-records",
+      "prereq": "singular-value-decomposition"
     }
   ],
   "sheets": [],
