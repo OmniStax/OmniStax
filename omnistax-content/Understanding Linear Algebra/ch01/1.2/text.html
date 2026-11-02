@@ -1,0 +1,167 @@
+<section id="introduction">
+<h2>An algebraic approach</h2>
+<p id="graphical-perspective">In the previous section, we looked at <span data-concept="linear-system-of-equations">systems of linear equations</span> from a graphical perspective. Since the equations had only two or three variables, we could study the <span data-concept="solution-space">solution spaces</span> as the <span data-concept="solution-sets-as-lines-and-planes">intersections of lines and planes</span>.</p>
+<p id="algebraic-approach">Because we will eventually consider systems with many equations and many variables, this graphical approach will not generally be a useful strategy. Instead, we will approach this problem algebraically and develop a technique to describe the <span data-concept="solution-space">solution spaces</span> of general <span data-concept="linear-system-of-equations">linear systems</span>.</p>
+</section>
+
+<section id="gaussian-elimination">
+<h2>Gaussian elimination</h2>
+<p id="gaussian-elimination-intro">We will develop an algorithm, which is usually called <em><span data-concept="gauss-jordan-elimination">Gaussian elimination</span></em>, that allows us to describe the <span data-concept="solution-space">solution space</span> of a <span data-concept="linear-system-of-equations">linear system</span>. This algorithm plays a central role in much of what is to come.</p>
+<div class="exercises" data-place="gaussian-elimination-intro"></div>
+<p id="observations-intro">These examples lead to a few observations that motivate a general approach to finding <span data-concept="solution-of-a-linear-system">solutions</span> of <span data-concept="linear-system-of-equations">linear systems</span>.</p>
+<div class="note" id="observation-1-2-1">
+<div class="eyebrow">Observation 1.2.1</div>
+<p>First, finding the <span data-concept="solution-space">solution space</span> to some systems is simple. For example, because each equation in the following system</p>
+$$ \begin{alignedat}{3} x & {}={} & -4 \\ y & {}={} & 2. \\ \end{alignedat} $$
+<p>has only one variable, it prescribes a specific value for that variable. We therefore see that there is exactly one <span data-concept="solution-of-a-linear-system">solution</span>, which is $(x,y) = (-4,2)$. We call such a system <em><span data-concept="decoupled-system">decoupled</span></em>.</p>
+</div>
+<div class="note" id="observation-1-2-2">
+<div class="eyebrow">Observation 1.2.2</div>
+<p>Second, there is a process that can be used to find <span data-concept="solution-of-a-linear-system">solutions</span> to certain types of <span data-concept="linear-system-of-equations">linear systems</span>. For instance, let’s consider the system</p>
+$$ \begin{alignedat}{4} x & {} + {} & 2y & {}-{} & 2z & {}={} & -4 \\ & & -y & {}+{} & z & {}={} & 3 \\ & & & & 3z & {}={} & 3. \\ \end{alignedat} $$
+<p>Multiplying both sides of the last equation by $1/3$ gives us</p>
+$$ \begin{alignedat}{4} x & {} + {} & 2y & {}-{} & 2z & {}={} & -4 \\ & & -y & {}+{} & z & {}={} & 3 \\ & & & & z & {}={} & 1. \\ \end{alignedat} $$
+<p>Any <span data-concept="solution-of-a-linear-system">solution</span> to this <span data-concept="linear-system-of-equations">linear system</span> must then have $z=1$.</p>
+<p>Once we know that, we can substitute $z=1$ into the first and second equations and simplify to obtain a new system of equations having the same <span data-concept="solution-of-a-linear-system">solutions</span>:</p>
+$$ \begin{alignedat}{3} x & {} + {} & 2y {}={} && -2 \\ & & -y {}={} && 2. \\ \end{alignedat} $$
+<p>The second equation, after multiplying both sides by $-1$, tells us that $y=-2$. We can then substitute this value into the first equation to determine that $x=2$.</p>
+<p>In this way, we arrive at a <span data-concept="decoupled-system">decoupled</span> system, which shows that there is exactly one <span data-concept="solution-of-a-linear-system">solution</span>, namely $(x,y,z)=(2,-2,1)$.</p>
+<p>Our original system,</p>
+$$ \begin{alignedat}{4} x & {} + {} & 2y & {}-{} & 2z & {}={} & -4 \\ & & -y & {}+{} & z & {}={} & 3 \\ & & & & 3z & {}={} & 3, \\ \end{alignedat} $$
+<p>is called a <em><span data-concept="triangular-system">triangular</span></em> system due to the shape formed by the coefficients. As this example demonstrates, <span data-concept="triangular-system">triangular</span> systems are easily solved by this process, which is called <em><span data-concept="backsubstitution">back substitution</span></em>.</p>
+</div>
+<div class="note" id="observation-1-2-3">
+<div class="eyebrow">Observation 1.2.3</div>
+<p>We can use substitution in a more general way to solve <span data-concept="linear-system-of-equations">linear systems</span>. For example, a natural approach to the system</p>
+$$ \begin{alignedat}{3} x & {} + {} & 2y & {}={} & 1 \\ 2x& {}+{} & 3y & {}={} & 3. \\ \end{alignedat} $$
+<p>is to use <span data-ref="equation-1">the first equation</span> to express $x$ in terms of $y$:</p>
+$$ x = 1-2y $$
+<p>and then substitute this into <span data-ref="equation-2">the second equation</span> and simplify:</p>
+$$ \begin{alignedat}{2} 2x + 3y & {}= & 3 \\ 2(1-2y) + 3y & {}={} & 3 \\ 2-4y + 3y & {}={} & 3 \\ -y & {}={} & 1 \\ y & {}={} & -1 \\ \end{alignedat} $$
+<p>From here, we can substitute $y=-1$ into <span data-ref="equation-1">the first equation</span> to arrive at the <span data-concept="solution-of-a-linear-system">solution</span> $(x,y)=(3,-1)$.</p>
+<p>However, the two-step process of solving for $x$ in terms of $y$ and substituting into <span data-ref="equation-2">the second equation</span> may be performed more efficiently by adding a multiple of <span data-ref="equation-1">the first equation</span> to <span data-ref="equation-2">the second</span>. In this case, we will multiply <span data-ref="equation-1">the first equation</span> by -2 and add to <span data-ref="equation-2">the second equation</span></p>
+$$ \begin{array}{cr} & -2(\text{equation 1}) \\ + & \text{equation 2} \\ \hline \end{array} $$
+<p>to obtain</p>
+$$ \begin{array}{cr} & -2(x+2y=1) \\ + & 2x+3y = 3 \\ \hline \\ \end{array} $$
+<p>which gives us</p>
+$$ \begin{array}{crcr} & -2x-4y & = & -2 \\ + & 2x+3y & = & 3 \\ \hline & -y & = & 1. \\ \end{array} $$
+<p>In this way, the system</p>
+$$ \begin{alignedat}{3} x & {} + {} & 2y & {}={} & 1 \\ 2x& {}+{} & 3y & {}={} & 3 \\ \end{alignedat} $$
+<p>is transformed into the new <span data-concept="triangular-system">triangular</span> system</p>
+$$ \begin{alignedat}{3} x & {} + {} & 2y & {}={} & 1 \\ & & -y & {}={} & 1. \\ \end{alignedat} $$
+<p>Notice that this process can be reversed. Beginning with the <span data-concept="triangular-system">triangular</span> system, we can recover the original system by multiplying <span data-ref="equation-1">the first equation</span> by 2 and adding it to <span data-ref="equation-2">the second</span>. Because of this, the two systems have the same <span data-concept="solution-space">solution space</span>. We will revisit this point later and give what may be a more convincing explanation.</p>
+<p>Of course, the choice to multiply <span data-ref="equation-1">the first equation</span> by -2 was made so that the terms involving $x$ in <span data-ref="equation-1 equation-2">the two equations</span> will cancel leading to a <span data-concept="triangular-system">triangular</span> system that can be solved using <span data-concept="backsubstitution">back substitution</span>.</p>
+</div>
+<p id="three-operations">Based on these observations, we take note of <span data-concept="elementary-row-operations">three operations</span> that transform a <span data-concept="linear-system-of-equations">system of linear equations</span> into a new system of equations having the same <span data-concept="solution-space">solution space</span>. Our goal is to create a new system whose <span data-concept="solution-space">solution space</span> is the same as the original system’s and may be easily described.</p>
+<ul id="row-operations">
+<li><strong><span data-concept="elementary-row-operations">Scaling</span></strong>: We can multiply one equation by a nonzero number. For instance,
+$$ 2x -4y = 6 $$
+has the same set of <span data-concept="solution-of-a-linear-system">solutions</span> as
+$$ \frac12(2x-4y=6) $$
+or
+$$ x-2y=3 $$
+.</li>
+<li><strong><span data-concept="elementary-row-operations">Interchange</span></strong>: Interchanging equations will not change the set of <span data-concept="solution-of-a-linear-system">solutions</span>. For instance,
+$$ \begin{alignedat}{3} 2x & {}+{} & 4y & {}={} & 1 \\ x & {}-{} & 3y & {}={} & 0 \\ \end{alignedat} $$
+has the same set of <span data-concept="solution-of-a-linear-system">solutions</span> as
+$$ \begin{alignedat}{3} x & {}-{} & 3y & {}={} & 0 \\ 2x & {}+{} & 4y & {}={} & 1. \\ \end{alignedat} $$
+</li>
+<li><strong><span data-concept="elementary-row-operations">Replacement</span></strong>: As we saw above, we may multiply one equation by a real number and add it to another equation. We call this process <em><span data-concept="elementary-row-operations">replacement</span></em>.</li>
+</ul>
+<figure class="sim" id="sim-row-operations">
+  <div class="sim-head"><span class="eyebrow">Sim</span><span>The system $x + 2y = 1$, $2x + 3y = 3$ of <a href="#observation-1-2-3">Observation 1.2.3</a> is two lines meeting at $(3, -1)$, and its <span data-concept="augmented-matrix">augmented matrix</span> records the same numbers. A <span data-concept="elementary-row-operations">replacement</span> turns one line about the meeting point; a <span data-concept="elementary-row-operations">scaling</span> leaves its line where it is; an <span data-concept="elementary-row-operations">interchange</span> moves nothing but the order of the rows. Every operation keeps the <span data-concept="solution-space">solution space</span>, and the book’s choice of $-2$ is the multiple that makes the system <span data-concept="triangular-system">triangular</span>.</span></div>
+</figure>
+<div class="example" id="example-1-2-4">
+<h3>Example 1.2.4</h3>
+<p>Let’s illustrate the use of these operations to find the <span data-concept="solution-space">solution space</span> to the system of equations:</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ 2x & {}+{} & y & {}-{} & 3z & {}={} & 11 \\ -3x & {}-{} & 2y & {}+{} & z & {}={} & -10 \\ \end{alignedat} $$
+<p>We will first transform the system into a <span data-concept="triangular-system">triangular</span> system so we start by eliminating $x$ from the second and third equations.</p>
+<p>We begin with a <span data-concept="elementary-row-operations">replacement</span> operation where we multiply the first equation by -2 and add the result to the second equation.</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ & & -3y & {}-{} & 3z & {}={} & 3 \\ -3x & {}-{} & 2y & {}+{} & z & {}={} & -10 \\ \end{alignedat} $$
+<p>Another <span data-concept="elementary-row-operations">replacement</span> operation eliminates $x$ from the third equation. We multiply the first equation by 3 and add to the third.</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ & & -3y & {}-{} & 3z & {}={} & 3 \\ & & 4y & {}+{} & z & {}={} & 2 \\ \end{alignedat} $$
+<p><span data-concept="elementary-row-operations">Scale</span> the second equation by multiplying it by $-1/3$.</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ & & y & {}+{} & z & {}={} & -1 \\ & & 4y & {}+{} & z & {}={} & 2 \\ \end{alignedat} $$
+<p>Eliminate $y$ from the third equation by multiplying the second equation by -4 and adding it to the third. Notice that we now have a <span data-concept="triangular-system">triangular</span> system that can be solved using <span data-concept="backsubstitution">back substitution</span>.</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ & & y & {}+{} & z & {}={} & -1 \\ & & & & -3z & {}={} & 6 \\ \end{alignedat} $$
+<p>After <span data-concept="elementary-row-operations">scaling</span> the third equation by $-1/3$, we have found the value for $z$.</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ & & y & {}+{} & z & {}={} & -1 \\ & & & & z & {}={} & -2 \\ \end{alignedat} $$
+<p>We eliminate $z$ from the second equation by multiplying the third equation by -1 and adding to the second.</p>
+$$ \begin{alignedat}{4} x & {}+{} & 2y & & & {}={} & 4 \\ & & y & & & {}={} & 1 \\ & & & & z & {}={} & -2 \\ \end{alignedat} $$
+<p>Finally, multiply the second equation by -2 and add to the first to obtain:</p>
+$$ \begin{alignedat}{3} x & {}={} & 2 \\ y & {}={} & 1 \\ z & {}={} & -2. \\ \end{alignedat} $$
+<p>Now that we have arrived at a <span data-concept="decoupled-system">decoupled</span> system, we know that there is exactly one <span data-concept="solution-of-a-linear-system">solution</span> to our original system of equations, which is $(x,y,z) = (2,1,-2)$.</p>
+</div>
+<p id="different-sequence">One could find the same result by applying a different sequence of <span data-concept="elementary-row-operations">replacement and scaling</span> operations. However, we chose this particular sequence guided by our desire to first transform the system into a <span data-concept="triangular-system">triangular</span> one. To do this, we eliminated the first variable $x$ from all but one equation and then proceeded to the next variables working left to right. Once we had a <span data-concept="triangular-system">triangular</span> system, we used <span data-concept="backsubstitution">back substitution</span> moving through the variables right to left.</p>
+<p id="gaussian-elimination-named">We call this process <em><span data-concept="gauss-jordan-elimination">Gaussian elimination</span></em> and note that it is our primary tool for solving <span data-concept="linear-system-of-equations">systems of linear equations</span>.</p>
+<div class="exercises" data-place="gaussian-elimination-named"></div>
+</section>
+
+<section id="augmented-matrices">
+<h2>Augmented matrices</h2>
+<p id="shorthand">After performing <span data-concept="gauss-jordan-elimination">Gaussian elimination</span> a few times, you probably noticed that you spent most of the time concentrating on the coefficients and simply recorded the variables as place holders. Based on this observation, we will introduce a shorthand description of <span data-concept="linear-system-of-equations">linear systems</span>.</p>
+<p id="augmented-matrix">When writing a <span data-concept="linear-system-of-equations">linear system</span>, we always write the variables in the same order in each equation. We then construct an <em><span data-concept="augmented-matrix">augmented matrix</span></em> by simply forgetting about the variables and recording the numerical data in a <span data-concept="matrix">rectangular array</span>. For instance, the system of equations below has the following <span data-concept="augmented-matrix">augmented matrix</span></p>
+$$ \begin{alignedat}{4} -x & {}-{} & 2y & {}+{} & 2z & {}={} & -1 \\ 2x & {}+{} & 4y & {}-{} & z & {}={} & 5 \\ x & {}+{} & 2y & & & {}={} & 3 \\ \end{alignedat} $$
+$$ \left[ \begin{array}{rrr|r} -1 & -2 & 2 & -1 \\ 2 & 4 & -1 & 5 \\ 1 & 2 & 0 & 3 \\ \end{array} \right]. $$
+<p id="coefficient-matrix">The vertical line reminds us where the equals signs appear in the equations. Entries in the <span data-concept="matrix">matrix</span> to the left of the vertical line correspond to coefficients of the equations. We sometimes choose to focus only on the coefficients of the system in which case we write the <em><span data-concept="coefficient-matrix">coefficient matrix</span></em> as</p>
+$$ \left[ \begin{array}{rrr} -1 & -2 & 2 \\ 2 & 4 & -1 \\ 1 & 2 & 0 \\ \end{array} \right]. $$
+<p id="row-operations-on-matrices">The <span data-concept="elementary-row-operations">three operations</span> we perform on systems of equations translate naturally into operations on <span data-concept="matrix">matrices</span>. For instance, the <span data-concept="elementary-row-operations">replacement</span> operation that multiplies the first equation by 2 and adds it to the second may be performed by multiplying the first row of the <span data-concept="augmented-matrix">augmented matrix</span> by 2 and adding it to the second row:</p>
+$$ \left[ \begin{array}{rrr|r} -1 & -2 & 2 & -1 \\ 2 & 4 & -1 & 5 \\ 1 & 2 & 0 & 3 \\ \end{array} \right] \sim \left[ \begin{array}{rrr|r} -1 & -2 & 2 & -1 \\ 0 & 0 & 3 & 3 \\ 1 & 2 & 0 & 3 \\ \end{array} \right]. $$
+<p id="row-equivalent">The symbol $\sim$ between the <span data-concept="matrix">matrices</span> indicates that the two <span data-concept="matrix">matrices</span> are related by a sequence of <span data-concept="elementary-row-operations">scaling, interchange, and replacement</span> operations. Since these operations act on the rows of the <span data-concept="matrix">matrices</span>, we say that the <span data-concept="matrix">matrices</span> are <em><span data-concept="row-equivalence">row equivalent</span></em>. Notice that the <span data-concept="linear-system-of-equations">linear systems</span> corresponding to two <span data-concept="row-equivalence">row equivalent</span> <span data-concept="augmented-matrix">augmented matrices</span> have the same <span data-concept="solution-space">solution space</span>.</p>
+<div class="exercises" data-place="row-equivalent"></div>
+</section>
+
+<section id="reduced-row-echelon-form">
+<h2>Reduced row echelon form</h2>
+<p id="special-class">There is a special class of <span data-concept="matrix">matrices</span> whose form makes it especially easy to describe the <span data-concept="solution-space">solution space</span> of the corresponding <span data-concept="linear-system-of-equations">linear system</span>. As we describe the properties of this class of <span data-concept="matrix">matrices</span>, it may be helpful to consider an example, such as the following <span data-concept="matrix">matrix</span>.</p>
+$$ \left[ \begin{array}{rrrrrr} 1 & * & 0 & * & 0 & * \\ 0 & 0 & 1 & * & 0 & * \\ 0 & 0 & 0 & 0 & 1 & * \\ 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 \\ \end{array} \right]. $$
+<div class="note" id="reduced-row-echelon">
+<div class="eyebrow">Definition 1.2.5</div>
+<p>We say that a <span data-concept="matrix">matrix</span> is in <em><span data-concept="reduced-row-echelon-form">reduced row echelon form</span></em> if the following properties are satisfied.</p>
+<ul>
+<li>If the entries in a row are all zero, then the same is true of any row below it.</li>
+<li>If we move across a row from left to right, the first nonzero entry we encounter is 1. We call this entry the <em><span data-concept="leading-entry">leading entry</span></em> in the row.</li>
+<li>The <span data-concept="leading-entry">leading entry</span> in any row is to the right of the <span data-concept="leading-entry">leading entries</span> in all the rows above it.</li>
+<li>A <span data-concept="leading-entry">leading entry</span> is the only nonzero entry in its column.</li>
+</ul>
+<p>We call a <span data-concept="matrix">matrix</span> in <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> a <em><span data-concept="reduced-row-echelon-form">reduced row echelon matrix</span></em>.</p>
+</div>
+<p id="vague">We have been intentionally vague about whether the <span data-concept="matrix">matrix</span> we are considering is an <span data-concept="augmented-matrix">augmented matrix</span> corresponding to a <span data-concept="linear-system-of-equations">linear system</span> or a <span data-concept="coefficient-matrix">coefficient matrix</span> since we will consider both possibilities in the future.</p>
+<div class="exercises" data-place="vague"></div>
+<p id="rref-exists">The examples in the previous activity indicate that there is a sequence of <span data-concept="elementary-row-operations">row operations</span> that transforms any <span data-concept="matrix">matrix</span> into one in <span data-concept="reduced-row-echelon-form">reduced row echelon form</span>. Moreover, the conditions that define <span data-concept="reduced-row-echelon-form">reduced row echelon matrices</span> guarantee that this <span data-concept="matrix">matrix</span> is unique.</p>
+<div class="note" id="thm-rref-is-unique">
+<div class="eyebrow">Theorem 1.2.6</div>
+<p>For any given <span data-concept="matrix">matrix</span>, there is exactly one <span data-concept="reduced-row-echelon-form">reduced row echelon matrix</span> to which it is <span data-concept="row-equivalence">row equivalent</span>.</p>
+</div>
+<p id="rref-solution-space">Once we have this <span data-concept="reduced-row-echelon-form">reduced row echelon matrix</span>, we may <span data-concept="solution-space-from-reduced-row-echelon-form">describe the set of solutions</span> to the corresponding <span data-concept="linear-system-of-equations">linear system</span> with relative ease.</p>
+<div class="example" id="example-1-2-7">
+<h3>Example 1.2.7 · Describing the solution space from a reduced row echelon matrix</h3>
+<ol type="a">
+<li>
+<p>Consider the <span data-concept="reduced-row-echelon-form">reduced row echelon matrix</span></p>
+$$ \left[ \begin{array}{rrr|r} 1 & 0 & 2 & -1 \\ 0 & 1 & 1 & 2 \\ \end{array} \right] $$
+<p>and its corresponding <span data-concept="linear-system-of-equations">linear system</span> as</p>
+$$ \begin{alignedat}{4} x & & & {}+{} & 2z & {}={} & -1 \\ & & y & {}+{} & z & {}={} & 2. \\ \end{alignedat} $$
+<p>Let’s rewrite the equations as</p>
+$$ \begin{alignedat}{2} x & {}={} & -1 -2z\\ y & {}={} & 2-z. \\ \end{alignedat} $$
+<p>From this description, it is clear that we obtain a <span data-concept="solution-of-a-linear-system">solution</span> for any value of the variable $z$. For instance, if $z=2$, then $x = -5$ and $y=0$ so that $(x,y,z) = (-5,0,2)$ is a <span data-concept="solution-of-a-linear-system">solution</span>. Similarly, if $z=0$, we see that $(x,y,z) = (-1,2,0)$ is also a <span data-concept="solution-of-a-linear-system">solution</span>.</p>
+<p id="free-variable">Because there is no restriction on the value of $z$, we call it a <em><span data-concept="free-variable">free variable</span></em>, and note that the <span data-concept="linear-system-of-equations">linear system</span> has infinitely many <span data-concept="solution-of-a-linear-system">solutions</span>. The variables $x$ and $y$ are called <em><span data-concept="basic-variable">basic variables</span></em> as they are determined once we make a choice of the <span data-concept="free-variable">free variable</span>.</p>
+<p id="parametric-description">We will call this description of the <span data-concept="solution-space">solution space</span>, in which the <span data-concept="basic-variable">basic variables</span> are written in terms of the <span data-concept="free-variable">free variables</span>, a <em><span data-concept="parametric-description">parametric description</span></em> of the <span data-concept="solution-space">solution space</span>.</p>
+</li>
+<li>
+<p>Consider the <span data-concept="matrix">matrix</span></p>
+$$ \left[ \begin{array}{rrr|r} 1 & 0 & 0 & 4 \\ 0 & 1 & 0 & -3 \\ 0 & 0 & 1 & 1 \\ 0 & 0 & 0 & 0 \\ \end{array} \right]. $$
+<p>The last equation gives</p>
+$$ 0x +0y+0z = 0 $$
+<p>, which is true for any $(x,y,z)$. We may safely ignore this equation since it does not impose a restriction on $(x,y,z)$. We then see that there is a unique <span data-concept="solution-of-a-linear-system">solution</span> $(x,y,z) = (4,-3,1)$.</p>
+</li>
+<li>
+<p>Consider the <span data-concept="matrix">matrix</span></p>
+$$ \left[ \begin{array}{rrr|r} 1 & 0 & 2 & 0 \\ 0 & 1 & -1 & 0 \\ 0 & 0 & 0 & 1 \\ \end{array} \right]. $$
+<p>Beginning with the last equation, we see that</p>
+$$ 0x +0y+0z = 0 = 1 $$
+<p>, which is not true for any $(x,y,z)$. There is no <span data-concept="solution-of-a-linear-system">solution</span> to this particular equation and therefore no <span data-concept="solution-of-a-linear-system">solution</span> to the system of equations.</p>
+</li>
+</ol>
+</div>
+</section>
