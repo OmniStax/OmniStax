@@ -1,0 +1,86 @@
+<section id="introduction">
+<h2>Linear equations, a few at a time</h2>
+<p id="opening">At its heart, the subject of linear algebra is about <span data-concept="linear-equation">linear equations</span> and, more specifically, <span data-concept="linear-system-of-equations">sets of two or more linear equations</span>. Google routinely deals with a set of trillions of equations each of which has trillions of unknowns. We will eventually understand how to deal with that kind of complexity. To begin, however, we will look at a more familiar situation in which there are a small number of equations and a small number of unknowns. In spite of its relative simplicity, this situation is rich enough to demonstrate some fundamental concepts that will motivate much of our exploration.</p>
+</section>
+
+<section id="simple-examples">
+<h2>Some simple examples</h2>
+<div class="exercises" data-place="simple-examples"></div>
+<p id="outcomes">The examples in this introductory activity demonstrate several possible outcomes for the <span data-concept="solution-of-a-linear-system">solutions</span> to a <span data-concept="linear-system-of-equations">set of linear equations</span>. Notice that we are interested in points that satisfy each equation in the set and that these are seen as intersection points of the lines. Similar to the examples considered in the activity, three types of outcomes are seen in Figure 1.1.5.</p>
+<figure class="sim" id="sim-lines" data-figure="1.1.5 + 1.1.6" data-original="/media/ch01/three-possibilities-1.svg,/media/ch01/three-possibilities-2.svg,/media/ch01/three-possibilities-3.svg,/media/ch01/intro-parallel-2.svg,/media/ch01/intro-coincident.svg" data-original-caption="(Figure 1.1.5) Three sets of linear equations demonstrating there can be infinitely, exactly one, or no solutions. (Figure 1.1.6) A set of two equations in two unknowns can have no solutions, and a set of three equations can have one solution.">
+  <div class="sim-head"><span class="eyebrow">Figure 1.1.5 + 1.1.6</span><span>The points that satisfy one equation in $x$ and $y$ fill a line, and a point that satisfies every equation of a set lies on all of its lines. One equation leaves infinitely many points; <span data-ref="line-1 line-2">two lines</span> usually meet in exactly one; <span data-ref="line-1 line-2 line-3">three</span> usually have none in common. The exceptions are parallel lines, which never meet, and three lines that pass through one point. The presets are the book’s five pictures and the four systems of Activity 1.1.1; the sliders set each line’s slope and intercept, and a dashed circle marks where a line turns parallel to the first or passes through the meeting point of the other two.</span></div>
+</figure>
+<p id="one-two-three">In Figure 1.1.5, we see that</p>
+<ul>
+<li>With <span data-ref="line-1">a single equation</span>, there are infinitely many points $(x,y)$ satisfying that equation.</li>
+<li>Adding <span data-ref="line-2">a second equation</span> adds another condition we place on the points $(x,y)$ resulting in a single point that satisfies <span data-ref="line-1 line-2">both equations</span>.</li>
+<li>Adding <span data-ref="line-3">a third equation</span> adds a third condition on the points $(x,y)$, and there is no point that satisfies <span data-ref="line-1 line-2 line-3">all three equations</span>.</li>
+</ul>
+<p id="more-equations-fewer">Generally speaking, a single equation will have many <span data-concept="solution-of-a-linear-system">solutions</span>, in fact, infinitely many. As we add equations, we add conditions which lead, in a sense we will make precise later, to a smaller number of <span data-concept="solution-of-a-linear-system">solutions</span>. Eventually, we have too many equations and find there are no points that satisfy all of them.</p>
+<p id="general-principle">This example illustrates a general principle to which we will frequently return.</p>
+<div class="note" id="solution-possibilities">
+<div class="eyebrow">Summary · Solutions to sets of linear equations</div>
+<p>Given a <span data-concept="linear-system-of-equations">set of linear equations</span>, there are either:</p>
+<ul>
+<li>infinitely many points,</li>
+<li>exactly one point, or</li>
+<li>no points</li>
+</ul>
+<p>that satisfy every equation in the set.</p>
+</div>
+<p id="equations-vs-unknowns">Notice that we can see a bit more. In Figure 1.1.5, we are looking at equations in two unknowns. Here we see that</p>
+<ul>
+<li>One equation has infinitely many <span data-concept="solution-of-a-linear-system">solutions</span>.</li>
+<li>Two equations have exactly one <span data-concept="solution-of-a-linear-system">solution</span>.</li>
+<li>Three equations have no <span data-concept="solution-of-a-linear-system">solutions</span>.</li>
+</ul>
+<p id="exceptions">It seems reasonable to wonder if the number of <span data-concept="solution-of-a-linear-system">solutions</span> depends on whether the number of equations is less than, equal to, or greater than the number of unknowns. Of course, one of the examples in the activity shows that there are exceptions to this simple rule, as seen in Figure 1.1.6. For instance, two equations in two unknowns may correspond to parallel lines so that the <span data-concept="linear-system-of-equations">set of equations</span> has no <span data-concept="solution-of-a-linear-system">solutions</span>. It may also happen that a <span data-concept="linear-system-of-equations">set of three equations</span> in two unknowns has a single <span data-concept="solution-of-a-linear-system">solution</span>. However, it seems safe to think that the more equations we have, the smaller the <span data-concept="solution-space">set of solutions</span> will be.</p>
+<p id="three-unknowns">Let’s also consider some examples of equations having three unknowns, which we call $x$, $y$, and $z$. Just as <span data-concept="solution-sets-as-lines-and-planes">solutions to linear equations in two unknowns formed straight lines</span>, <span data-concept="solution-sets-as-lines-and-planes">solutions to linear equations in three unknowns form planes</span>.</p>
+<p id="third-axis">When we consider an equation in three unknowns graphically, we need to add a third coordinate axis, as shown in Figure 1.1.7.</p>
+<p id="line-and-plane">As shown in Figure 1.1.8, a <span data-concept="linear-equation">linear equation</span> in two unknowns, such as $y=0$, is a line while a <span data-concept="linear-equation">linear equation</span> in three unknowns, such as $z=0$, is a plane.</p>
+<figure class="sim" id="sim-one-equation" data-figure="1.1.7 + 1.1.8" data-original="/media/ch01/coordinates-2d.svg,/media/ch01/coordinates-3d.svg,/media/ch01/2dy0.svg,/media/ch01/3dz0.svg" data-original-caption="(Figure 1.1.7) Coordinate systems in two and three dimensions. (Figure 1.1.8) The solutions to the equation y = 0 in two dimensions and z = 0 in three.">
+  <div class="sim-head"><span class="eyebrow">Figure 1.1.7 + 1.1.8</span><span>An equation in two unknowns is drawn on two axes and an equation in three unknowns needs a third. Fixing one unknown, $y = c$, picks out a line in the plane; fixing one of three, $z = c$, picks out a whole plane in space, the points $(x, y, c)$ with $x$ and $y$ free. At $c = 0$ these are the $x$-axis and the $xy$-plane.</span></div>
+</figure>
+<p id="two-planes">In three unknowns, the <span data-concept="solution-space">set of solutions</span> to one <span data-concept="linear-equation">linear equation</span> forms a plane. The <span data-concept="solution-space">set of solutions</span> to a pair of <span data-concept="linear-equation">linear equations</span> is seen graphically as the intersection of <span data-ref="plane-1 plane-2">the two planes</span>. As in Figure 1.1.9, we typically expect this intersection to be a line.</p>
+<p id="three-planes">When we add <span data-ref="plane-3">a third equation</span>, we are looking for the intersection of <span data-ref="plane-1 plane-2 plane-3">three planes</span>, which we expect to form a point, as in the left of Figure 1.1.10. However, in certain special cases, it may happen that there are no <span data-concept="solution-of-a-linear-system">solutions</span>, as seen on the right.</p>
+<figure class="sim" id="sim-planes" data-figure="1.1.9 + 1.1.10" data-original="/media/ch01/plane-simple.svg,/media/ch01/plane-int-1.svg,/media/ch01/plane-int-2.svg,/media/ch01/plane-int-3.svg" data-original-caption="(Figure 1.1.9) A single plane and the intersection of two planes. (Figure 1.1.10) Two examples showing the intersections of three planes.">
+  <div class="sim-head"><span class="eyebrow">Figure 1.1.9 + 1.1.10</span><span>The <span data-concept="solution-of-a-linear-system">solutions</span> of one equation in three unknowns fill a plane. <span data-ref="plane-1 plane-2">Two planes</span> usually meet along a line, so two equations usually leave infinitely many <span data-concept="solution-of-a-linear-system">solutions</span>, unless the planes are parallel and have no point in common. <span data-ref="plane-3">A third plane</span> usually cuts that line in one point, the one <span data-concept="solution-of-a-linear-system">solution</span> of all three equations; when the third plane is parallel to the line it either contains it, leaving a line of <span data-concept="solution-of-a-linear-system">solutions</span>, or misses it, and no point satisfies all three. The tilt of the second plane and the turn and shift of the third reach every case, and the presets are the book’s four pictures and the two arrangements of Activity 1.1.2.</span></div>
+</figure>
+<div class="exercises" data-place="sim-planes"></div>
+</section>
+
+<section id="systems-of-linear-equations">
+<h2>Systems of linear equations</h2>
+<p id="terminology">Now that we have seen some simple examples, let’s agree on some terminology to help us think more precisely about sets of equations.</p>
+<p id="line-form">First, we considered a <span data-concept="linear-equation">linear equation</span> having the form</p>
+$$ y = 2x - 1 . $$
+<p>It will be convenient for us to rewrite this so that all the unknowns are on one side of the equation:</p>
+$$ -2x + y = -1 . $$
+<p>More generally, the equation of a line can always be expressed in the form</p>
+<div class="equation" id="eq-line-general-form">$$ ax + by = c, $$</div>
+<p>which gives us the flexibility to describe all lines. For instance, vertical lines, such as $x=3$, may be represented in this form.</p>
+<p id="terms">Notice that each term on the left is the product of a constant and the first power of an unknown. In the future, we will want to consider equations having many more unknowns, which we will sometimes denote as $x_1, x_2, \ldots, x_n$. This leads to the following definition:</p>
+<div class="note" id="definition-1-1-11">
+<div class="eyebrow">Definition 1.1.11</div>
+<p>A <em><span data-concept="linear-equation">linear equation</span></em> in the unknowns $x_1,x_2,\ldots,x_n$ may be written in the form</p>
+<div class="equation" id="eq-linear-equation">$$ a_1x_1 + a_2x_2 + \ldots + a_nx_n = b , $$</div>
+<p>where $a_1,a_2,\ldots,a_n$ are real numbers known as <em><span data-concept="linear-equation">coefficients</span></em>. We also say that $x_1,x_2,\ldots,x_n$ are the <em><span data-concept="linear-equation">variables</span></em> in the equation.</p>
+<p>By a <em><span data-concept="linear-system-of-equations">system of linear equations</span></em> or a <em><span data-concept="linear-system-of-equations">linear system</span></em>, we mean a set of <span data-concept="linear-equation">linear equations</span> written in a common set of unknowns.</p>
+</div>
+<p id="example-system">For instance,</p>
+$$ \begin{alignedat}{4} 2x_1 & {} + & {} 1.2x_2 & {}-{} & 4x_3 & {}={} & 3.7 \\ -0.1x_1 & {} & {} & {} + {} & x_3 & {}={} & 2 \\ x_1 & {}+{} & x_2 & {}-{} & x_3 & {}={} & 1.4 \\ \end{alignedat} $$
+<p>is an example of a <span data-concept="linear-system-of-equations">linear system</span>.</p>
+<div class="note" id="definition-1-1-12">
+<div class="eyebrow">Definition 1.1.12</div>
+<p>A <em><span data-concept="solution-of-a-linear-system">solution</span></em> to a <span data-concept="linear-system-of-equations">linear system</span> is simply a set of numbers $x_1 = s_1, x_2 = s_2, \ldots, x_n=s_n$ that satisfy all the equations in the system.</p>
+</div>
+<p id="check-solution">For instance, we earlier considered the <span data-concept="linear-system-of-equations">linear system</span></p>
+$$ \begin{alignedat}{3} -x & {}+{} & y & {} = {} & 1 \\ -2x & {}+{} & y & {} = {} & -1. \\ \end{alignedat} $$
+<p>To check that $(x,y) = (2,3)$ is a <span data-concept="solution-of-a-linear-system">solution</span>, we <span data-concept="verifying-a-solution-of-a-linear-system">verify that the following equations are true</span>.</p>
+$$ \begin{alignedat}{3} -2 & {}+{} & 3 & {} = {} & 1 \\ -2(2) & {}+{} & 3 & {} = {} & -1. \\ \end{alignedat} $$
+<div class="note" id="definition-1-1-13">
+<div class="eyebrow">Definition 1.1.13</div>
+<p>We call the set of all <span data-concept="solution-of-a-linear-system">solutions</span> the <em><span data-concept="solution-space">solution space</span></em> of the <span data-concept="linear-system-of-equations">linear system</span>.</p>
+</div>
+<div class="exercises" data-place="definition-1-1-13"></div>
+</section>
