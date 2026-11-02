@@ -309,9 +309,9 @@ function carried(ctx, ax, m, n, color, a, w = 1.5, dash) {
     const settled = rest && Math.abs(xk[0] - rest[0]) < 0.5;
     const settling = rest ? `the split ${settled ? 'has settled at' : 'is settling toward'} $${ptT([r1(rest[0]), r1(rest[1])])}$` : 'no truck changes warehouse, so every split rests where it starts';
     if (K === 0) headline(ctx, `Monday morning: $\\kvecxzero = ${ptT(xk)}$, with ${num(A[0] * 100)}% of $P$’s trucks and ${num(A[3] * 100)}% of $Q$’s returning where they left; ${settling}.`);
-    else headline(ctx, `Day $${K}$: $\\mathbf{x}_{${K}} = \\kA\\mathbf{x}_{${K - 1}} = ${ptT(xk.map(r1))}$; ${settling}.`);
-    if (K === 0) ro.set(`\\kvecxzero = ${col(xk[0], xk[1])}, \\qquad \\kA = ${kmtx(A)}`, `$\\mathbf{x}_{k+1} = \\kA\\kvecxk$: each evening’s distribution is $\\kA$ times the morning’s.`, { form: 'start' });
-    else ro.set(`\\mathbf{x}_{${K}} = \\kA\\mathbf{x}_{${K - 1}} = ${kmtx(A)} ${col(r1(xs[K - 1][0]), r1(xs[K - 1][1]))} = ${col(r1(xk[0]), r1(xk[1]))}`, `$\\mathbf{x}_{${K}} = \\kA^{${K}}\\kvecxzero$: ${K} day${K === 1 ? '' : 's'} of the transition function, one power of $\\kA$ each.`, { form: 'day' });
+    else headline(ctx, `Day $${K}$: $\\kvecx_{${K}} = \\kA\\kvecx_{${K - 1}} = ${ptT(xk.map(r1))}$; ${settling}.`);
+    if (K === 0) ro.set(`\\kvecxzero = ${col(xk[0], xk[1])}, \\qquad \\kA = ${kmtx(A)}`, `$\\kvecx_{k+1} = \\kA\\kvecxk$: each evening’s distribution is $\\kA$ times the morning’s.`, { form: 'start' });
+    else ro.set(`\\kvecx_{${K}} = \\kA\\kvecx_{${K - 1}} = ${kmtx(A)} ${col(r1(xs[K - 1][0]), r1(xs[K - 1][1]))} = ${col(r1(xk[0]), r1(xk[1]))}`, `$\\kvecx_{${K}} = \\kA^{${K}}\\kvecxzero$: ${K} day${K === 1 ? '' : 's'} of the transition function, one power of $\\kA$ each.`, { form: 'day' });
   }
   register(d.fig, { update: (dt) => cy.step(dt, () => 1 / PER), draw });
 })();

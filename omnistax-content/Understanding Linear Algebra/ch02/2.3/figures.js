@@ -182,7 +182,6 @@ function spanFigure(o) {
       const mult = m === 0 ? '\\kveczero' : coef(m, '\\kvecv');
       ro.set(mult === comb ? `${comb} = ${col2(b)}` : `${comb} = (${num(c)} ${t < 0 ? '-' : '+'} ${num(Math.abs(t))}\\cdot${par(dd)})\\kvecv = ${mult} = ${col2(b)}`,
         `$\\kSpan\\{\\kvecv, \\kvecw\\}$ is the line defined by $\\kvecv$: $\\kvecw = ${coef(t, '\\kvecv')}$, so every linear combination is a multiple of $\\kvecv$.`, { form: 'line' });
-      form = 'line';
     } else {
       const hit = (cur.targets || []).find((tg) => tg[0] === b[0] && tg[1] === b[1]);
       h = hit ? `$${comb} = ${pt2(b)}$ lands on the point the text asks about: it is in $\\kSpan\\{\\kvecv, \\kvecw\\}$.`

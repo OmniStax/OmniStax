@@ -249,7 +249,8 @@
     {
      "id": "eq-line-of-vectors",
      "latex": "c\\mathbf{v} + \\mathbf{w}",
-     "condition": "c any scalar"
+     "condition": "c any scalar",
+     "anchor": "2.1-line-of-vectors"
     }
    ]
   },
@@ -262,11 +263,13 @@
    "forms": [
     {
      "id": "eq-vector-addition-commutative",
-     "latex": "\\mathbf{v} + \\mathbf{w} = \\mathbf{w} + \\mathbf{v}"
+     "latex": "\\mathbf{v} + \\mathbf{w} = \\mathbf{w} + \\mathbf{v}",
+     "anchor": "2.1-observation-2-1-8"
     },
     {
      "id": "eq-scalar-multiplication-distributive",
-     "latex": "a(\\mathbf{v} + \\mathbf{w}) = a\\mathbf{v} + a\\mathbf{w}"
+     "latex": "a(\\mathbf{v} + \\mathbf{w}) = a\\mathbf{v} + a\\mathbf{w}",
+     "anchor": "2.1-observation-2-1-8"
     }
    ]
   },
@@ -290,7 +293,8 @@
    "forms": [
     {
      "id": "eq-linear-combination",
-     "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n"
+     "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n",
+     "anchor": "2.1-definition-2-1-9"
     }
    ]
   },
@@ -303,11 +307,13 @@
    "forms": [
     {
      "id": "eq-linear-combination-augmented-matrix",
-     "latex": "\\left[ \\begin{array}{rrrr|r} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n & \\mathbf{b} \\end{array} \\right]"
+     "latex": "\\left[ \\begin{array}{rrrr|r} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n & \\mathbf{b} \\end{array} \\right]",
+     "anchor": "2.1-prop-system-comb"
     },
     {
      "id": "eq-linear-combination-equals-b",
-     "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{b}"
+     "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{b}",
+     "anchor": "2.1-prop-system-comb"
     }
    ]
   },
@@ -334,7 +340,8 @@
    "forms": [
     {
      "id": "eq-matrix-scalar-multiple",
-     "latex": "c\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} c\\mathbf{v}_1 & c\\mathbf{v}_2 & \\cdots & c\\mathbf{v}_n \\end{array} \\right]"
+     "latex": "c\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} c\\mathbf{v}_1 & c\\mathbf{v}_2 & \\cdots & c\\mathbf{v}_n \\end{array} \\right]",
+     "anchor": "2.2-matrix-operations"
     }
    ]
   },
@@ -347,7 +354,8 @@
    "forms": [
     {
      "id": "eq-matrix-sum",
-     "latex": "\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] + \\left[\\begin{array}{rrrr} \\mathbf{w}_1 & \\mathbf{w}_2 & \\cdots & \\mathbf{w}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} \\mathbf{v}_1+\\mathbf{w}_1 & \\mathbf{v}_2+\\mathbf{w}_2 & \\cdots & \\mathbf{v}_n+\\mathbf{w}_n \\end{array} \\right]"
+     "latex": "\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] + \\left[\\begin{array}{rrrr} \\mathbf{w}_1 & \\mathbf{w}_2 & \\cdots & \\mathbf{w}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} \\mathbf{v}_1+\\mathbf{w}_1 & \\mathbf{v}_2+\\mathbf{w}_2 & \\cdots & \\mathbf{v}_n+\\mathbf{w}_n \\end{array} \\right]",
+     "anchor": "2.2-matrix-operations"
     }
    ]
   },
@@ -365,11 +373,13 @@
    "forms": [
     {
      "id": "eq-identity-matrix-3",
-     "latex": "I_3 = \\left[ \\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array} \\right]"
+     "latex": "I_3 = \\left[ \\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array} \\right]",
+     "anchor": "2.2-same-shape"
     },
     {
      "id": "eq-identity-times-vector",
-     "latex": "I\\mathbf{x} = \\mathbf{x}"
+     "latex": "I\\mathbf{x} = \\mathbf{x}",
+     "anchor": "2.2-same-shape"
     }
    ]
   },
@@ -386,7 +396,8 @@
     {
      "id": "eq-matrix-vector-product",
      "latex": "A\\mathbf{x} = c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n",
-     "condition": "A = [v₁ v₂ … vₙ], x the vector of weights c₁, …, cₙ"
+     "condition": "A = [v₁ v₂ … vₙ], x the vector of weights c₁, …, cₙ",
+     "anchor": "2.2-definition-2-2-2"
     }
    ]
   },
@@ -422,15 +433,18 @@
    "forms": [
     {
      "id": "eq-matrix-times-zero-vector",
-     "latex": "A\\mathbf{0} = \\mathbf{0}"
+     "latex": "A\\mathbf{0} = \\mathbf{0}",
+     "anchor": "2.2-prop-matrix-mult-prop"
     },
     {
      "id": "eq-matrix-scalar-linearity",
-     "latex": "A(c\\mathbf{v}) = cA\\mathbf{v}"
+     "latex": "A(c\\mathbf{v}) = cA\\mathbf{v}",
+     "anchor": "2.2-prop-matrix-mult-prop"
     },
     {
      "id": "eq-matrix-sum-linearity",
-     "latex": "A(\\mathbf{v}+\\mathbf{w}) = A\\mathbf{v} + A\\mathbf{w}"
+     "latex": "A(\\mathbf{v}+\\mathbf{w}) = A\\mathbf{v} + A\\mathbf{w}",
+     "anchor": "2.2-prop-matrix-mult-prop"
     }
    ]
   },
@@ -443,11 +457,13 @@
    "forms": [
     {
      "id": "eq-matrix-equation",
-     "latex": "A\\mathbf{x} = \\mathbf{b}"
+     "latex": "A\\mathbf{x} = \\mathbf{b}",
+     "anchor": "2.2-turn-around"
     },
     {
      "id": "eq-matrix-augmented-by-a-vector",
-     "latex": "\\left[\\begin{array}{rrrr|r} \\mathbf{v}_1&\\mathbf{v}_2&\\cdots&\\mathbf{v}_n&\\mathbf{b}\\end{array}\\right] = \\left[ \\begin{array}{r|r} A & \\mathbf{b} \\end{array}\\right]"
+     "latex": "\\left[\\begin{array}{rrrr|r} \\mathbf{v}_1&\\mathbf{v}_2&\\cdots&\\mathbf{v}_n&\\mathbf{b}\\end{array}\\right] = \\left[ \\begin{array}{r|r} A & \\mathbf{b} \\end{array}\\right]",
+     "anchor": "2.2-augmented-by"
     }
    ]
   },
@@ -460,7 +476,8 @@
    "forms": [
     {
      "id": "eq-matrix-equation-as-a-linear-combination",
-     "latex": "x_1\\mathbf{v}_1 + x_2\\mathbf{v}_2 + \\ldots + x_n\\mathbf{v}_n = \\mathbf{b}"
+     "latex": "x_1\\mathbf{v}_1 + x_2\\mathbf{v}_2 + \\ldots + x_n\\mathbf{v}_n = \\mathbf{b}",
+     "anchor": "2.2-prop-matrix-eq-solution"
     }
    ]
   },
@@ -474,7 +491,8 @@
     {
      "id": "eq-solution-space-in-vector-form",
      "latex": "\\mathbf{x} = \\mathbf{v} + x_3\\mathbf{w}",
-     "condition": "one free variable x₃"
+     "condition": "one free variable x₃",
+     "anchor": "2.2-vector-form"
     }
    ]
   },
@@ -493,7 +511,8 @@
     {
      "id": "eq-matrix-product-columns",
      "latex": "AB = \\left[\\begin{array}{rrrr} A\\mathbf{v}_1 & A\\mathbf{v}_2 & \\cdots & A\\mathbf{v}_p \\end{array}\\right]",
-     "condition": "B = [v₁ v₂ … vₚ]"
+     "condition": "B = [v₁ v₂ … vₚ]",
+     "anchor": "2.2-definition-2-2-6"
     }
    ]
   },
@@ -513,15 +532,18 @@
    "forms": [
     {
      "id": "eq-matrix-associativity",
-     "latex": "A(BC) = (AB)C"
+     "latex": "A(BC) = (AB)C",
+     "anchor": "2.2-properties-matrix-multiplication"
     },
     {
      "id": "eq-matrix-left-distributivity",
-     "latex": "A(B+C) = AB+AC"
+     "latex": "A(B+C) = AB+AC",
+     "anchor": "2.2-properties-matrix-multiplication"
     },
     {
      "id": "eq-matrix-right-distributivity",
-     "latex": "(A+B)C = AC+BC"
+     "latex": "(A+B)C = AC+BC",
+     "anchor": "2.2-properties-matrix-multiplication"
     }
    ]
   },
@@ -535,7 +557,8 @@
     {
      "id": "eq-matrix-noncommutativity",
      "latex": "AB \\neq BA",
-     "condition": "in general"
+     "condition": "in general",
+     "anchor": "2.2-caution"
     }
    ]
   },
@@ -560,7 +583,8 @@
    "forms": [
     {
      "id": "eq-span-notation",
-     "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}"
+     "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}",
+     "anchor": "2.3-convention-2-3-9"
     }
    ]
   },
@@ -595,7 +619,8 @@
     {
      "id": "eq-span-is-whole-space",
      "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\} = {\\mathbb R}^m",
-     "condition": "the matrix [v₁ v₂ … vₙ] has a pivot position in every row"
+     "condition": "the matrix [v₁ v₂ … vₙ] has a pivot position in every row",
+     "anchor": "2.3-prop-pivot-row"
     }
    ]
   },
@@ -609,7 +634,8 @@
     {
      "id": "eq-span-bound",
      "latex": "n \\geq m",
-     "condition": "n vectors spanning ℝᵐ"
+     "condition": "n vectors spanning ℝᵐ",
+     "anchor": "2.3-prop-span-bound"
     }
    ]
   },
@@ -641,7 +667,8 @@
     {
      "id": "eq-span-unchanged-by-a-dependent-vector",
      "latex": "\\text{Span}\\left\\{\\mathbf{w}_1,\\mathbf{w}_2,\\mathbf{w}_3\\right\\} = \\text{Span}\\left\\{\\mathbf{w}_1,\\mathbf{w}_2\\right\\}",
-     "condition": "w₃ a linear combination of w₁ and w₂"
+     "condition": "w₃ a linear combination of w₁ and w₂",
+     "anchor": "2.4-example-span-plane"
     }
    ]
   },
@@ -671,7 +698,8 @@
    "forms": [
     {
      "id": "eq-homogeneous-equation",
-     "latex": "A\\mathbf{x} = \\mathbf{0}"
+     "latex": "A\\mathbf{x} = \\mathbf{0}",
+     "anchor": "2.4-homogeneous"
     }
    ]
   },
@@ -685,7 +713,8 @@
     {
      "id": "eq-linear-dependence-relation",
      "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{0}",
-     "condition": "weights not all zero"
+     "condition": "weights not all zero",
+     "anchor": "2.4-proposition-2-4-9"
     }
    ]
   },
@@ -717,12 +746,14 @@
    "forms": [
     {
      "id": "eq-matrix-transformation",
-     "latex": "T(\\mathbf{x}) = A\\mathbf{x}"
+     "latex": "T(\\mathbf{x}) = A\\mathbf{x}",
+     "anchor": "2.5-definition-2-5-3"
     },
     {
      "id": "eq-matrix-transformation-domain",
      "latex": "T:{\\mathbb R}^n\\to{\\mathbb R}^m",
-     "condition": "A an m × n matrix"
+     "condition": "A an m × n matrix",
+     "anchor": "2.5-compatible-shapes"
     }
    ]
   },
@@ -737,7 +768,8 @@
    "forms": [
     {
      "id": "eq-standard-basis-vectors",
-     "latex": "\\mathbf{e}_1 = \\left[\\begin{array}{c} 1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\mathbf{e}_2 = \\left[\\begin{array}{c} 0 \\\\ 1 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\ldots,~~~ \\mathbf{e}_n = \\left[\\begin{array}{c} 0 \\\\ 0 \\\\ \\vdots \\\\ 1 \\end{array}\\right]"
+     "latex": "\\mathbf{e}_1 = \\left[\\begin{array}{c} 1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\mathbf{e}_2 = \\left[\\begin{array}{c} 0 \\\\ 1 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\ldots,~~~ \\mathbf{e}_n = \\left[\\begin{array}{c} 0 \\\\ 0 \\\\ \\vdots \\\\ 1 \\end{array}\\right]",
+     "anchor": "2.5-standard-vectors"
     }
    ]
   },
@@ -750,11 +782,13 @@
    "forms": [
     {
      "id": "eq-matrix-columns-from-a-transformation",
-     "latex": "A = \\left[\\begin{array}{rrrr} T(\\mathbf{e}_1) & T(\\mathbf{e}_2) & \\cdots & T(\\mathbf{e}_n) \\end{array}\\right]"
+     "latex": "A = \\left[\\begin{array}{rrrr} T(\\mathbf{e}_1) & T(\\mathbf{e}_2) & \\cdots & T(\\mathbf{e}_n) \\end{array}\\right]",
+     "anchor": "2.5-prop-linear-trans-columns"
     },
     {
      "id": "eq-transformation-of-a-standard-vector",
-     "latex": "T(\\mathbf{e}_j) = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n \\end{array}\\right] ~\\mathbf{e}_j = \\mathbf{v}_j"
+     "latex": "T(\\mathbf{e}_j) = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n \\end{array}\\right] ~\\mathbf{e}_j = \\mathbf{v}_j",
+     "anchor": "2.5-standard-vectors"
     }
    ]
   },
@@ -777,12 +811,14 @@
    "forms": [
     {
      "id": "eq-composition-of-matrix-transformations",
-     "latex": "(S\\circ T)(\\mathbf{x}) = S(T(\\mathbf{x})) = S(A\\mathbf{x}) = BA\\mathbf{x} = (BA)\\mathbf{x}"
+     "latex": "(S\\circ T)(\\mathbf{x}) = S(T(\\mathbf{x})) = S(A\\mathbf{x}) = BA\\mathbf{x} = (BA)\\mathbf{x}",
+     "anchor": "2.5-composing-matrix-transformations"
     },
     {
      "id": "eq-function-composition",
      "latex": "(h\\circ g)(x) = h(g(x))",
-     "condition": "functions of one variable"
+     "condition": "functions of one variable",
+     "anchor": "2.5-composition-named"
     }
    ]
   },
@@ -820,11 +856,13 @@
    "forms": [
     {
      "id": "eq-discrete-dynamical-system",
-     "latex": "\\mathbf{x}_{k+1}=A\\mathbf{x}_k"
+     "latex": "\\mathbf{x}_{k+1}=A\\mathbf{x}_k",
+     "anchor": "2.5-discrete-dynamical-system"
     },
     {
      "id": "eq-state-after-two-steps",
-     "latex": "\\mathbf{x}_2 = T(\\mathbf{x}_1) = (T\\circ T)(\\mathbf{x}_0)= A^2\\mathbf{x}_0"
+     "latex": "\\mathbf{x}_2 = T(\\mathbf{x}_1) = (T\\circ T)(\\mathbf{x}_0)= A^2\\mathbf{x}_0",
+     "anchor": "2.5-state-evolution"
     }
    ]
   },
@@ -842,7 +880,8 @@
     {
      "id": "eq-reflection-across-the-horizontal-axis",
      "latex": "\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\end{array}\\right]",
-     "condition": "reflection across the horizontal axis"
+     "condition": "reflection across the horizontal axis",
+     "anchor": "2.6-sim-reflection"
     },
     {
      "id": "eq-horizontal-stretch",
@@ -907,7 +946,8 @@
     {
      "id": "eq-rotation-by-45-degrees",
      "latex": "A = \\left[\\begin{array}{rr} \\frac{1}{\\sqrt{2}} & -\\frac{1}{\\sqrt{2}} \\\\ \\frac{1}{\\sqrt{2}} & \\frac{1}{\\sqrt{2}} \\end{array}\\right]",
-     "condition": "rotation by 45°"
+     "condition": "rotation by 45°",
+     "anchor": "2.6-rotation-45-matrix"
     }
    ]
   },
@@ -920,11 +960,13 @@
    "forms": [
     {
      "id": "eq-transformation-scalar-linearity",
-     "latex": "T(c\\mathbf{v}) = cT(\\mathbf{v})"
+     "latex": "T(c\\mathbf{v}) = cT(\\mathbf{v})",
+     "anchor": "2.6-prop-linear-trans-characterization"
     },
     {
      "id": "eq-transformation-sum-linearity",
-     "latex": "T(\\mathbf{v} + \\mathbf{w}) = T(\\mathbf{v}) + T(\\mathbf{w})"
+     "latex": "T(\\mathbf{v} + \\mathbf{w}) = T(\\mathbf{v}) + T(\\mathbf{w})",
+     "anchor": "2.6-prop-linear-trans-characterization"
     }
    ]
   },
@@ -964,20 +1006,24 @@
    "forms": [
     {
      "id": "eq-homogeneous-coordinates",
-     "latex": "\\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right]"
+     "latex": "\\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right]",
+     "anchor": "2.6-homogeneous-vectors"
     },
     {
      "id": "eq-homogeneous-coordinate-matrix",
-     "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right]"
+     "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right]",
+     "anchor": "2.6-sim-stick-figure"
     },
     {
      "id": "eq-homogeneous-coordinate-transformation",
-     "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{c}ax+by+c \\\\ dx+ey+f \\\\ 1 \\end{array}\\right]"
+     "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{c}ax+by+c \\\\ dx+ey+f \\\\ 1 \\end{array}\\right]",
+     "anchor": "2.6-sim-stick-figure"
     },
     {
      "id": "eq-translation-matrix",
      "latex": "\\left[\\begin{array}{rrr} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{array}\\right]",
-     "condition": "translation by two units horizontally and one unit vertically"
+     "condition": "translation by two units horizontally and one unit vertically",
+     "anchor": "2.6-sim-stick-figure"
     }
    ]
   }

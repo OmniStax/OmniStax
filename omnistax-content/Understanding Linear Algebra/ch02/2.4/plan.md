@@ -48,3 +48,4 @@ None (config 16): Example 2.4.2's two-line rewriting of c₁**w**₁ + c₂**w**
 - Anchors on the three forms of the section: `eq-span-unchanged-by-a-dependent-vector → 2.4-example-span-plane`, `eq-homogeneous-equation → 2.4-homogeneous`, `eq-linear-dependence-relation → 2.4-proposition-2-4-9`.
 - No concept, edge or glossary changes; the prep's statements and terms stand.
 - Nothing wrong found in the rules. App: `F.space3d` has no plane-with-grid builder; the lattice of combinations is laid as `SP.line` marks clipped to the box, which every span figure of 2.3 and 3.5 will want too.
+- Chapter pass (2026-11-02): applied. The sixteen variables anchors and the three form anchors as listed; `type: "vector"` set on `2.4/x_vec`, `2.4/b_vec`, `2.4/v_i_vec`, `2.4/w_i_vec` and chapter-wide; `ref` on the six referent rows confirmed. The caption's sentence on the components setting the head is shortened to the dashed circle the reader sees.

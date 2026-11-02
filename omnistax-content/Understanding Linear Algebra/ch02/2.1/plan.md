@@ -53,6 +53,7 @@ None (config 16): Example 2.1.11 is a worked example that substitutes numbers; E
 - Variables rows: `type: "vector"` set by this section on `2.1/w_vec`, `2.1/u_vec`, `2.1/b_vec`, `2.1/v_i_vec` (the prep's rows carried none, so `\kvecw`, `\kvecu`, `\kvecb`, `\kvecvi` set in ink); the same is wanted on every other section's rows of the chapter's vector symbols that name no concept (`w_vec` in 2.3, 2.6; `b_vec` in 2.2–2.4; `v_i_vec` in 2.2–2.5; and the chapter's `x_vec`, `zero_vec`, `v_1_vec` … `e_3_vec` rows where they carry no concept of type vector), per the chapter `COLOR.md`.
 - No concept, edge, form or glossary changes; the prep's statements and terms stand.
 - Nothing wrong found in the rules. App: `F.ctl`'s `specials` take a fixed `at` or a function, which serves a target's two weights; nothing was missing.
+- Chapter pass (2026-11-02): applied. The eleven variables anchors and the six form anchors set as listed; `type: "vector"` confirmed on `2.1/w_vec`, `2.1/u_vec`, `2.1/b_vec`, `2.1/v_i_vec` and set on every vector row of 2.2–2.6 that names no concept, which also cleared the checker's "means something else in 2.1" warnings (its test counts a type difference as a different meaning). Captions trimmed of the sentences that spoke of the controls ("Drag the head of v and slide c", "Drag the heads of v and w", "Slide c and d") and of "the book's"; the marks are now named by their values.
 
 ## Conventions added to the template (for the interactives rebuilt as Sims)
 
