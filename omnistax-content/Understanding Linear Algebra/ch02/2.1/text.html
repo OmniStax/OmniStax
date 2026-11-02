@@ -1,0 +1,114 @@
+<section id="introduction">
+<h2>Algebra and geometry</h2>
+<p id="algebra-and-geometry">It is a remarkable fact that algebra, which is about symbolic equations and their solutions, and geometry are intimately connected. For instance, the <span data-concept="solution-space">solution set</span> of a <span data-concept="linear-equation">linear equation</span> in two unknowns, such as $2x + y = 1$, can be represented graphically by a straight line. The aim of this section is to further this connection by introducing <span data-concept="vector">vectors</span>, which will help us to apply geometric intuition to our thinking about <span data-concept="linear-system-of-equations">linear systems</span>.</p>
+</section>
+
+<section id="vectors">
+<h2>Vectors</h2>
+<p id="vector">A <em><span data-concept="vector">vector</span></em> is most simply thought of as a <span data-concept="matrix">matrix</span> with a single column. For instance, $\kvecv = \left[ \begin{array}{r} 2 \\ 1 \\ \end{array} \right]$ and $\kvecw = \left[ \begin{array}{r} -3 \\ 1 \\ 0 \\ 2 \\ \end{array} \right]$ are both <span data-concept="vector">vectors</span>. The entries in a <span data-concept="vector">vector</span> are called its components. Since the <span data-concept="vector">vector</span> $\kvecv$ has two components, we say that it is a two-dimensional <span data-concept="vector">vector</span>; in the same way, the <span data-concept="vector">vector</span> $\kvecw$ is a four-dimensional <span data-concept="vector">vector</span>.</p>
+<p id="r-m">We denote the <span data-concept="euclidean-space">set of all $m$-dimensional vectors</span> by ${\mathbb R}^m$. Consequently, if $\kvecu$ is a 3-dimensional <span data-concept="vector">vector</span>, we say that $\kvecu$ is in ${\mathbb R}^3$.</p>
+<p id="picture-of-v">While it can be difficult to visualize a four-dimensional <span data-concept="vector">vector</span>, we can draw a simple picture describing the two-dimensional <span data-concept="vector">vector</span> $\kvecv$, as shown in Figure 2.1.1.</p>
+<figure class="sim" id="sim-vector-scalar-multiples" data-figure="2.1.1 + 2.1.5" data-original="/media/ch02/vector-u.svg,/media/ch02/scalar-mult.svg" data-original-caption="(Figure 2.1.1) A graphical representation of the vector v = [2, 1]. (Figure 2.1.5) Scalar multiples of the vector v = [2, 1].">
+  <div class="sim-head"><span class="eyebrow">Figure 2.1.1 + 2.1.5</span><span>The <span data-concept="vector">vector</span> $\kvecv = \left[\begin{array}{r} 2 \\ 1 \end{array}\right]$ is a walk of two units right and one unit up, drawn from the origin to the point $(2, 1)$. <span data-concept="scalar-multiplication">Multiplying $\kvecv$ by a scalar</span> $c$ stretches or compresses the arrow, and a negative $c$ turns it round, so every multiple $c\kvecv$ lies on one line through the origin. Drag the head of $\kvecv$ and slide $c$; the marks on the line are the book’s multiples $-2\kvecv$, $-\kvecv$ and $2\kvecv$.</span></div>
+</figure>
+<p id="walk">We can think of $\kvecv$ as describing a walk in the plane where we move two units horizontally and one unit vertically. Though we allow ourselves to begin walking from any point in the plane, we will most frequently begin at the origin in which case we arrive at the the point $(2,1)$, as shown in the figure.</p>
+<p id="two-operations">There are two simple algebraic operations we often perform on <span data-concept="vector">vectors</span>.</p>
+<ul id="operations">
+<li id="scalar-multiplication-op"><strong><span data-concept="scalar-multiplication">Scalar Multiplication</span></strong>:
+<p>We multiply a <span data-concept="vector">vector</span> $\kvecv$ by a real number $c$ by multiplying each of the components of $\kvecv$ by $c$. For instance,</p>
+$$ -3\left[\begin{array}{r} 2 \\ -4 \\ 1 \\ \end{array}\right] = \left[\begin{array}{r} -6 \\ 12 \\ -3 \\ \end{array}\right]. $$
+<p>We will frequently refer to real numbers, such as -3 in this example, as <em><span data-concept="scalar">scalars</span></em> to distinguish them from <span data-concept="vector">vectors</span>.</p>
+</li>
+<li id="vector-addition-op"><strong><span data-concept="vector-addition">Vector Addition</span></strong>:
+<p>We add two <span data-concept="vector">vectors</span> of the same dimension by adding their components. For instance,</p>
+$$ \left[\begin{array}{r} 2 \\ -4 \\ 3 \\ \end{array}\right] + \left[\begin{array}{r} -5 \\ 6 \\ -3 \\ \end{array}\right] = \left[\begin{array}{r} -3 \\ 2 \\ 0 \\ \end{array}\right]. $$
+</li>
+</ul>
+<div class="exercises" data-place="operations"></div>
+<p id="preview-demonstrates">The preview activity demonstrates how we may interpret <span data-concept="scalar-multiplication">scalar multiplication</span> and <span data-concept="vector-addition">vector addition</span> geometrically.</p>
+<p id="scalar-multiples-line">First, we see that <span data-concept="geometry-of-vector-operations">scalar multiplication has the effect of stretching or compressing a vector</span>. Multiplying by a negative <span data-concept="scalar">scalar</span> changes the direction of the <span data-concept="vector">vector</span>. In either case, Figure 2.1.5 shows that a <span data-concept="scalar-multiplication">scalar multiple</span> of a <span data-concept="vector">vector</span> $\kvecv$ lies on the same line defined by $\kvecv$.</p>
+<p id="tip-to-tail">To represent the <span data-concept="vector-addition">sum</span> $\kvecv + \kvecw$, we imagine walking from the origin with the appropriate horizontal and vertical changes given by $\kvecv$. From there, we continue our walk using the horizontal and vertical changes prescribed by $\kvecw$, after which we arrive at the <span data-concept="vector-addition">sum</span> $\kvecv + \kvecw$. This is illustrated on the left of Figure 2.1.6 where the tail of $\kvecw$ is placed on the tip of $\kvecv$.</p>
+<figure class="sim" id="sim-vector-sum" data-figure="2.1.6" data-original="/media/ch02/vector-addition-a.svg,/media/ch02/vector-addition-b.svg" data-original-caption="Vector addition as a simple walk in the plane is illustrated on the left. The vector sum is represented as the diagonal of a parallelogram on the right.">
+  <div class="sim-head"><span class="eyebrow">Figure 2.1.6</span><span>To <span data-concept="vector-addition">add</span> $\kvecv$ and $\kvecw$, walk from the origin along $\kvecv$ and then, from the tip of $\kvecv$, along $\kvecw$: the point reached is the tip of $\kvecv + \kvecw$. The same <span data-concept="vector-addition">sum</span> is the diagonal of the parallelogram with $\kvecv$ and $\kvecw$ as two of its sides, since walking along $\kvecw$ first and then along $\kvecv$ arrives at the same point. Drag the heads of $\kvecv$ and $\kvecw$.</span></div>
+</figure>
+<p id="parallelogram">Alternatively, we may construct the parallelogram with $\kvecv$ and $\kvecw$ as two sides. The <span data-concept="vector-addition">sum</span> is then the diagonal of the parallelogram, as illustrated on the right of Figure 2.1.6.</p>
+<p id="line-of-vectors">We have now seen that the set of <span data-concept="vector">vectors</span> having the form $c\kvecv$ is a line. To form the set of <span data-concept="vector">vectors</span> $c\kvecv+\kvecw$, we can begin with the <span data-concept="vector">vector</span> $\kvecw$ and add multiples of $\kvecv$. Geometrically, this means that we begin from the tip of $\kvecw$ and move in a direction parallel to $\kvecv$. The effect is to translate the line $c\kvecv$ by the <span data-concept="vector">vector</span> $\kvecw$, as shown in Figure 2.1.7.</p>
+<figure class="sim" id="sim-line-of-vectors" data-figure="2.1.7" data-original="/media/ch02/line-param.svg" data-original-caption="The set of vectors cv + w form a line.">
+  <div class="sim-head"><span class="eyebrow">Figure 2.1.7</span><span>The multiples $c\kvecv$ fill the line through the origin in the direction of $\kvecv$. Adding $\kvecw$ to each of them moves that whole line so that it passes through the tip of $\kvecw$: the <span data-concept="vector-equation-of-a-line">vectors $c\kvecv + \kvecw$ have their tips on the line</span> through $\kvecw$ parallel to $\kvecv$. Slide $c$ to walk along it, and drag the heads of $\kvecv$ and $\kvecw$ to turn and move the line; the marks are the book’s four sums.</span></div>
+</figure>
+<p id="vectors-and-points">At times, it will be useful for us to <span data-concept="vectors-as-points">think of vectors and points interchangeably</span>. That is, we may wish to think of the <span data-concept="vector">vector</span> $\left[\begin{array}{r} 2 \\ 1 \end{array}\right]$ as describing the point $(2,1)$ and vice-versa. When we say that the <span data-concept="vector">vectors</span> having the form $c\kvecv + \kvecw$ <span data-concept="vector-equation-of-a-line">form a line</span>, we really mean that the tips of the <span data-concept="vector">vectors</span> all lie on the line passing through $\kvecw$ and parallel to $\kvecv$.</p>
+<div class="note" id="observation-2-1-8">
+<div class="eyebrow">Observation 2.1.8</div>
+<p>Even though these vector operations are new, it is straightforward to check that <span data-concept="properties-of-vector-operations">some familiar properties</span> hold.</p>
+<ul>
+<li><strong>Commutativity</strong>: $\kvecv + \kvecw = \kvecw + \kvecv$.</li>
+<li><strong>Distributivity</strong>: $a(\kvecv + \kvecw) = a\kvecv + a\kvecw$.</li>
+</ul>
+</div>
+<p id="sage-vectors">Sage can perform <span data-concept="scalar-multiplication">scalar multiplication</span> and <span data-concept="vector-addition">vector addition</span>. We <span data-concept="vector-in-sage">define a vector using the <code>vector</code> command</span>; then <code>*</code> and <code>+</code> denote <span data-concept="scalar-multiplication">scalar multiplication</span> and <span data-concept="vector-addition">vector addition</span>.</p>
+<pre class="sage"><code>v = vector([3,1])
+w = vector([-1,2])
+print (2*v)
+print (v + w)
+</code></pre>
+</section>
+
+<section id="linear-combinations">
+<h2>Linear combinations</h2>
+<p id="link-to-systems"><span data-concept="linear-combination">Linear combinations</span>, which we encountered in the preview activity, provide the link between <span data-concept="vector">vectors</span> and <span data-concept="linear-system-of-equations">linear systems</span>. In particular, they will help us apply geometric intuition to problems involving <span data-concept="linear-system-of-equations">linear systems</span>.</p>
+<div class="note" id="definition-2-1-9">
+<div class="eyebrow">Definition 2.1.9</div>
+<p>The <em><span data-concept="linear-combination">linear combination</span></em> of the <span data-concept="vector">vectors</span> $\kvecvone,\kvecvtwo,\ldots,\kvecv_n$ with <span data-concept="scalar">scalars</span> $c_1,c_2,\ldots,c_n$ is the <span data-concept="vector">vector</span></p>
+$$ c_1\kvecvone + c_2\kvecvtwo + \ldots + c_n\kvecv_n $$
+<p>. The <span data-concept="scalar">scalars</span> $c_1,c_2,\ldots,c_n$ are called the <em><span data-concept="linear-combination">weights</span></em> of the <span data-concept="linear-combination">linear combination</span>.</p>
+</div>
+<figure class="sim" id="sim-linear-combinations" data-figure="2.1.10" data-original="/media/ch02/linearcomb-preview.png" data-original-caption="Linear combinations of vectors v and w.">
+  <div class="sim-head"><span class="eyebrow">Figure 2.1.10</span><span>The <span data-concept="linear-combination">linear combination</span> $c\kvecv + d\kvecw$ is a walk of $c$ steps along $\kvecv$ followed by $d$ steps along $\kvecw$, and the grid of parallelograms shows where the walks with whole-number <span data-concept="linear-combination">weights</span> end. Holding $d$ at $0$ and sliding $c$ moves along the line through $\kvecv$; holding $d$ at $1$ moves along the line through $\kvecw$ parallel to $\kvecv$. Choose one of the activity’s target <span data-concept="vector">vectors</span> $\kvecb$, and slide $c$ and $d$ onto the dashed circles to land on it.</span></div>
+</figure>
+<div class="exercises" data-place="sim-linear-combinations"></div>
+<p id="walking-construction">This activity illustrates how <span data-concept="linear-combination">linear combinations</span> are constructed geometrically: the <span data-concept="linear-combination">linear combination</span> $c\kvecv + d\kvecw$ is found by walking along $\kvecv$ a total of $c$ times followed by walking along $\kvecw$ a total of $d$ times. When one of the <span data-concept="linear-combination">weights</span> is held constant while the other varies, the <span data-concept="vector">vector</span> <span data-concept="vector-equation-of-a-line">moves along a line</span>.</p>
+<div class="example" id="example-2-1-11">
+<h3>Example 2.1.11</h3>
+<p>The previous activity also shows that questions about <span data-concept="linear-combination">linear combinations</span> lead naturally to <span data-concept="linear-system-of-equations">linear systems</span>. Suppose we have <span data-concept="vector">vectors</span> $\kvecv = \left[\begin{array}{r}3 \\ -1 \end{array}\right]$ and $\kvecw=\left[\begin{array}{r}4 \\ 3 \end{array}\right]$. Let’s <span data-concept="writing-a-vector-as-a-linear-combination">determine whether we can describe the vector $\kvecb=\left[\begin{array}{r}-11 \\ -18 \end{array}\right]$ as a linear combination</span> of $\kvecv$ and $\kvecw$. In other words, we would like to know whether there are <span data-concept="linear-combination">weights</span> $c$ and $d$ such that</p>
+$$ c\kvecv + d\kvecw= \kvecb. $$
+<p>This leads to the equations</p>
+$$ \begin{aligned} c\left[\begin{array}{r}3 \\ -1 \end{array}\right] + d\left[\begin{array}{r}4 \\ 3 \end{array}\right] & = \left[\begin{array}{r}-11 \\ -18 \end{array}\right] \\ \\ \left[\begin{array}{r}3c \\ -c \end{array}\right] + \left[\begin{array}{r}4d \\ 3d \end{array}\right] & = \left[\begin{array}{r}-11 \\ -18 \end{array}\right] \\ \\ \left[\begin{array}{r}3c+4d \\ -c+3d \end{array}\right] & = \left[\begin{array}{r}-11 \\ -18 \end{array}\right] \\ \\ \end{aligned} $$
+<p>Equating the components of the <span data-concept="vector">vectors</span> on each side of the equation, we arrive at the <span data-concept="linear-system-of-equations">linear system</span></p>
+$$ \begin{alignedat}{3} 3c & {}+{} & 4d & {}={} & -11 \\ -c & {}+{} & 3d & {}={} & -18 \ \end{alignedat} $$
+<p>This means that $\kvecb$ is a <span data-concept="linear-combination">linear combination</span> of $\kvecv$ and $\kvecw$ if this <span data-concept="linear-system-of-equations">linear system</span> is <span data-concept="consistent-system">consistent</span>. To solve this <span data-concept="linear-system-of-equations">linear system</span>, we construct its corresponding <span data-concept="augmented-matrix">augmented matrix</span> and find its <span data-concept="reduced-row-echelon-form">reduced row echelon form</span>,</p>
+$$ \left[ \begin{array}{rr|r} 3 & 4 & -11 \\ -1 & 3 & -18 \end{array} \right] \sim \left[ \begin{array}{rr|r} 1 & 0 & 3 \\ 0 & 1 & -5 \end{array} \right], $$
+<p>giving us the <span data-concept="linear-combination">weights</span> $c=3$ and $d=-5$; that is,</p>
+$$ 3\kvecv -5 \kvecw = \kvecb $$
+<p>. In fact, we know more because the <span data-concept="reduced-row-echelon-form">reduced row echelon matrix</span> tells us that these are the only possible <span data-concept="linear-combination">weights</span>. Therefore, $\kvecb$ may be expressed as a <span data-concept="linear-combination">linear combination</span> of $\kvecv$ and $\kvecw$ in exactly one way.</p>
+</div>
+<p id="connection">This example demonstrates the <span data-concept="linear-combinations-and-linear-systems">connection between linear combinations and linear systems</span>. Asking whether a <span data-concept="vector">vector</span> $\kvecb$ is a <span data-concept="linear-combination">linear combination</span> of <span data-concept="vector">vectors</span> $\kvecvone,\kvecvtwo,\ldots,\kvecv_n$ is equivalent to asking whether an associated <span data-concept="linear-system-of-equations">linear system</span> is <span data-concept="consistent-system">consistent</span>.</p>
+<p id="augmented-shorthand">In fact, we may easily describe the associated <span data-concept="linear-system-of-equations">linear system</span> in terms of the <span data-concept="vector">vectors</span> $\kvecv$, $\kvecw$, and $\kvecb$. Notice that the <span data-concept="augmented-matrix">augmented matrix</span> we found in our example was $\left[ \begin{array}{rr|r} 3 & 4 & -11 \\ -1 & 3 & -18 \end{array} \right].$ The first two columns of this <span data-concept="matrix">matrix</span> are $\kvecv$ and $\kvecw$ and the rightmost column is $\kvecb$. As shorthand, we will write this <span data-concept="augmented-matrix">augmented matrix</span> replacing the columns with their <span data-concept="vector">vector</span> representation:</p>
+$$ \left[ \begin{array}{rr|r} \kvecv & \kvecw & \kvecb \end{array} \right] $$
+<p>. This fact is generally true so we record it in the following proposition.</p>
+<div class="note" id="prop-system-comb">
+<div class="eyebrow">Proposition 2.1.12</div>
+<p><span data-concept="linear-combinations-and-linear-systems">The vector $\kvecb$ is a linear combination of the vectors $\kvecvone,\kvecvtwo,\ldots,\kvecv_n$ if and only if the linear system corresponding to the augmented matrix</span></p>
+$$ \left[ \begin{array}{rrrr|r} \kvecvone & \kvecvtwo & \ldots & \kvecv_n & \kvecb \end{array} \right] $$
+<p>is <span data-concept="consistent-system">consistent</span>. A <span data-concept="solution-of-a-linear-system">solution</span> to this <span data-concept="linear-system-of-equations">linear system</span> gives <span data-concept="linear-combination">weights</span> $c_1,c_2,\ldots,c_n$ such that</p>
+$$ c_1\kvecvone + c_2\kvecvtwo + \ldots + c_n\kvecv_n = \kvecb $$
+<p>.</p>
+</div>
+<p id="next-activity">The next activity puts this proposition to use.</p>
+<div class="exercises" data-place="next-activity"></div>
+<div class="example" id="example-2-1-13">
+<h3>Example 2.1.13</h3>
+<p>Consider the <span data-concept="vector">vectors</span> $\kvecv=\left[\begin{array}{r}-1 \\ 1 \end{array}\right]$ and $\kvecw=\left[\begin{array}{r}2 \\ -2 \end{array}\right]$, as shown in Figure 2.1.14.</p>
+<figure class="sim" id="sim-vectors-on-a-line" data-figure="2.1.14" data-original="/media/ch02/lin-comb-ex.svg" data-original-caption="Vectors v and w.">
+  <div class="sim-head"><span class="eyebrow">Figure 2.1.14</span><span>The <span data-concept="vector">vectors</span> $\kvecv = \left[\begin{array}{r}-1 \\ 1 \end{array}\right]$ and $\kvecw = \left[\begin{array}{r}2 \\ -2 \end{array}\right]$ lie on one line, since $\kvecw = -2\kvecv$. Walking $c$ times along $\kvecv$ and $d$ times along $\kvecw$ never leaves that line, so no <span data-concept="linear-combination">linear combination</span> of $\kvecv$ and $\kvecw$ reaches a <span data-concept="vector">vector</span> off it, such as $\kvecb = \left[\begin{array}{r}3 \\ 0 \end{array}\right]$: the system for the <span data-concept="linear-combination">weights</span> is <span data-concept="inconsistent-system">inconsistent</span>. Slide $c$ and $d$, and drag the head of $\kvecv$ to turn the line.</span></div>
+</figure>
+<p>These <span data-concept="vector">vectors</span> appear to lie on the same line, a fact that becomes apparent once we notice that $\kvecw = -2\kvecv$. Intuitively, we think of the <span data-concept="linear-combination">linear combination</span></p>
+$$ c\kvecv + d\kvecw $$
+<p>as the result of walking $c$ times in the $\kvecv$ direction and $d$ times in the $\kvecw$ direction. With these <span data-concept="vector">vectors</span>, we are always walking along the same line so it would seem that any <span data-concept="linear-combination">linear combination</span> of these <span data-concept="vector">vectors</span> should lie on the same line. In addition, a <span data-concept="vector">vector</span> that is not on the line, say $\kvecb = \left[\begin{array}{r}3 \\ 0 \end{array}\right]$, should be not be expressible as a <span data-concept="linear-combination">linear combination</span> of $\kvecv$ and $\kvecw$. We can verify this by checking</p>
+$$ \left[ \begin{array}{rr|r} -1 & 2 & 3 \\ 1 & -2 & 0 \\ \end{array} \right] \sim \left[ \begin{array}{rr|r} 1 & -2 & 0 \\ 0 & 0 & 1 \\ \end{array} \right]. $$
+<p>This shows that the associated <span data-concept="linear-system-of-equations">linear system</span> is <span data-concept="inconsistent-system">inconsistent</span>, which means that the <span data-concept="vector">vector</span> $\kvecb=\left[\begin{array}{r}3 \\ 0 \end{array}\right]$ cannot be written as a <span data-concept="linear-combination">linear combination</span> of $\kvecv$ and $\kvecw$. Notice that the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> of the <span data-concept="coefficient-matrix">coefficient matrix</span></p>
+$$ \begin{bmatrix} \kvecv & \kvecw \\ \end{bmatrix} = \begin{bmatrix} -1 & 2 \\ 1 & -2 \\ \end{bmatrix} \sim \begin{bmatrix} 1 & -2 \\ 0 & 0 \\ \end{bmatrix} $$
+<p>tells us to expect this. Since there is not a <span data-concept="pivot">pivot position</span> in the second row of the <span data-concept="coefficient-matrix">coefficient matrix</span> $\begin{bmatrix}\kvecv & \kvecw \end{bmatrix}$, it is possible for a <span data-concept="pivot">pivot position</span> to appear in the rightmost column of the <span data-concept="augmented-matrix">augmented matrix</span></p>
+$$ \left[ \begin{array}{rr|r} \kvecv & \kvecw & \kvecb \end{array} \right] $$
+<p>for some choice of $\kvecb$.</p>
+</div>
+</section>

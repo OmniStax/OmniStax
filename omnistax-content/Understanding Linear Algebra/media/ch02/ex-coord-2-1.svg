@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="260" viewBox="0 0 560 260"><svg id="ex-coord-std-2-1-figure" width="260" height="260" viewBox="0 0 260 260" x="0" y="0">
+  <defs>
+    <clipPath id="ex-coord-std-2-1-__clipPath-0">
+      <rect x="5.0" y="5.0" width="250.0" height="250.0"/>
+    </clipPath>
+    <clipPath id="ex-coord-std-2-1-__clipPath-1">
+      <rect x="5.0" y="5.0" width="250.0" height="250.0"/>
+    </clipPath>
+    <marker id="ex-coord-std-2-1-arrow-head-end-3_None_24_60-h808080" markerWidth="13.5" markerHeight="12.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="9.8" refY="6.0">
+      <path d="M 13.5 6.0L 0.0 12.0L 2.6 7.5L 2.6 4.5L 0.0 0.0Z" fill="#808080" stroke="none"/>
+    </marker>
+    <marker id="ex-coord-std-2-1-arrow-head-end-3_None_24_60-h808080-outline" markerWidth="17.5" markerHeight="16.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="11.8" refY="8.0">
+      <path d="M 16.3 9.8 L 2.8 15.8 A 2 2 0 0 1 0.0 14.0 L 0.0 2.0 A 2 2 0 0 1 2.8 0.2 L 16.3 6.2 A 2 2 0 0 1 16.3 9.8 Z" fill="white" stroke="none"/>
+    </marker>
+    <marker id="ex-coord-std-2-1-arrow-head-end-3_None_24_60-black" markerWidth="13.5" markerHeight="12.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="9.8" refY="6.0">
+      <path d="M 13.5 6.0L 0.0 12.0L 2.6 7.5L 2.6 4.5L 0.0 0.0Z" fill="black" stroke="none"/>
+    </marker>
+    <marker id="ex-coord-std-2-1-arrow-head-end-3_None_24_60-black-outline" markerWidth="17.5" markerHeight="16.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="11.8" refY="8.0">
+      <path d="M 16.3 9.8 L 2.8 15.8 A 2 2 0 0 1 0.0 14.0 L 0.0 2.0 A 2 2 0 0 1 2.8 0.2 L 16.3 6.2 A 2 2 0 0 1 16.3 9.8 Z" fill="white" stroke="none"/>
+    </marker>
+  </defs>
+  <g id="ex-coord-std-2-1-grid" stroke="#ccc" stroke-width="1">
+    <line x1="5.0" y1="255.0" x2="5.0" y2="5.0"/>
+    <line x1="36.2" y1="255.0" x2="36.2" y2="5.0"/>
+    <line x1="67.5" y1="255.0" x2="67.5" y2="5.0"/>
+    <line x1="98.8" y1="255.0" x2="98.8" y2="5.0"/>
+    <line x1="130.0" y1="255.0" x2="130.0" y2="5.0"/>
+    <line x1="161.2" y1="255.0" x2="161.2" y2="5.0"/>
+    <line x1="192.5" y1="255.0" x2="192.5" y2="5.0"/>
+    <line x1="223.8" y1="255.0" x2="223.8" y2="5.0"/>
+    <line x1="255.0" y1="255.0" x2="255.0" y2="5.0"/>
+    <line x1="5.0" y1="255.0" x2="255.0" y2="255.0"/>
+    <line x1="5.0" y1="223.8" x2="255.0" y2="223.8"/>
+    <line x1="5.0" y1="192.5" x2="255.0" y2="192.5"/>
+    <line x1="5.0" y1="161.2" x2="255.0" y2="161.2"/>
+    <line x1="5.0" y1="130.0" x2="255.0" y2="130.0"/>
+    <line x1="5.0" y1="98.8" x2="255.0" y2="98.8"/>
+    <line x1="5.0" y1="67.5" x2="255.0" y2="67.5"/>
+    <line x1="5.0" y1="36.2" x2="255.0" y2="36.2"/>
+    <line x1="5.0" y1="5.0" x2="255.0" y2="5.0"/>
+  </g>
+  <g id="ex-coord-std-2-1-axes" stroke="black" stroke-width="2">
+    <line id="ex-coord-std-2-1-__line-18" x1="5.0" y1="130.0" x2="255.0" y2="130.0" stroke="black" stroke-width="2"/>
+    <line id="ex-coord-std-2-1-__line-19" x1="130.0" y1="255.0" x2="130.0" y2="5.0" stroke="black" stroke-width="2"/>
+  </g>
+  <g id="ex-coord-std-2-1-e1">
+    <g id="ex-coord-std-2-1-e1" transform="translate(161.2,134.0) translate(0.0,-0.0)">
+      <g id="ex-coord-std-2-1-__g-0">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -5.168px" width="50.616px" height="18.736px" role="img" focusable="false" viewBox="0 -750 2796.6 1035.4" x="0.0" y="0.0">
+          <defs>
+            <path id="ex-coord-std-2-1-MJX-1-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="ex-coord-std-2-1-MJX-1-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="ex-coord-std-2-1-MJX-1-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="ex-coord-std-2-1-MJX-1-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+            <path id="ex-coord-std-2-1-MJX-1-NCM-N-31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="msub" data-semantic-type="subscript" data-semantic-role="unknown" data-semantic-annotation="depth:1" data-semantic-id="2" data-semantic-children="0,1" data-semantic-attributes="latex:\evec_1" data-semantic-speech="red backslash evec Subscript 1">
+                <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:2" data-semantic-id="0" data-semantic-parent="2" data-semantic-attributes="latex:\evec;color:red" data-semantic-speech="red backslash evec" data-semantic-prefix="Base">
+                  <use data-c="5C" xlink:href="#ex-coord-std-2-1-MJX-1-NCM-N-5C"/>
+                  <use data-c="65" xlink:href="#ex-coord-std-2-1-MJX-1-NCM-N-65" transform="translate(500,0)"/>
+                  <use data-c="76" xlink:href="#ex-coord-std-2-1-MJX-1-NCM-N-76" transform="translate(944,0)"/>
+                  <use data-c="65" xlink:href="#ex-coord-std-2-1-MJX-1-NCM-N-65" transform="translate(1472,0)"/>
+                  <use data-c="63" xlink:href="#ex-coord-std-2-1-MJX-1-NCM-N-63" transform="translate(1916,0)"/>
+                </g>
+                <g data-mml-node="mn" transform="translate(2393,-285.4) scale(0.707)" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:2" data-semantic-id="1" data-semantic-parent="2" data-semantic-attributes="latex:1" data-semantic-speech="1" data-semantic-prefix="Subscript">
+                  <use data-c="31" xlink:href="#ex-coord-std-2-1-MJX-1-NCM-N-31"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#808080" stroke-width="3" fill="none" marker-end="url(#ex-coord-std-2-1-arrow-head-end-3_None_24_60-h808080)" d="M 130.0 130.0 L 157.6 130.0"/>
+  </g>
+  <g id="ex-coord-std-2-1-e2">
+    <g id="ex-coord-std-2-1-e2" transform="translate(134.0,98.8) translate(0.0,-18.7)">
+      <g id="ex-coord-std-2-1-__g-1">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -5.168px" width="50.616px" height="18.736px" role="img" focusable="false" viewBox="0 -750 2796.6 1035.4" x="0.0" y="0.0">
+          <defs>
+            <path id="ex-coord-std-2-1-MJX-2-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="ex-coord-std-2-1-MJX-2-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="ex-coord-std-2-1-MJX-2-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="ex-coord-std-2-1-MJX-2-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+            <path id="ex-coord-std-2-1-MJX-2-NCM-N-32" d="M237 666C186 666 143 648 106 612C69 576 50 534 50 483C50 449 75 424 106 424C136 424 161 450 161 480C161 513 137 536 105 536C102 536 100 536 98 535C117 584 161 627 224 627C306 627 352 556 352 470C352 403 318 331 250 255L62 43C49 28 50 29 50 0L421 0L450 180L417 180C409 129 402 100 396 91C391 86 361 84 306 84L139 84L236 179C304 243 390 312 419 365C439 400 449 435 449 470C449 588 357 666 237 666Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="msub" data-semantic-type="subscript" data-semantic-role="unknown" data-semantic-annotation="depth:1" data-semantic-id="2" data-semantic-children="0,1" data-semantic-attributes="latex:\evec_2" data-semantic-speech="red backslash evec Subscript 2">
+                <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:2" data-semantic-id="0" data-semantic-parent="2" data-semantic-attributes="latex:\evec;color:red" data-semantic-speech="red backslash evec" data-semantic-prefix="Base">
+                  <use data-c="5C" xlink:href="#ex-coord-std-2-1-MJX-2-NCM-N-5C"/>
+                  <use data-c="65" xlink:href="#ex-coord-std-2-1-MJX-2-NCM-N-65" transform="translate(500,0)"/>
+                  <use data-c="76" xlink:href="#ex-coord-std-2-1-MJX-2-NCM-N-76" transform="translate(944,0)"/>
+                  <use data-c="65" xlink:href="#ex-coord-std-2-1-MJX-2-NCM-N-65" transform="translate(1472,0)"/>
+                  <use data-c="63" xlink:href="#ex-coord-std-2-1-MJX-2-NCM-N-63" transform="translate(1916,0)"/>
+                </g>
+                <g data-mml-node="mn" transform="translate(2393,-285.4) scale(0.707)" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:2" data-semantic-id="1" data-semantic-parent="2" data-semantic-attributes="latex:2" data-semantic-speech="2" data-semantic-prefix="Subscript">
+                  <use data-c="32" xlink:href="#ex-coord-std-2-1-MJX-2-NCM-N-32"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#808080" stroke-width="3" fill="none" marker-end="url(#ex-coord-std-2-1-arrow-head-end-3_None_24_60-h808080)" d="M 130.0 130.0 L 130.0 102.4"/>
+  </g>
+  <g id="ex-coord-std-2-1-comb">
+    <g id="ex-coord-std-2-1-comb" transform="translate(189.2,225.9) translate(-54.3,-0.0)">
+      <g id="ex-coord-std-2-1-__g-2">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.488px" width="54.312px" height="18.024px" role="img" focusable="false" viewBox="0 -748 3000.7 996" x="0.0" y="0.0">
+          <defs>
+            <path id="ex-coord-std-2-1-MJX-3-NCM-N-28" d="M318-248C327-248 332-243 332-234C332-231 330-227 327-223C275-183 233-117 202-26C175 53 161 131 161 208L161 292C161 369 175 447 202 526C233 617 275 683 327 723C330 726 332 730 332 734C332 743 327 748 318 748C317 748 314 747 311 745C251 699 201 631 160 540C121 453 101 371 101 292L101 208C101 129 121 47 160-40C201-131 251-199 311-245C314-247 317-248 318-248Z"/>
+            <path id="ex-coord-std-2-1-MJX-3-NCM-N-32" d="M237 666C186 666 143 648 106 612C69 576 50 534 50 483C50 449 75 424 106 424C136 424 161 450 161 480C161 513 137 536 105 536C102 536 100 536 98 535C117 584 161 627 224 627C306 627 352 556 352 470C352 403 318 331 250 255L62 43C49 28 50 29 50 0L421 0L450 180L417 180C409 129 402 100 396 91C391 86 361 84 306 84L139 84L236 179C304 243 390 312 419 365C439 400 449 435 449 470C449 588 357 666 237 666Z"/>
+            <path id="ex-coord-std-2-1-MJX-3-NCM-N-2C" d="M139 106C107 106 86 82 86 50C86 20 109-5 139-5C153-5 165-1 174 8L175 0C175-63 154-117 112-160C105-168 101-174 101-178C101-188 105-193 114-193C123-193 135-181 152-158C186-110 203-57 203 0C203 53 185 106 139 106Z"/>
+            <path id="ex-coord-std-2-1-MJX-3-NCM-N-2212" d="M698 270L80 270C64 270 56 263 56 250C56 237 64 230 80 230L698 230C714 230 722 237 722 250C722 262 710 270 698 270Z"/>
+            <path id="ex-coord-std-2-1-MJX-3-NCM-N-33" d="M303 353C369 378 431 441 431 526C431 569 410 604 369 631C333 654 292 666 246 666C201 666 162 654 127 631C88 605 68 571 68 528C68 495 90 472 122 472C154 472 176 495 176 527C176 560 157 578 119 580C145 615 186 633 242 633C302 633 332 598 332 527C332 485 324 450 309 421C282 373 245 364 183 364C171 362 165 357 165 348C165 333 172 333 192 333L235 333C310 333 348 280 348 173C348 88 317 14 241 14C176 14 128 36 99 80C134 79 160 105 160 139C160 173 135 198 101 198C62 198 42 178 42 137C42 88 64 49 108 18C147-9 193-22 244-22C301-22 350-3 393 34C436 71 457 117 457 173C457 267 383 332 303 353Z"/>
+            <path id="ex-coord-std-2-1-MJX-3-NCM-N-29" d="M78-245C138-199 188-131 229-40C268 47 288 129 288 208L288 292C288 371 268 453 229 540C188 631 138 699 78 745C75 747 72 748 71 748C62 748 57 743 57 734C57 730 59 726 62 723C114 683 156 617 187 526C214 447 228 369 228 292L228 208C228 131 214 53 187-26C156-117 114-183 62-223C59-227 57-231 57-234C57-243 62-248 71-248C72-248 75-247 78-245Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math" data-semantic-type="fenced" data-semantic-role="leftright" data-semantic-annotation="fences:paren;depth:1" data-semantic-id="8" data-semantic-children="7" data-semantic-content="0,5" data-semantic-attributes="latex:(2,-3)" data-semantic-speech="left parenthesis 2 comma negative 3 right parenthesis">
+              <g data-mml-node="mo" data-semantic-type="fence" data-semantic-role="open" data-semantic-annotation="depth:2" data-semantic-id="0" data-semantic-parent="8" data-semantic-attributes="latex:(" data-semantic-operator="fenced" data-semantic-speech="left parenthesis">
+                <use data-c="28" xlink:href="#ex-coord-std-2-1-MJX-3-NCM-N-28"/>
+              </g>
+              <g data-mml-node="mrow" data-semantic-added="true" data-semantic-type="punctuated" data-semantic-role="sequence" data-semantic-annotation="depth:2" data-semantic-id="7" data-semantic-children="1,2,6" data-semantic-content="2" data-semantic-parent="8" data-semantic-speech="2 comma negative 3" transform="translate(389,0)">
+                <g data-mml-node="mn" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:3" data-semantic-id="1" data-semantic-parent="7" data-semantic-attributes="latex:2" data-semantic-speech="2">
+                  <use data-c="32" xlink:href="#ex-coord-std-2-1-MJX-3-NCM-N-32"/>
+                </g>
+                <g data-mml-node="mo" data-semantic-type="punctuation" data-semantic-role="comma" data-semantic-annotation="depth:3" data-semantic-id="2" data-semantic-parent="7" data-semantic-attributes="latex:," data-semantic-operator="punctuated" data-semantic-speech="comma" transform="translate(500,0)">
+                  <use data-c="2C" xlink:href="#ex-coord-std-2-1-MJX-3-NCM-N-2C"/>
+                </g>
+                <g data-mml-node="mrow" data-semantic-added="true" data-semantic-type="prefixop" data-semantic-role="negative" data-semantic-annotation="clearspeak:simple;depth:3" data-semantic-id="6" data-semantic-children="4" data-semantic-content="3" data-semantic-parent="7" data-semantic-speech="negative 3" transform="translate(944.7,0)">
+                  <g data-mml-node="mo" data-semantic-type="operator" data-semantic-role="subtraction" data-semantic-annotation="depth:4" data-semantic-id="3" data-semantic-parent="6" data-semantic-attributes="latex:-" data-semantic-operator="prefixop,−" data-semantic-speech="minus">
+                    <use data-c="2212" xlink:href="#ex-coord-std-2-1-MJX-3-NCM-N-2212"/>
+                  </g>
+                  <g data-mml-node="mn" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:4" data-semantic-id="4" data-semantic-parent="6" data-semantic-attributes="latex:3" data-semantic-speech="3" transform="translate(778,0)">
+                    <use data-c="33" xlink:href="#ex-coord-std-2-1-MJX-3-NCM-N-33"/>
+                  </g>
+                </g>
+              </g>
+              <g data-mml-node="mo" data-semantic-type="fence" data-semantic-role="close" data-semantic-annotation="depth:2" data-semantic-id="5" data-semantic-parent="8" data-semantic-attributes="latex:)" data-semantic-operator="fenced" data-semantic-speech="right parenthesis" transform="translate(2611.7,0)">
+                <use data-c="29" xlink:href="#ex-coord-std-2-1-MJX-3-NCM-N-29"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="black" stroke-width="3" fill="none" marker-end="url(#ex-coord-std-2-1-arrow-head-end-3_None_24_60-black)" d="M 130.0 130.0 L 190.5 220.7"/>
+  </g>
+</svg><svg id="ex-coord-nonstd-2-1-figure" width="260" height="260" viewBox="0 0 260 260" x="300" y="0">
+  <defs>
+    <clipPath id="ex-coord-nonstd-2-1-__clipPath-0">
+      <rect x="5.0" y="5.0" width="250.0" height="250.0"/>
+    </clipPath>
+    <clipPath id="ex-coord-nonstd-2-1-__clipPath-1">
+      <rect x="5.0" y="5.0" width="250.0" height="250.0"/>
+    </clipPath>
+    <marker id="ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-h808080" markerWidth="13.5" markerHeight="12.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="9.8" refY="6.0">
+      <path d="M 13.5 6.0L 0.0 12.0L 2.6 7.5L 2.6 4.5L 0.0 0.0Z" fill="#808080" stroke="none"/>
+    </marker>
+    <marker id="ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-h808080-outline" markerWidth="17.5" markerHeight="16.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="11.8" refY="8.0">
+      <path d="M 16.3 9.8 L 2.8 15.8 A 2 2 0 0 1 0.0 14.0 L 0.0 2.0 A 2 2 0 0 1 2.8 0.2 L 16.3 6.2 A 2 2 0 0 1 16.3 9.8 Z" fill="white" stroke="none"/>
+    </marker>
+    <marker id="ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-black" markerWidth="13.5" markerHeight="12.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="9.8" refY="6.0">
+      <path d="M 13.5 6.0L 0.0 12.0L 2.6 7.5L 2.6 4.5L 0.0 0.0Z" fill="black" stroke="none"/>
+    </marker>
+    <marker id="ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-black-outline" markerWidth="17.5" markerHeight="16.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="11.8" refY="8.0">
+      <path d="M 16.3 9.8 L 2.8 15.8 A 2 2 0 0 1 0.0 14.0 L 0.0 2.0 A 2 2 0 0 1 2.8 0.2 L 16.3 6.2 A 2 2 0 0 1 16.3 9.8 Z" fill="white" stroke="none"/>
+    </marker>
+  </defs>
+  <g id="ex-coord-nonstd-2-1-grid" stroke="#ccc" stroke-width="1" clip-path="url(#ex-coord-nonstd-2-1-__clipPath-1)">
+    <line x1="-195.0" y1="480.0" x2="55.0" y2="-20.0"/>
+    <line x1="-145.0" y1="455.0" x2="105.0" y2="-45.0"/>
+    <line x1="-95.0" y1="430.0" x2="155.0" y2="-70.0"/>
+    <line x1="-45.0" y1="405.0" x2="205.0" y2="-95.0"/>
+    <line x1="5.0" y1="380.0" x2="255.0" y2="-120.0"/>
+    <line x1="55.0" y1="355.0" x2="305.0" y2="-145.0"/>
+    <line x1="105.0" y1="330.0" x2="355.0" y2="-170.0"/>
+    <line x1="155.0" y1="305.0" x2="405.0" y2="-195.0"/>
+    <line x1="205.0" y1="280.0" x2="455.0" y2="-220.0"/>
+    <line x1="-220.0" y1="455.0" x2="280.0" y2="205.0"/>
+    <line x1="-195.0" y1="405.0" x2="305.0" y2="155.0"/>
+    <line x1="-170.0" y1="355.0" x2="330.0" y2="105.0"/>
+    <line x1="-145.0" y1="305.0" x2="355.0" y2="55.0"/>
+    <line x1="-120.0" y1="255.0" x2="380.0" y2="5.0"/>
+    <line x1="-95.0" y1="205.0" x2="405.0" y2="-45.0"/>
+    <line x1="-70.0" y1="155.0" x2="430.0" y2="-95.0"/>
+    <line x1="-45.0" y1="105.0" x2="455.0" y2="-145.0"/>
+    <line x1="-20.0" y1="55.0" x2="480.0" y2="-195.0"/>
+  </g>
+  <g id="ex-coord-nonstd-2-1-axes" stroke="black" stroke-width="2">
+    <line id="ex-coord-nonstd-2-1-__line-18" x1="5.0" y1="130.0" x2="255.0" y2="130.0" stroke="black" stroke-width="2"/>
+    <line id="ex-coord-nonstd-2-1-__line-19" x1="130.0" y1="255.0" x2="130.0" y2="5.0" stroke="black" stroke-width="2"/>
+  </g>
+  <g id="ex-coord-nonstd-2-1-e1">
+    <g id="ex-coord-nonstd-2-1-e1" transform="translate(181.8,108.6) translate(0.0,-0.0)">
+      <g id="ex-coord-nonstd-2-1-__g-0">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -5.168px" width="52.136px" height="18.736px" role="img" focusable="false" viewBox="0 -750 2880.6 1035.4" x="0.0" y="0.0">
+          <defs>
+            <path id="ex-coord-nonstd-2-1-MJX-1-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-1-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-1-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-1-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-1-NCM-N-31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="msub" data-semantic-type="subscript" data-semantic-role="unknown" data-semantic-annotation="depth:1" data-semantic-id="2" data-semantic-children="0,1" data-semantic-attributes="latex:\vvec_1" data-semantic-speech="red backslash vvec Subscript 1">
+                <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:2" data-semantic-id="0" data-semantic-parent="2" data-semantic-attributes="latex:\vvec;color:red" data-semantic-speech="red backslash vvec" data-semantic-prefix="Base">
+                  <use data-c="5C" xlink:href="#ex-coord-nonstd-2-1-MJX-1-NCM-N-5C"/>
+                  <use data-c="76" xlink:href="#ex-coord-nonstd-2-1-MJX-1-NCM-N-76" transform="translate(500,0)"/>
+                  <use data-c="76" xlink:href="#ex-coord-nonstd-2-1-MJX-1-NCM-N-76" transform="translate(1028,0)"/>
+                  <use data-c="65" xlink:href="#ex-coord-nonstd-2-1-MJX-1-NCM-N-65" transform="translate(1556,0)"/>
+                  <use data-c="63" xlink:href="#ex-coord-nonstd-2-1-MJX-1-NCM-N-63" transform="translate(2000,0)"/>
+                </g>
+                <g data-mml-node="mn" transform="translate(2477,-285.4) scale(0.707)" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:2" data-semantic-id="1" data-semantic-parent="2" data-semantic-attributes="latex:1" data-semantic-speech="1" data-semantic-prefix="Subscript">
+                  <use data-c="31" xlink:href="#ex-coord-nonstd-2-1-MJX-1-NCM-N-31"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#808080" stroke-width="3" fill="none" marker-end="url(#ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-h808080)" d="M 130.0 130.0 L 176.7 106.6"/>
+  </g>
+  <g id="ex-coord-nonstd-2-1-e2">
+    <g id="ex-coord-nonstd-2-1-e2" transform="translate(151.4,78.2) translate(-52.1,-18.7)">
+      <g id="ex-coord-nonstd-2-1-__g-1">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -5.168px" width="52.136px" height="18.736px" role="img" focusable="false" viewBox="0 -750 2880.6 1035.4" x="0.0" y="0.0">
+          <defs>
+            <path id="ex-coord-nonstd-2-1-MJX-2-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-2-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-2-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-2-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-2-NCM-N-32" d="M237 666C186 666 143 648 106 612C69 576 50 534 50 483C50 449 75 424 106 424C136 424 161 450 161 480C161 513 137 536 105 536C102 536 100 536 98 535C117 584 161 627 224 627C306 627 352 556 352 470C352 403 318 331 250 255L62 43C49 28 50 29 50 0L421 0L450 180L417 180C409 129 402 100 396 91C391 86 361 84 306 84L139 84L236 179C304 243 390 312 419 365C439 400 449 435 449 470C449 588 357 666 237 666Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="msub" data-semantic-type="subscript" data-semantic-role="unknown" data-semantic-annotation="depth:1" data-semantic-id="2" data-semantic-children="0,1" data-semantic-attributes="latex:\vvec_2" data-semantic-speech="red backslash vvec Subscript 2">
+                <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:2" data-semantic-id="0" data-semantic-parent="2" data-semantic-attributes="latex:\vvec;color:red" data-semantic-speech="red backslash vvec" data-semantic-prefix="Base">
+                  <use data-c="5C" xlink:href="#ex-coord-nonstd-2-1-MJX-2-NCM-N-5C"/>
+                  <use data-c="76" xlink:href="#ex-coord-nonstd-2-1-MJX-2-NCM-N-76" transform="translate(500,0)"/>
+                  <use data-c="76" xlink:href="#ex-coord-nonstd-2-1-MJX-2-NCM-N-76" transform="translate(1028,0)"/>
+                  <use data-c="65" xlink:href="#ex-coord-nonstd-2-1-MJX-2-NCM-N-65" transform="translate(1556,0)"/>
+                  <use data-c="63" xlink:href="#ex-coord-nonstd-2-1-MJX-2-NCM-N-63" transform="translate(2000,0)"/>
+                </g>
+                <g data-mml-node="mn" transform="translate(2477,-285.4) scale(0.707)" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:2" data-semantic-id="1" data-semantic-parent="2" data-semantic-attributes="latex:2" data-semantic-speech="2" data-semantic-prefix="Subscript">
+                  <use data-c="32" xlink:href="#ex-coord-nonstd-2-1-MJX-2-NCM-N-32"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#808080" stroke-width="3" fill="none" marker-end="url(#ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-h808080)" d="M 130.0 130.0 L 153.4 83.3"/>
+  </g>
+  <g id="ex-coord-nonstd-2-1-comb">
+    <g id="ex-coord-nonstd-2-1-comb" transform="translate(151.1,231.0) translate(-58.3,-0.0)">
+      <g id="ex-coord-nonstd-2-1-__g-2">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.528px" width="58.328px" height="18.096px" role="img" focusable="false" viewBox="0 -750 3222.7 1000" x="0.0" y="0.0">
+          <defs>
+            <path id="ex-coord-nonstd-2-1-MJX-3-NCM-N-7B" d="M286-122L286 126C286 183 251 225 182 250C251 275 286 317 286 374L286 622C286 680 348 718 409 718C420 718 425 723 425 734C425 745 420 750 409 750C363 750 321 740 284 721C237 697 214 664 214 622L214 374C214 311 154 266 91 266C80 266 75 261 75 250C75 239 80 234 91 234C155 234 214 188 214 126L214-122C214-164 237-197 284-221C321-240 363-250 409-250C420-250 425-245 425-234C425-223 420-218 409-218C348-218 286-180 286-122Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-3-NCM-N-32" d="M237 666C186 666 143 648 106 612C69 576 50 534 50 483C50 449 75 424 106 424C136 424 161 450 161 480C161 513 137 536 105 536C102 536 100 536 98 535C117 584 161 627 224 627C306 627 352 556 352 470C352 403 318 331 250 255L62 43C49 28 50 29 50 0L421 0L450 180L417 180C409 129 402 100 396 91C391 86 361 84 306 84L139 84L236 179C304 243 390 312 419 365C439 400 449 435 449 470C449 588 357 666 237 666Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-3-NCM-N-2C" d="M139 106C107 106 86 82 86 50C86 20 109-5 139-5C153-5 165-1 174 8L175 0C175-63 154-117 112-160C105-168 101-174 101-178C101-188 105-193 114-193C123-193 135-181 152-158C186-110 203-57 203 0C203 53 185 106 139 106Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-3-NCM-N-2212" d="M698 270L80 270C64 270 56 263 56 250C56 237 64 230 80 230L698 230C714 230 722 237 722 250C722 262 710 270 698 270Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-3-NCM-N-33" d="M303 353C369 378 431 441 431 526C431 569 410 604 369 631C333 654 292 666 246 666C201 666 162 654 127 631C88 605 68 571 68 528C68 495 90 472 122 472C154 472 176 495 176 527C176 560 157 578 119 580C145 615 186 633 242 633C302 633 332 598 332 527C332 485 324 450 309 421C282 373 245 364 183 364C171 362 165 357 165 348C165 333 172 333 192 333L235 333C310 333 348 280 348 173C348 88 317 14 241 14C176 14 128 36 99 80C134 79 160 105 160 139C160 173 135 198 101 198C62 198 42 178 42 137C42 88 64 49 108 18C147-9 193-22 244-22C301-22 350-3 393 34C436 71 457 117 457 173C457 267 383 332 303 353Z"/>
+            <path id="ex-coord-nonstd-2-1-MJX-3-NCM-N-7D" d="M286 374L286 622C286 664 263 697 216 721C179 740 137 750 91 750C80 750 75 745 75 734C75 723 80 718 91 718C152 718 214 680 214 622L214 374C214 317 249 275 318 250C249 225 214 183 214 126L214-122C214-180 152-218 91-218C80-218 75-223 75-234C75-245 80-250 91-250C137-250 179-240 216-221C263-197 286-164 286-122L286 126C286 188 345 234 409 234C420 234 425 239 425 250C425 261 420 266 409 266C345 266 286 312 286 374Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math" data-semantic-type="fenced" data-semantic-role="set collection" data-semantic-annotation="fences:curly;depth:1" data-semantic-id="8" data-semantic-children="7" data-semantic-content="0,5" data-semantic-attributes="latex:\{2,-3\}" data-semantic-speech="StartSet 2 comma negative 3 EndSet">
+              <g data-mml-node="mo" data-semantic-type="fence" data-semantic-role="open" data-semantic-annotation="depth:2" data-semantic-id="0" data-semantic-parent="8" data-semantic-attributes="latex:\{" data-semantic-operator="fenced" data-semantic-speech="left brace">
+                <use data-c="7B" xlink:href="#ex-coord-nonstd-2-1-MJX-3-NCM-N-7B"/>
+              </g>
+              <g data-mml-node="mrow" data-semantic-added="true" data-semantic-type="punctuated" data-semantic-role="sequence" data-semantic-annotation="depth:2" data-semantic-id="7" data-semantic-children="1,2,6" data-semantic-content="2" data-semantic-parent="8" data-semantic-speech="2 comma negative 3" transform="translate(500,0)">
+                <g data-mml-node="mn" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:3" data-semantic-id="1" data-semantic-parent="7" data-semantic-attributes="latex:2" data-semantic-speech="2">
+                  <use data-c="32" xlink:href="#ex-coord-nonstd-2-1-MJX-3-NCM-N-32"/>
+                </g>
+                <g data-mml-node="mo" data-semantic-type="punctuation" data-semantic-role="comma" data-semantic-annotation="depth:3" data-semantic-id="2" data-semantic-parent="7" data-semantic-attributes="latex:," data-semantic-operator="punctuated" data-semantic-speech="comma" transform="translate(500,0)">
+                  <use data-c="2C" xlink:href="#ex-coord-nonstd-2-1-MJX-3-NCM-N-2C"/>
+                </g>
+                <g data-mml-node="mrow" data-semantic-added="true" data-semantic-type="prefixop" data-semantic-role="negative" data-semantic-annotation="clearspeak:simple;depth:3" data-semantic-id="6" data-semantic-children="4" data-semantic-content="3" data-semantic-parent="7" data-semantic-speech="negative 3" transform="translate(944.7,0)">
+                  <g data-mml-node="mo" data-semantic-type="operator" data-semantic-role="subtraction" data-semantic-annotation="depth:4" data-semantic-id="3" data-semantic-parent="6" data-semantic-attributes="latex:-" data-semantic-operator="prefixop,−" data-semantic-speech="minus">
+                    <use data-c="2212" xlink:href="#ex-coord-nonstd-2-1-MJX-3-NCM-N-2212"/>
+                  </g>
+                  <g data-mml-node="mn" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:4" data-semantic-id="4" data-semantic-parent="6" data-semantic-attributes="latex:3" data-semantic-speech="3" transform="translate(778,0)">
+                    <use data-c="33" xlink:href="#ex-coord-nonstd-2-1-MJX-3-NCM-N-33"/>
+                  </g>
+                </g>
+              </g>
+              <g data-mml-node="mo" data-semantic-type="fence" data-semantic-role="close" data-semantic-annotation="depth:2" data-semantic-id="5" data-semantic-parent="8" data-semantic-attributes="latex:\}" data-semantic-operator="fenced" data-semantic-speech="right brace" transform="translate(2722.7,0)">
+                <use data-c="7D" xlink:href="#ex-coord-nonstd-2-1-MJX-3-NCM-N-7D"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="black" stroke-width="3" fill="none" marker-end="url(#ex-coord-nonstd-2-1-arrow-head-end-3_None_24_60-black)" d="M 130.0 130.0 L 154.1 226.4"/>
+  </g>
+</svg></svg>

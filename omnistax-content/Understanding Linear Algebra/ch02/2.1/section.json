@@ -1,0 +1,994 @@
+{
+ "id": "2.1",
+ "module": "sec-vectors-lin-combs",
+ "chapter": "2",
+ "title": "Vectors and linear combinations",
+ "lead": "This section introduces <span data-concept=\"vector\">vectors</span>, the two operations on them, <span data-concept=\"scalar-multiplication\">scalar multiplication</span> and <span data-concept=\"vector-addition\">vector addition</span>, and the <span data-concept=\"linear-combination\">linear combinations</span> they build, each drawn as a walk in the plane; it then asks when a given vector is a linear combination of others, and finds the question is one about a <span data-concept=\"linear-system-of-equations\">linear system</span>.",
+ "objectives": [],
+ "summary_html": "<p>This section has introduced vectors, linear combinations, and their connection to linear systems.</p><ul><li>There are two operations we can perform with vectors: scalar multiplication and vector addition. Both of these operations have geometric meaning.</li><li>Given a set of vectors and a set of scalars we call weights, we can create a linear combination using scalar multiplication and vector addition.</li><li>A solution to the linear system whose augmented matrix is $$ \\left[\\begin{array}{rrrr|r} \\kvecvone & \\kvecvtwo & \\ldots & \\kvecv_n & \\kvecb \\end{array}\\right] $$ is a set of weights that expresses $\\kvecb$ as a linear combination of $\\kvecvone,\\kvecvtwo,\\ldots,\\kvecv_n$.</li></ul>",
+ "notes": "The empty sketching grids of Figures 2.1.2 to 2.1.4 and 2.1.15 to 2.1.17 are left out, and the Sage cells are not live.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the two activities stand in the text as cards, and the empty Sage cells inside their parts and the exercises are left out. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-vector-scalar-multiples",
+   "kind": "sim",
+   "number": "2.1.1",
+   "folds": [
+    "2.1.5"
+   ],
+   "originals": [
+    "/media/ch02/vector-u.svg",
+    "/media/ch02/scalar-mult.svg"
+   ],
+   "original_caption": "(Figure 2.1.1) A graphical representation of the vector v = [2, 1]. (Figure 2.1.5) Scalar multiples of the vector v = [2, 1].",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-vector-sum",
+   "kind": "sim",
+   "number": "2.1.6",
+   "originals": [
+    "/media/ch02/vector-addition-a.svg",
+    "/media/ch02/vector-addition-b.svg"
+   ],
+   "original_caption": "Vector addition as a simple walk in the plane is illustrated on the left. The vector sum is represented as the diagonal of a parallelogram on the right.",
+   "widths": [],
+   "draws": [
+    "vector"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-line-of-vectors",
+   "kind": "sim",
+   "number": "2.1.7",
+   "originals": [
+    "/media/ch02/line-param.svg"
+   ],
+   "original_caption": "The set of vectors cv + w form a line.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-linear-combinations",
+   "kind": "sim",
+   "number": "2.1.10",
+   "originals": [
+    "/media/ch02/linearcomb-preview.png"
+   ],
+   "original_caption": "Linear combinations of vectors v and w.",
+   "widths": [],
+   "draws": [
+    "vector"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-vectors-on-a-line",
+   "kind": "sim",
+   "number": "2.1.14",
+   "originals": [
+    "/media/ch02/lin-comb-ex.svg"
+   ],
+   "original_caption": "Vectors v and w.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "algebra-and-geometry",
+   "concept": "solution-space",
+   "verb": "uses"
+  },
+  {
+   "span": "algebra-and-geometry",
+   "concept": "linear-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "algebra-and-geometry",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "algebra-and-geometry",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "vector",
+   "concept": "vector",
+   "verb": "introduces"
+  },
+  {
+   "span": "vector",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "r-m",
+   "concept": "euclidean-space",
+   "verb": "introduces"
+  },
+  {
+   "span": "r-m",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "picture-of-v",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vector-scalar-multiples",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vector-scalar-multiples",
+   "concept": "scalar-multiplication",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vector-scalar-multiples",
+   "concept": "geometry-of-vector-operations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vector-scalar-multiples",
+   "concept": "vectors-as-points",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walk",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "two-operations",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "scalar-multiplication-op",
+   "concept": "scalar-multiplication",
+   "verb": "introduces"
+  },
+  {
+   "span": "scalar-multiplication-op",
+   "concept": "scalar",
+   "verb": "introduces"
+  },
+  {
+   "span": "scalar-multiplication-op",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "vector-addition-op",
+   "concept": "vector-addition",
+   "verb": "introduces"
+  },
+  {
+   "span": "vector-addition-op",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "preview-demonstrates",
+   "concept": "scalar-multiplication",
+   "verb": "reinforces"
+  },
+  {
+   "span": "preview-demonstrates",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "scalar-multiples-line",
+   "concept": "geometry-of-vector-operations",
+   "verb": "introduces"
+  },
+  {
+   "span": "scalar-multiples-line",
+   "concept": "scalar-multiplication",
+   "verb": "reinforces"
+  },
+  {
+   "span": "scalar-multiples-line",
+   "concept": "scalar",
+   "verb": "reinforces"
+  },
+  {
+   "span": "scalar-multiples-line",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "tip-to-tail",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "tip-to-tail",
+   "concept": "geometry-of-vector-operations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vector-sum",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vector-sum",
+   "concept": "geometry-of-vector-operations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "parallelogram",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "parallelogram",
+   "concept": "geometry-of-vector-operations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "line-of-vectors",
+   "concept": "vector-equation-of-a-line",
+   "verb": "introduces"
+  },
+  {
+   "span": "line-of-vectors",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "line-of-vectors",
+   "concept": "scalar-multiplication",
+   "verb": "reinforces"
+  },
+  {
+   "span": "line-of-vectors",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-line-of-vectors",
+   "concept": "vector-equation-of-a-line",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-line-of-vectors",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-line-of-vectors",
+   "concept": "vectors-as-points",
+   "verb": "reinforces"
+  },
+  {
+   "span": "vectors-and-points",
+   "concept": "vectors-as-points",
+   "verb": "introduces"
+  },
+  {
+   "span": "vectors-and-points",
+   "concept": "vector-equation-of-a-line",
+   "verb": "reinforces"
+  },
+  {
+   "span": "vectors-and-points",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "observation-2-1-8",
+   "concept": "properties-of-vector-operations",
+   "verb": "introduces"
+  },
+  {
+   "span": "observation-2-1-8",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "observation-2-1-8",
+   "concept": "scalar-multiplication",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-vectors",
+   "concept": "vector-in-sage",
+   "verb": "introduces"
+  },
+  {
+   "span": "sage-vectors",
+   "concept": "scalar-multiplication",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-vectors",
+   "concept": "vector-addition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "link-to-systems",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "link-to-systems",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "link-to-systems",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-1-9",
+   "concept": "linear-combination",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-2-1-9",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "definition-2-1-9",
+   "concept": "scalar",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-linear-combinations",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-linear-combinations",
+   "concept": "writing-a-vector-as-a-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-linear-combinations",
+   "concept": "geometry-of-vector-operations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-linear-combinations",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walking-construction",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walking-construction",
+   "concept": "vector-equation-of-a-line",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walking-construction",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "writing-a-vector-as-a-linear-combination",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-11",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "connection",
+   "concept": "linear-combinations-and-linear-systems",
+   "verb": "uses"
+  },
+  {
+   "span": "connection",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "connection",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "connection",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "connection",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "augmented-shorthand",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "augmented-shorthand",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "augmented-shorthand",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "augmented-shorthand",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-system-comb",
+   "concept": "linear-combinations-and-linear-systems",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-system-comb",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-system-comb",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-system-comb",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-system-comb",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "writing-a-vector-as-a-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "coefficient-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-1-13",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-vectors-on-a-line",
+   "concept": "linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vectors-on-a-line",
+   "concept": "linear-combinations-and-linear-systems",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vectors-on-a-line",
+   "concept": "writing-a-vector-as-a-linear-combination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vectors-on-a-line",
+   "concept": "vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-vectors-on-a-line",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "2.1.1",
+   "source_number": "2.1.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "tag": "Scalar Multiplication and Vector Addition",
+   "place": {
+    "at": "inline",
+    "after": "operations"
+   },
+   "cite": "operations",
+   "changes": "The book’s three empty grids for sketching are left out; Figure 2.1.1 + 2.1.5, Figure 2.1.6 and Figure 2.1.7 draw the scenes of parts (a), (c) and (d) under their sliders.",
+   "prompt": "<p>Suppose that</p>$$ \\kvecv = \\left[\\begin{array}{r} 3 \\\\ 1 \\end{array}\\right], \\kvecw = \\left[\\begin{array}{r} -1 \\\\ 2 \\end{array}\\right]. $$<ol type=\"a\"><li><p>Find expressions for the vectors</p>$$ \\begin{array}{cccc} \\kvecv, & 2\\kvecv, & -\\kvecv, & -2\\kvecv, \\\\ \\kvecw, & 2\\kvecw, & -\\kvecw, & -2\\kvecw\\text{.} \\\\ \\end{array} $$<p>and sketch them.</p></li><li><p>What geometric effect does scalar multiplication have on a vector? Also, describe the effect that multiplying by a negative scalar has.</p></li><li><p>Sketch the vectors $\\kvecv, \\kvecw, \\kvecv + \\kvecw$.</p></li><li><p>Consider vectors that have the form $\\kvecv + c\\kvecw$ where $c$ is any scalar. Sketch a few of these vectors when, say, $c = -2, -1, 0, 1,$ and $2$. Give a geometric description of this set of vectors.</p></li><li><p>If $c$ and $d$ are two scalars, then the vector</p>$$ c \\kvecv + d \\kvecw $$<p>is called a <em>linear combination</em> of the vectors $\\kvecv$ and $\\kvecw$. Find the vector that is the linear combination when $c = -2$ and $d = 1$.</p></li><li><p>Can the vector $\\left[\\begin{array}{r} -31 \\\\ 37 \\end{array}\\right]$ be represented as a linear combination of $\\kvecv$ and $\\kvecw$? Asked differently, can we find scalars $c$ and $d$ such that $c\\kvecv+d\\kvecw = \\left[\\begin{array}{r} -31 \\\\ 37 \\end{array}\\right]$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><p>Solutions to this preview activity are given in the text below.</p>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "2.1.2",
+   "source_number": "2.1.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "sim-linear-combinations"
+   },
+   "cite": "sim-linear-combinations",
+   "prompt": "<p>In this activity, we will look at linear combinations of a pair of vectors, $\\kvecv = \\left[\\begin{array}{r} 2 \\\\ 1 \\end{array}\\right]$ and $\\kvecw = \\left[\\begin{array}{r} 1 \\\\ 2 \\end{array}\\right]$, shown in Figure 2.1.10.</p><ol type=\"a\"><li><p>The weight $d$ is initially set to 0. Explain what happens as you vary $c$ while keeping $d=0$. How is this related to scalar multiplication?</p></li><li><p>What is the linear combination of $\\kvecv$ and $\\kvecw$ when $c = 1$ and $d=-2$? You may find this result using the diagram, but you should also verify it by computing the linear combination.</p></li><li><p>Describe the vectors that arise when the weight $d$ is set to 1 and $c$ is varied. How is this related to our investigations in the preview activity?</p></li><li><p>Can the vector $\\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? If so, what are the weights $c$ and $d$?</p></li><li><p>Can the vector $\\left[\\begin{array}{r} 3 \\\\ 0 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? If so, what are the weights $c$ and $d$?</p></li><li><p>Verify the result from the previous part by algebraically finding the weights $c$ and $d$ that form the linear combination $\\left[\\begin{array}{r} 3 \\\\ 0 \\end{array}\\right]$.</p></li><li><p>Can the vector $\\left[\\begin{array}{r} 1.3 \\\\ -1.7 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? What about the vector $\\left[\\begin{array}{r} 15.2 \\\\ 7.1 \\end{array}\\right]$?</p></li><li><p>Are there any two-dimensional vectors that cannot be expressed as linear combinations of $\\kvecv$ and $\\kvecw$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>The linear combinations lie on the line defined by $\\kvecv$.</li><li>$\\left[\\begin{array}{r} 0 \\\\ -3 \\end{array}\\right]$.</li><li>They lie on the line through $\\kvecw$ parallel to $\\kvecv$.</li><li>Yes, with weights $c=d=0$.</li><li>Yes, with weights $c=2$ and $d=-1$.</li><li>This can be done by writing the appropriate linear system for the weights.</li><li>No, any two-dimensional vector can be expressed as a linear combination of $\\kvecv$ and $\\kvecw$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>When we vary $c$ with $d=0$, the linear combination moves along the line defined by $\\kvecv$.</li><li><p>When $c=1$ and $d=-2$, we find</p>$$ 1\\kvecv -2 \\kvecw = \\left[\\begin{array}{r} 0 \\\\ -3 \\end{array}\\right]\\text{.} $$</li><li>When $d=1$ and $c$ is allowed to vary, the linear combinations lie on the line through $\\kvecw$ parallel to $\\kvecv$.</li><li>If the weights $c=0$ and $d=0$, then the linear combination is the vector $\\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right]$.</li><li>If the weights $c=2$ and $d=-1$, then the linear combination is the vector $\\left[\\begin{array}{r} 3 \\\\ 0 \\end{array}\\right]$.</li><li><p>We find the linear system for the weights:</p>$$ \\begin{alignedat}{3} 2c & {}+{} & 1d & {}={} & 3 \\\\ 1c & {}+{} & 2d & {}={} & 0 \\\\ \\end{alignedat} $$<p>If we construct the corresponding augmented matrix and determine its reduced row echelon matrix, we find the weights $c=2$ and $d=-1$.</p></li><li><p>In the same way, we construct a linear system for the weights whose augmented matrix is</p>$$ \\left[\\begin{array}{rr|r} 2 & 1 & 1.3 \\\\ 1 & 2 & -1.7 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 1.43 \\\\ 0 & 1 & -1.57 \\end{array}\\right] \\text{,} $$<p>which shows that there are weights that produce the desired linear combination. The same will happen for any vector $\\kvecb$ that we ask to write as a linear combination of $\\kvecv$ and $\\kvecw$.</p></li><li>Every two-dimensional vector can be written as a linear combination of $\\kvecv$ and $\\kvecw$ because the coefficient matrix of the linear system remains the same. Since that coefficient matrix has a pivot position in every row, the augmented matrix can never have a pivot position in the rightmost column.</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "2.1.3",
+   "source_number": "2.1.3",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "tag": "Linear combinations and linear systems",
+   "place": {
+    "at": "inline",
+    "after": "next-activity"
+   },
+   "cite": "prop-system-comb",
+   "changes": "The book’s three empty Sage cells for the reader’s computations are left out.",
+   "prompt": "<ol type=\"a\"><li><p>Given the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 4 \\\\ 0 \\\\ 2 \\\\ 1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r} 1 \\\\ -3 \\\\ 3 \\\\ 1 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r} -2 \\\\ 1 \\\\ 1 \\\\ 0 \\end{array}\\right], \\kvecb = \\left[\\begin{array}{r} 0 \\\\ 1 \\\\ 2 \\\\ -2 \\end{array}\\right] $$<p>, can $\\kvecb$ be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$? Rephrase this question by writing a linear system for the weights $c_1$, $c_2$, and $c_3$ and use the Sage cell below to answer this question.</p></li><li><p>Consider the following linear system.</p>$$ \\begin{alignedat}{4} 3x_1 & {}+{} & 2x_2 & {}-{} x_3 & {}={} & 4 \\\\ x_1 & & & {}+{} 2x_3 & {}={} & 0 \\\\ -x_1 & {}-{} & x_2 & {}+{} 3x_3 & {}={} & 1 \\\\ \\end{alignedat} $$<p>Identify vectors $\\kvecvone$, $\\kvecvtwo$, $\\kvecvthree$, and $\\kvecb$ such that the question \"Is this linear system consistent?\" is equivalent to the question \"Can $\\kvecb$ be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$?\"</p></li><li><p>Consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 0 \\\\ -2 \\\\ 1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r} 1 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r} 2 \\\\ 0 \\\\ -1 \\end{array}\\right], \\kvecb = \\left[\\begin{array}{r} -1 \\\\ 3 \\\\ -1 \\end{array}\\right] $$<p>. Can $\\kvecb$ be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$? If so, can $\\kvecb$ be written as a linear combination of these vectors in more than one way?</p></li><li><p>Considering the vectors $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ from the previous part, can we write every three-dimensional vector $\\kvecb$ as a linear combination of these vectors? Explain how the pivot positions of the matrix $\\begin{bmatrix} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{bmatrix}$ help answer this question.</p></li><li><p>Now consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 0 \\\\ -2 \\\\ 1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r} 1 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r} 1 \\\\ -1 \\\\ -2 \\end{array}\\right], \\kvecb = \\left[\\begin{array}{r} 0 \\\\ 8 \\\\ -4 \\end{array}\\right] $$<p>. Can $\\kvecb$ be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$? If so, can $\\kvecb$ be written as a linear combination of these vectors in more than one way?</p></li><li><p>Considering the vectors $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ from the previous part, can we write every three-dimensional vector $\\kvecb$ as a linear combination of these vectors? Explain how the pivot positions of the matrix $\\begin{bmatrix} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{bmatrix}$ help answer this question.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>The vector $\\kvecb$ cannot be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$.</li><li><p>We find vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r} 3 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r} 2 \\\\ 0 \\\\ -1 \\end{array}\\right], \\kvecvthree=\\left[\\begin{array}{r} -1 \\\\ 2 \\\\ 3 \\end{array}\\right], \\kvecb=\\left[\\begin{array}{r} 4 \\\\ 0 \\\\ 1 \\end{array}\\right]\\text{.} $$</li><li>Yes, $\\kvecb$ can be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ in infinitely many ways.</li><li>No.</li><li>Yes, $\\kvecb$ can be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ in exactly one way.</li><li>Any vector $\\kvecb$ can be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ in exactly one way.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find the linear system</p>$$ \\begin{alignedat}{4} 4c_1 & {}+{} & c_2 & {}-{} & 2c_3 & {}={} & 0 \\\\ & & -3c_2 & {}+{} & c_3 & {}={} & 1 \\\\ 2c_1 & {}+{} & 3c_2 & {}+{} & c_3 & {}={} & 2 \\\\ c_1 & {}+{} & c_2 & & & {}={} & -2 \\\\ \\end{alignedat} $$<p>with corresponding augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 4 & 1 & -2 & 0 \\\\ 0 & -3 & 1 & 1 \\\\ 2 & 3 & 1 & 2 \\\\ 1 & 1 & 0 & -2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]\\text{.} $$<p>This shows that the linear system is inconsistent so there are no such weights $c_1$, $c_2$, and $c_3$. This means that $\\kvecb$ is not a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$.</p></li><li><p>We find vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r} 3 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r} 2 \\\\ 0 \\\\ -1 \\end{array}\\right], \\kvecvthree=\\left[\\begin{array}{r} -1 \\\\ 2 \\\\ 3 \\end{array}\\right], \\kvecb=\\left[\\begin{array}{r} 4 \\\\ 0 \\\\ 1 \\end{array}\\right]\\text{.} $$</li><li><p>This is the same as asking if the linear system corresponding to the following augmented matrix is consistent:</p>$$ \\left[\\begin{array}{rrr|r} 0 & 1 & 2 & -1 \\\\ -2 & 1 & 0 & 3 \\\\ 1 & -1 & -1 & -1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 1 & -2 \\\\ 0 & 1 & 2 & -1 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]\\text{.} $$<p>From the reduced row echelon form, we see that the system is consistent, which means that $\\kvecb$ can be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$. Moreover, there are infinitely many ways in which we can do so.</p></li><li>No, it is not possible to write every three-dimensional $\\kvecb$ as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ because the matrix $\\begin{bmatrix} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{bmatrix}$ does not have a pivot position in every row. This means that, with some choice of vector $\\kvecb$, we will obtain an inconsistent system.</li><li><p>We find the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 0 & 1 & 1 & 0 \\\\ -2 & 1 & -1 & 8 \\\\ 1 & -1 & -2 & -4 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 0 & -4 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\end{array}\\right]\\text{.} $$<p>This shows that $\\kvecb$ can be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ in exactly one way.</p></li><li>Every vector $\\kvecb$ can be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ in exactly one way because $\\begin{bmatrix} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{bmatrix}$ has a pivot position in every row and every column.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "2.1.1",
+   "source_number": "2.1.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "scalar-multiples-line",
+   "changes": "The book’s three empty grids for sketching are left out; the answer keeps the author’s two sketches.",
+   "prompt": "<p>Consider the vectors</p>$$ \\kvecv = \\left[\\begin{array}{r} 1 \\\\ -1 \\end{array}\\right], \\kvecw = \\left[\\begin{array}{r} 3 \\\\ 1 \\end{array}\\right] $$<ol type=\"a\"><li><p>Sketch these vectors below.</p></li><li><p>Compute the vectors $-3\\kvecv$, $2\\kvecw$, $\\kvecv + \\kvecw$, and $\\kvecv - \\kvecw$ and add them into the sketch above.</p></li><li><p>Sketch below the set of vectors having the form $2\\kvecv + c\\kvecw$ where $c$ is any scalar.</p></li><li><p>Sketch below the line $y=3x - 2$. Then identify two vectors $\\kvecv$ and $\\kvecw$ so that this line is described by $\\kvecv + c\\kvecw$. Are there other choices for the vectors $\\kvecv$ and $\\kvecw$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><img src=\"/media/ch02/ex2-1-1-a.svg\" alt=\"The vectors v = [1, −1] and w = [3, 1] sketched on a grid.\" width=\"250\"></li><li><img src=\"/media/ch02/ex2-1-1-b.svg\" alt=\"The vectors −3v, 2w, v + w and v − w added to the sketch.\" width=\"250\"></li><li>This forms the line passing through $2\\kvecv$ parallel to $\\kvecw$.</li><li>There are many possibilities. One is $\\kvecv=\\left[\\begin{array}{r} 0 \\\\ -2 \\end{array}\\right]$ and $\\kvecw=\\left[\\begin{array}{r} 1 \\\\ 3 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><img src=\"/media/ch02/ex2-1-1-a.svg\" alt=\"The vectors v = [1, −1] and w = [3, 1] sketched on a grid.\" width=\"250\"></li><li><img src=\"/media/ch02/ex2-1-1-b.svg\" alt=\"The vectors −3v, 2w, v + w and v − w added to the sketch.\" width=\"250\"></li><li>This forms the line passing through $2\\kvecv$ parallel to $\\kvecw$.</li><li>There are many possibilities. One is $\\kvecv=\\left[\\begin{array}{r} 0 \\\\ -2 \\end{array}\\right]$ and $\\kvecw=\\left[\\begin{array}{r} 1 \\\\ 3 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "2.1.2",
+   "source_number": "2.1.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-1-9",
+   "figure": {
+    "src": "/media/ch02/ex-linear-combs-2-1.svg",
+    "alt": "Two vectors and the skewed grid of parallel lines they define with a set of points on the grid lines.",
+    "caption": "Figure 2.1.18 Two vectors v and w."
+   },
+   "prompt": "<p>Shown below are two vectors $\\kvecv$ and $\\kvecw$.</p><ol type=\"a\"><li><p>Express the labeled points as linear combinations of $\\kvecv$ and $\\kvecw$.</p></li><li><p>Sketch the line described parametrically as $-2\\kvecv + c\\kvecw$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>We have</p>$$ \\begin{array}{lll} p = -\\kvecv, & q = 3\\kvecw, & r=2\\kvecv+3\\kvecw, \\\\ s = 2\\kvecv-3\\kvecw, & t=-3\\kvecv-2\\kvecw, & u=-2\\kvecv+0.5\\kvecw, \\\\ v = 3.5\\kvecv+1.5\\kvecw\\text{.} \\end{array} $$</li><li>This is the line passing through $-2\\kvecv$ parallel to $\\kvecw$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have</p>$$ \\begin{array}{lll} p = -\\kvecv, & q = 3\\kvecw, & r=2\\kvecv+3\\kvecw, \\\\ s = 2\\kvecv-3\\kvecw, & t=-3\\kvecv-2\\kvecw, & u=-2\\kvecv+0.5\\kvecw, \\\\ v = 3.5\\kvecv+1.5\\kvecw\\text{.} \\end{array} $$</li><li>This is the line passing through $-2\\kvecv$ parallel to $\\kvecw$.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "2.1.3",
+   "source_number": "2.1.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-system-comb",
+   "changes": "The book’s three empty Sage cells are left out.",
+   "prompt": "<p>Consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 2 \\\\ 1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r} -1 \\\\ 1 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r} -2 \\\\ 0 \\end{array}\\right] $$<ol type=\"a\"><li><p>Find the linear combination with weights $c_1 = 2$, $c_2=-3$, and $c_3=1$.</p></li><li><p>Can you write the vector $\\kveczero = \\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right]$ as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$? If so, describe all the ways in which you can do so.</p></li><li><p>Can you write the vector $\\kveczero = \\left[\\begin{array}{r} 0 \\\\ 0 \\end{array}\\right]$ as a linear combination using just the first two vectors $\\kvecvone$ $\\kvecvtwo$? If so, describe all the ways in which you can do so.</p></li><li><p>Can you write $\\kvecvthree$ as a linear combination of $\\kvecvone$ and $\\kvecvtwo$? If so, in how many ways?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The linear combination</p>$$ 2\\kvecvone-3\\kvecvtwo+\\kvecvthree = \\left[\\begin{array}{r} 5 \\\\ -1 \\end{array}\\right]\\text{.} $$</li><li>$c_1 = \\frac23 c_3$ and $c_2 = -\\frac23 c_3$.</li><li>$c_1=c_2=0$.</li><li>$\\kvecvthree=-\\frac23\\kvecvone + \\frac23\\kvecvtwo$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The linear combination</p>$$ 2\\kvecvone-3\\kvecvtwo+\\kvecvthree = \\left[\\begin{array}{r} 5 \\\\ -1 \\end{array}\\right]\\text{.} $$</li><li><p>The appropriate linear system corresponds to the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 2 & -1 & -2 & 0 \\\\ 1 & 1 & 0 & 0 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & -\\frac{2}{3} & 0 \\\\ 0 & 1 & \\frac{2}{3} & 0 \\end{array}\\right]\\text{.} $$<p>This shows we obtain $\\kveczero$ when the weights are chosen so that</p>$$ \\begin{alignedat}{2} c_1 & {}={} \\frac23 c_3 \\\\ c_2 & {}={} -\\frac23 c_3\\text{.} \\\\ \\end{alignedat} $$</li><li>In this case, we want $c_3=0$, which means that $c_1=c_2=0$.</li><li>We see that $\\kvecvthree=-\\frac23\\kvecvone + \\frac23\\kvecvtwo$.</li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "2.1.4",
+   "source_number": "2.1.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-2-1-11",
+   "changes": "The book’s empty Sage cell is left out.",
+   "prompt": "<p>Nutritional information about a breakfast cereal is printed on the box. For instance, one serving of Frosted Flakes has 111 calories, 140 milligrams of sodium, and 1.2 grams of protein. We may represent this as a vector</p>$$ \\left[\\begin{array}{r} 111 \\\\ 140 \\\\ 1.2 \\end{array}\\right] $$<p>. One serving of Cocoa Puffs has 120 calories, 105 milligrams of sodium, and 1.0 grams of protein.</p><ol type=\"a\"><li><p>Write the vector describing the nutritional content of Cocoa Puffs.</p></li><li><p>Suppose you eat $c$ servings of Frosted Flakes and $d$ servings of Cocoa Puffs. Use the language of vectors and linear combinations to express the quantities of calories, sodium, and protein you have consumed.</p></li><li><p>How many servings of each cereal have you eaten if you have consumed 342 calories, 385 milligrams of sodium, and 3.4 grams of protein.</p></li><li><p>Suppose your sister consumed 250 calories, 200 milligrams of sodium, and 4 grams of protein. What can you conclude about her breakfast?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{r} 120 \\\\ 105 \\\\ 1.0 \\end{array}\\right]$.</li><li><p>The totals consumed are expressed by the vector</p>$$ c\\left[\\begin{array}{r} 111 \\\\ 140 \\\\ 1.2 \\end{array}\\right] + d\\left[\\begin{array}{r} 120 \\\\ 105 \\\\ 1.0 \\end{array}\\right]\\text{.} $$</li><li>You had two servings of Frosted Flakes and one serving of Cocoa Puffs.</li><li>Your sister must have eaten something else.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{r} 120 \\\\ 105 \\\\ 1.0 \\end{array}\\right]$.</li><li><p>The totals consumed are expressed by the vector</p>$$ c\\left[\\begin{array}{r} 111 \\\\ 140 \\\\ 1.2 \\end{array}\\right] + d\\left[\\begin{array}{r} 120 \\\\ 105 \\\\ 1.0 \\end{array}\\right]\\text{.} $$</li><li><p>We ask to write the vector $\\left[\\begin{array}{r} 342 \\\\ 385 \\\\ 3.4 \\end{array}\\right]$ as a linear combination of the two cereal vectors. This leads to the augmented matrix</p>$$ \\left[\\begin{array}{rr|r} 111 & 120 & 342 \\\\ 140 & 105 & 385 \\\\ 1.2 & 1.0 & 3.4 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\end{array}\\right]\\text{.} $$<p>This means that you had two servings of Frosted Flakes and one serving of Cocoa Puffs.</p></li><li><p>Now the augmented matrix is</p>$$ \\left[\\begin{array}{rr|r} 111 & 120 & 250 \\\\ 140 & 105 & 200 \\\\ 1.2 & 1.0 & 4.0 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right]\\text{,} $$<p>which represents an inconsistent system. This means that your sister must have eaten something else.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "2.1.5",
+   "source_number": "2.1.5",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-system-comb",
+   "changes": "The book’s empty Sage cell is left out.",
+   "prompt": "<p>Consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 2 \\\\ -1 \\\\ -2 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r} 0 \\\\ 3 \\\\ 1 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r} 4 \\\\ 4 \\\\ -2 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li><p>Can you express the vector $\\kvecb=\\left[\\begin{array}{r} 10 \\\\ 1 \\\\ -8 \\end{array}\\right]$ as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$? If so, describe all the ways in which you can do so.</p></li><li><p>Can you express the vector $\\kvecb=\\left[\\begin{array}{r} 3 \\\\ 7 \\\\ 1 \\end{array}\\right]$ as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$? If so, describe all the ways in which you can do so.</p></li><li><p>Show that $\\kvecvthree$ can be written as a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</p></li><li><p>Explain why any linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$,</p>$$ a\\kvecvone + b\\kvecvtwo + c\\kvecvthree, $$<p>can be rewritten as a linear combination of just $\\kvecvone$ and $\\kvecvtwo$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>The vector $\\kvecb$ may be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ provided that the weights are related by $c_1=5-2c_3$ and $c_2=2-2c_3$.</li><li>The vector $\\kvecb$ cannot be written as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$.</li><li>$\\kvecvthree=2\\kvecvone+2\\kvecvtwo$.</li><li>$a\\kvecvone+b\\kvecvtwo+c\\kvecvthree= (a+2c)\\kvecvone+(b+2c)\\kvecvtwo$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have the system corresponding to the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 2 & 0 & 4 & 10 \\\\ -1 & 3 & 4 & 1 \\\\ -2 & 1 & -2 & -8 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 2 & 5 \\\\ 0 & 1 & 2 & 2 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right] $$<p>from which we conclude that $\\kvecb$ may be expressed as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ provided that the weights are related by $c_1=5-2c_3$ and $c_2=2-2c_3$.</p></li><li><p>Here we have</p>$$ \\left[\\begin{array}{rrr|r} 2 & 0 & 4 & 3 \\\\ -1 & 3 & 4 & 7 \\\\ -2 & 1 & -2 & 1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 2 & 0 \\\\ 0 & 1 & 2 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]\\text{,} $$<p>which represents an inconsistent system and shows that $\\kvecb$ cannot be written as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$.</p></li><li><p>The augmented matrix is</p>$$ \\left[\\begin{array}{rr|r} 2 & 0 & 4 \\\\ -1 & 3 & 4 \\\\ -2 & 1 & -2 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 2 \\\\ 0 & 1 & 2 \\\\ 0 & 0 & 0 \\end{array}\\right]\\text{,} $$<p>which shows that $\\kvecvthree=2\\kvecvone+2\\kvecvtwo$.</p></li><li>$a\\kvecvone+b\\kvecvtwo+c\\kvecvthree=a\\kvecvone+b\\kvecvtwo + c(2\\kvecvone+2\\kvecvtwo) = (a+2c)\\kvecvone+(b+2c)\\kvecvtwo$.</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "2.1.6",
+   "source_number": "2.1.6",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-system-comb",
+   "prompt": "<p>Consider the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r} 3 \\\\ -1 \\\\ 1 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r} 1 \\\\ 1 \\\\ 2 \\end{array}\\right]. $$<p>For what value(s) of $k$, if any, can the vector $\\left[\\begin{array}{r} k \\\\ -2 \\\\ 5 \\end{array}\\right]$ be written as a linear combination of $\\kvecvone$ and $\\kvecvtwo$?</p>",
+   "answer": {
+    "type": "number",
+    "value": 10,
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong> $k=10$.</p><p><strong>Solution.</strong> We form the augmented matrix and find a triangular matrix that is row equivalent:</p>$$ \\left[\\begin{array}{rr|r} 3 & 1 & k \\\\ -1 & 1 & -2 \\\\ 1 & 2 & 5 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} -1 & 1 & -2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & k-10 \\end{array}\\right]\\text{.} $$<p>This represents a consistent system when $k=10$.</p>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "2.1.7",
+   "source_number": "2.1.7",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-system-comb",
+   "prompt": "<p>Determine whether the following statements are true or false and provide a justification for your response.</p><ol type=\"a\"><li><p>Given two vectors $\\kvecv$ and $\\kvecw$, the vector $2\\kvecv$ is a linear combination of $\\kvecv$ and $\\kvecw$.</p></li><li><p>Suppose $\\kvecvone,\\kvecvtwo,\\ldots,\\kvecv_n$ is a collection of $m$-dimensional vectors and that the matrix $\\begin{bmatrix} \\kvecvone & \\kvecvtwo & \\ldots & \\kvecv_n \\end{bmatrix}$ has a pivot position in every row. If $\\kvecb$ is any $m$-dimensional vector, then $\\kvecb$ can be written as a linear combination of $\\kvecvone,\\kvecvtwo,\\ldots,\\kvecv_n$.</p></li><li><p>Suppose $\\kvecvone,\\kvecvtwo,\\ldots,\\kvecv_n$ is a collection of $m$-dimensional vectors and that the matrix $\\begin{bmatrix} \\kvecvone & \\kvecvtwo & \\ldots & \\kvecv_n \\end{bmatrix}$ has a pivot position in every row and every column. If $\\kvecb$ is any $m$-dimensional vector, then $\\kvecb$ can be written as a linear combination of $\\kvecvone,\\kvecvtwo,\\ldots,\\kvecv_n$ in exactly one way.</p></li><li><p>It is possible to find two 3-dimensional vectors $\\kvecvone$ and $\\kvecvtwo$ such that every 3-dimensional vector can be written as a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>True</li><li>True</li><li>True</li><li>False</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>True, because we can choose the weights $c=2$ and $d=0$.</li><li>True, because the augmented matrix $\\left[\\begin{array}{rrrr|r} \\kvecvone & \\kvecvtwo & \\ldots & \\kvecv_n & \\kvecb \\end{array}\\right]$ can never have a pivot position in the rightmost column.</li><li>True, because the augmented matrix $\\left[\\begin{array}{rrrr|r} \\kvecvone & \\kvecvtwo & \\ldots & \\kvecv_n & \\kvecb \\end{array}\\right]$ can never have a pivot position in the rightmost column and the corresponding linear system cannot have a free variable.</li><li>False, because it is possible to choose a vector $\\kvecb$ such that the augmented matrix $\\left[\\begin{array}{rr|r} \\kvecvone & \\kvecvtwo & \\kvecb \\end{array}\\right]$ has a pivot in the rightmost column.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "2.1.8",
+   "source_number": "2.1.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-1-9",
+   "figure": {
+    "src": "/media/ch02/ex-coord-2-1.svg",
+    "alt": "On the left, the standard coordinate grid with the vectors e1 and e2 and the point (2, −3) as a linear combination of them; on the right, two vectors v1 and v2, the skewed grid of parallel lines they define, and the point {2, −3} as a linear combination of them.",
+    "caption": "Figure 2.1.19 The usual Cartesian coordinate system, defined by the vectors e₁ and e₂, is shown on the left along with the representation of the point (2, −3). The right shows a nonstandard coordinate system defined by vectors v₁ and v₂."
+   },
+   "prompt": "<p>A theme that will later unfold concerns the use of coordinate systems. We can identify the point $(x,y)$ with the tip of the vector $\\left[\\begin{array}{r} x \\\\ y \\end{array}\\right]$, drawn emanating from the origin. We can then think of the usual Cartesian coordinate system in terms of linear combinations of the vectors</p>$$ \\kveceone = \\left[\\begin{array}{r} 1 \\\\ 0 \\end{array}\\right], \\kvecetwo = \\left[\\begin{array}{r} 0 \\\\ 1 \\end{array}\\right]. $$<p>For instance, the point $(2,-3)$ is identified with the vector</p>$$ \\left[\\begin{array}{r} 2 \\\\ -3 \\end{array}\\right] = 2\\kveceone - 3\\kvecetwo, $$<p>as shown on the left in Figure 2.1.19. If instead we have vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r} 2 \\\\ 1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r} 1 \\\\ 2 \\end{array}\\right] $$<p>, we may define a new coordinate system in which a point $\\{c,d\\}$ will correspond to the vector</p>$$ c\\kvecvone + d\\kvecvtwo $$<p>. For instance, the point $\\{2,-3\\}$ is shown on the right side of Figure 2.1.19.</p><ol type=\"a\"><li><p>Write the point $\\{2,-3\\}$ in standard coordinates; that is, find $x$ and $y$ such that</p>$$ (x,y) = \\{2,-3\\} $$<p>.</p></li><li><p>Write the point $(2,-3)$ in the new coordinate system; that is, find $c$ and $d$ such that</p>$$ \\{c,d\\} = (2,-3) $$<p>.</p></li><li><p>Convert a general point $\\{c,d\\}$, expressed in the new coordinate system, into standard Cartesian coordinates $(x,y)$.</p></li><li><p>What is the general strategy for converting a point from standard Cartesian coordinates $(x,y)$ to the new coordinates $\\{c,d\\}$? Actually implementing this strategy in general may take a bit of work so just describe the strategy. We will study this in more detail later.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$(1,-4) = \\{2,-3\\}$.</li><li>$\\{7/3, -8/3\\} = (2,-3)$.</li><li>$$ \\begin{alignedat}{2} x & {}={} & 2c+d \\\\ y & {}={} & c+2d\\text{.} \\\\ \\end{alignedat} $$</li><li><p>Solve the linear system corresponding to the augmented matrix</p>$$ \\left[\\begin{array}{rr|r} 2 & 1 & x \\\\ 1 & 2 & y \\end{array}\\right]\\text{.} $$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have</p>$$ \\left[\\begin{array}{r} x \\\\ y \\end{array}\\right] = 2\\kvecvone -3\\kvecvtwo = \\left[\\begin{array}{r} 1 \\\\ -4 \\end{array}\\right]\\text{.} $$</li><li><p>We have $\\left[\\begin{array}{r} 2 \\\\ -3 \\end{array}\\right] = c\\kvecvone + d\\kvecvtwo$. Solving this equation, we find $c=7/3$ and $d=-8/3$, which means that $(c,d) = \\{7/3, -8/3\\}$.</p></li><li><p>As in the first part of this problem, we write</p>$$ \\begin{alignedat}{2} x & {}={} & 2c+d \\\\ y & {}={} & c+2d\\text{.} \\\\ \\end{alignedat} $$</li><li><p>We want to solve $\\left[\\begin{array}{r} x \\\\ y \\end{array}\\right] = c\\kvecvone + d\\kvecvtwo$ by constructing the augmented matrix and finding its reduced row echelon form.</p>$$ \\left[\\begin{array}{rr|r} 2 & 1 & x \\\\ 1 & 2 & y \\end{array}\\right]\\text{.} $$</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "scalar-multiplication"
+  },
+  {
+   "exercise": "a1",
+   "concept": "vector-addition"
+  },
+  {
+   "exercise": "a1",
+   "concept": "geometry-of-vector-operations"
+  },
+  {
+   "exercise": "a1",
+   "concept": "vector-equation-of-a-line"
+  },
+  {
+   "exercise": "a1",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "a2",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "a2",
+   "concept": "geometry-of-vector-operations"
+  },
+  {
+   "exercise": "a2",
+   "concept": "vector-equation-of-a-line"
+  },
+  {
+   "exercise": "a2",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "a2",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "a3",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "a3",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "a3",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "a3",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e1",
+   "concept": "scalar-multiplication"
+  },
+  {
+   "exercise": "e1",
+   "concept": "vector-addition"
+  },
+  {
+   "exercise": "e1",
+   "concept": "geometry-of-vector-operations"
+  },
+  {
+   "exercise": "e1",
+   "concept": "vector-equation-of-a-line"
+  },
+  {
+   "exercise": "e2",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e2",
+   "concept": "geometry-of-vector-operations"
+  },
+  {
+   "exercise": "e2",
+   "concept": "vector-equation-of-a-line"
+  },
+  {
+   "exercise": "e3",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e3",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e3",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e4",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "e5",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e5",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "e5",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e6",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "e6",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e6",
+   "concept": "consistent-system"
+  },
+  {
+   "exercise": "e7",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e7",
+   "concept": "linear-combinations-and-linear-systems"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e8",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e8",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e8",
+   "concept": "vectors-as-points"
+  }
+ ],
+ "footnotes": []
+}
