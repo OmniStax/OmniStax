@@ -1,0 +1,1132 @@
+{
+ "id": "6.5",
+ "module": "sec-least-squares",
+ "chapter": "6",
+ "title": "Orthogonal least squares",
+ "lead": "When a system $\\kA\\kvecx=\\kvecb$ has no solution, as when we look for a line through data points that do not lie on one, we can still look for the <span data-concept=\"vector\">vector</span> that brings $\\kA\\kvecx$ as close to $\\kvecb$ as possible. This section finds that <span data-concept=\"least-squares-solution\">least-squares approximate solution</span> with <span data-concept=\"orthogonal-projection\">orthogonal projection</span> and uses it to fit lines and polynomials to data.",
+ "objectives": [],
+ "summary_html": "<p>This section introduced some types of least-squares problems and a framework for working with them.</p><ul><li>Given an <span data-concept=\"inconsistent-system\">inconsistent system</span> $\\kA\\kvecx=\\kvecb$, we find $\\kvecxhat$, the <span data-concept=\"least-squares-solution\">least-squares approximate solution</span>, by requiring that $\\kA\\kvecxhat$ be as close to $\\kvecb$ as possible. In other words, $\\kA\\kvecxhat = \\kvecbhat$ where $\\kvecbhat$ is the <span data-concept=\"orthogonal-projection\">orthogonal projection</span> of $\\kvecb$ onto $\\kCol(\\kA)$.</li><li>One way to find $\\kvecxhat$ is by solving the <span data-concept=\"normal-equations\">normal equations</span> $\\kAT\\kA\\kvecxhat = \\kAT\\kvecb.$ This is not our preferred method since numerical problems can arise.</li><li>A second way to find $\\kvecxhat$ uses a <span data-concept=\"qr-factorization\">$\\kQ\\kR$ factorization</span> of $\\kA$. <span data-concept=\"least-squares-by-qr\">If $\\kA=\\kQ\\kR$, then $\\kvecxhat = \\kRinv\\kQT\\kvecb$</span> and finding $\\kRinv$ is computationally feasible since $\\kR$ is upper triangular.</li><li>This technique may be applied widely and is useful for modeling data. We saw examples in this section where <span data-concept=\"linear-regression\">linear functions of several input variables</span> and <span data-concept=\"polynomial-regression\">polynomials</span> provided effective models for different datasets.</li><li>A simple measure of the quality of the fit is the <span data-concept=\"coefficient-of-determination\">coefficient of determination</span> $R^2$ though some additional thought should be given in real applications.</li></ul>",
+ "notes": "The 27 Sage cells are not live: the 13 that print code stay as code blocks, and the 14 empty ones are left out, each part keeping the book’s words; the empty grid of Figure 6.5.2, where Activity 6.5.2 asks the reader to plot, is left out too.",
+ "built": "2026-11-02",
+ "exercises_lead": "Evaluating the following cell loads in some commands that will be helpful in the following exercises. In particular, there are commands: <code>QR(A)</code> that returns the $\\kQ\\kR$ factorization of <code>A</code> as <code>Q, R = QR(A)</code>, <code>onesvec(n)</code> that returns the $n$-dimensional vector whose entries are all 1, <code>demean(v)</code> that demeans the vector <code>v</code>, <code>vandermonde(x, k)</code> that returns the Vandermonde matrix of degree $k$ formed from the components of the vector <code>x</code>, and <code>plot_model(xhat, data)</code> that plots the <code>data</code> and the model <code>xhat</code>.",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity prints a solution only, and Exercise 6.5.3 prints its solution with no separate answer, which keys its card. The six activities stand in the text as cards, their Sage code kept as code. Exercise 6.5.8’s solution e computes with ln(76) and prints 17.9 AU for Halley’s period of 75 years; a note under the card corrects it. Bloom levels and concept tags are AI-judged.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ]
+ },
+ "figures": [
+  {
+   "id": "sim-least-squares-line",
+   "kind": "sim",
+   "number": "6.5.1",
+   "originals": [
+    "/media/ch06/lst-squares-1.svg",
+    "/media/ch06/lst-squares-2.svg"
+   ],
+   "original_caption": "A collection of points and a line approximating the linear relationship implied by them.",
+   "widths": [],
+   "draws": [
+    "point",
+    "curve",
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-column-space",
+   "kind": "sim",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-three-point-fit",
+   "kind": "sim",
+   "number": "6.5.3",
+   "folds": [
+    "6.5.6"
+   ],
+   "originals": [
+    "/media/ch06/line-regress-1.svg",
+    "/media/ch06/line-regress-10.svg"
+   ],
+   "original_caption": "(Figure 6.5.3) The solution of the least-squares problem and the vertical distances between the line and the data points. (Figure 6.5.6) The lines appear to fit equally well in spite of the fact that |b − Ax̂|² differs by a factor of 100.",
+   "widths": [],
+   "draws": [
+    "point",
+    "curve",
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-polynomial-fit",
+   "kind": "sim",
+   "widths": [],
+   "draws": [
+    "point",
+    "curve",
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "tools-for-data",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-possible",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-possible",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-possible",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "approximate-solutions",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "approximate-solutions",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "approximate-solutions",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonal-least-squares",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonal-least-squares",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "line-through-all",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "line-through-all",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-vector",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-vector",
+   "concept": "orthogonality-gives-the-closest-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "closest-vector",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-column-space",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-column-space",
+   "concept": "orthogonality-gives-the-closest-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-column-space",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "vertical-distance",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "minimize-distance",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "minimize-distance",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "minimize-distance",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "minimize-distance",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "alternative-method",
+   "concept": "orthogonal-projection",
+   "verb": "uses"
+  },
+  {
+   "span": "alternative-method",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "alternative-method",
+   "concept": "orthogonal-complement",
+   "verb": "uses"
+  },
+  {
+   "span": "alternative-method",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "alternative-method",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "alternative-method",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-normal-equation",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-normal-equation",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-6-5-4",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-6-5-4",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "example-6-5-5",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-6-5-5",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "example-6-5-5",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "demean",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "rounding-errors",
+   "concept": "round-off-error",
+   "verb": "uses"
+  },
+  {
+   "span": "qr-method",
+   "concept": "qr-factorization",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-6-5-8",
+   "concept": "qr-factorization",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-6-5-8",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-6-5-8",
+   "concept": "matrix-inverse",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-6-5-8",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "special-form",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonal-least-squares",
+   "concept": "least-squares-problem",
+   "verb": "introduces"
+  },
+  {
+   "span": "vertical-distance",
+   "concept": "line-of-best-fit",
+   "verb": "introduces"
+  },
+  {
+   "span": "least-squares-solution",
+   "concept": "least-squares-solution",
+   "verb": "introduces"
+  },
+  {
+   "span": "normal-equation",
+   "concept": "normal-equations",
+   "verb": "introduces"
+  },
+  {
+   "span": "linear-regression",
+   "concept": "linear-regression",
+   "verb": "introduces"
+  },
+  {
+   "span": "demean",
+   "concept": "demeaned-vector",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-6-5-7",
+   "concept": "coefficient-of-determination",
+   "verb": "introduces"
+  },
+  {
+   "span": "proposition-6-5-8",
+   "concept": "least-squares-by-qr",
+   "verb": "introduces"
+  },
+  {
+   "span": "polynomial-models",
+   "concept": "polynomial-regression",
+   "verb": "introduces"
+  },
+  {
+   "span": "vandermonde",
+   "concept": "vandermonde-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "sim-column-space",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "distance-squared",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "least-squares-named",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-three-point-fit",
+   "concept": "line-of-best-fit",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-three-point-fit",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "minimize-distance",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rearrange",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-6-5-4",
+   "concept": "normal-equations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-6-5-4",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-6-5-5",
+   "concept": "normal-equations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-6-5-5",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "linear-regression",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "scale-dependence",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "definition-6-5-7",
+   "concept": "demeaned-vector",
+   "verb": "reinforces"
+  },
+  {
+   "span": "definition-6-5-7",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "r-squared-bounds",
+   "concept": "coefficient-of-determination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "r-squared-bounds",
+   "concept": "least-squares-problem",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rounding-errors",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rounding-errors",
+   "concept": "normal-equations",
+   "verb": "reinforces"
+  },
+  {
+   "span": "qr-method",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-6-5-8",
+   "concept": "least-squares-solution",
+   "verb": "reinforces"
+  },
+  {
+   "span": "special-form",
+   "concept": "polynomial-regression",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-polynomial-fit",
+   "concept": "polynomial-regression",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-polynomial-fit",
+   "concept": "vandermonde-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-polynomial-fit",
+   "concept": "coefficient-of-determination",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-polynomial-fit",
+   "concept": "linear-regression",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "6.5.1",
+   "source_number": "6.5.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "closest-possible"
+   },
+   "cite": "closest-possible",
+   "prompt": "<ol type=\"a\"><li><p>Is there a solution to the equation $\\kA\\kvecx=\\kvecb$ where $\\kA$ and $\\kvecb$ are such that</p>$$ \\begin{bmatrix} 1 & 2 \\\\ 2 & 5 \\\\ -1 & 0 \\\\ \\end{bmatrix} \\kvecx = \\left[\\begin{array}{r}5 \\\\ -3 \\\\ -1 \\end{array}\\right]. $$</li><li><p>We know that $\\left[\\begin{array}{r}1 \\\\ 2 \\\\ -1 \\end{array}\\right]$ and $\\left[\\begin{array}{r}2 \\\\ 5 \\\\ 0 \\end{array}\\right]$ form a basis for $\\kCol(\\kA)$. Find an orthogonal basis for $\\kCol(\\kA)$.</p></li><li><p>Find the orthogonal projection $\\kvecbhat$ of $\\kvecb$ onto $\\kCol(\\kA)$.</p></li><li><p>Explain why the equation $\\kA\\kvecx=\\kvecbhat$ must be consistent and then find its solution.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The reduced row echelon form</p>$$ \\left[ \\begin{array}{cc|c} 1 & 2 & 5 \\\\ 2 & 5 & -3 \\\\ -1 & 0 & -1\\\\ \\end{array} \\right] \\sim \\left[ \\begin{array}{cc|c} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array} \\right] $$<p>shows that there is no solution.</p></li><li><p>Applying Gram-Schmidt, we find an orthogonal basis consisting of $\\mathbf{w}_1=\\left[\\begin{array}{c}1 \\\\ 2 \\\\ -1 \\end{array}\\right]$ and $\\mathbf{w}_2=\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 2 \\end{array}\\right]$.</p></li><li><p>The projection formula gives $\\kvecbhat = \\left[\\begin{array}{c}0 \\\\ -1 \\\\ -2 \\end{array}\\right]$.</p></li><li><p>The equation is consistent because $\\kvecbhat$ is in $\\kCol(\\kA)$. We find the solution $\\kvecx=\\left[\\begin{array}{r}2 \\\\ -1 \\end{array}\\right]$.</p></li></ol>"
+   },
+   "changes": "The empty Sage cell of part (a) is left out."
+  },
+  {
+   "id": "a2",
+   "source_id": "6.5.2",
+   "source_number": "6.5.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "approximate-solutions"
+   },
+   "cite": "sim-three-point-fit",
+   "prompt": "<p>Suppose we have three data points $(1,1)$, $(2,1)$, and $(3,3)$ and that we would like to find a line passing through them.</p><ol type=\"a\"><li><p>Plot these three points in <a href=\"#6.5-sim-three-point-fit\">Figure 6.5.2</a>. Are you able to draw a line that passes through all three points?</p></li><li><p>Remember that the equation of a line can be written as $b + mx=y$ where $m$ is the slope and $b$ is the $y$-intercept. We will try to find $b$ and $m$ so that the three points lie on the line.</p><p>The first data point $(1,1)$ gives an equation for $b$ and $m$. In particular, we know that when $x=1$, then $y=1$ so we have $b + m(1) = 1$ or $b + m = 1$. Use the other two data points to create a linear system describing $m$ and $b$.</p></li><li><p>We have obtained a linear system having three equations, one from each data point, for the two unknowns $b$ and $m$. Identify a matrix $\\kA$ and vector $\\kvecb$ so that the system has the form $\\kA\\kvecx=\\kvecb$, where $\\kvecx=\\left[\\begin{array}{c}b \\\\ m \\end{array}\\right]$.</p><p>Notice that the unknown vector $\\kvecx=\\left[\\begin{array}{c}b \\\\ m \\end{array}\\right]$ describes the line that we seek.</p></li><li><p>Is there a solution to this linear system? How does this question relate to your attempt to draw a line through the three points above?</p></li><li><p>Since this system is inconsistent, we know that $\\kvecb$ is not in the column space $\\kCol(\\kA)$. Find an orthogonal basis for $\\kCol(\\kA)$ and use it to find the orthogonal projection $\\kvecbhat$ of $\\kvecb$ onto $\\kCol(\\kA)$.</p></li><li><p>Since $\\kvecbhat$ is in $\\kCol(\\kA)$, the equation $\\kA\\kvecx = \\kvecbhat$ is consistent. Find its solution $\\kvecx = \\left[\\begin{array}{c}b \\\\ m \\end{array}\\right]$ and sketch the line $y=b + mx$ in <a href=\"#6.5-sim-three-point-fit\">Figure 6.5.2</a>. We say that this is the line of best fit.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>It's not possible to draw a line through all three points.</p></li><li><p>We have the equations</p>$$ \\begin{aligned} b + m & {}={} 1 \\\\ b + 2m & {}={} 1 \\\\ b + 3m & {}={} 3 \\end{aligned} $$</li><li><p>We have $\\kA = \\begin{bmatrix} 1 & 1 \\\\ 1 & 2 \\\\ 1 & 3 \\\\ \\end{bmatrix}$ and $\\kvecb=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 3 \\end{array}\\right]$.</p></li><li><p>This linear system is inconsistent.</p></li><li><p>$\\kvecbhat=\\left[\\begin{array}{r}2/3 \\\\ 5/3 \\\\ 8/3 \\end{array}\\right]$.</p></li><li><p>$\\kvecx=\\left[\\begin{array}{r}-1/3 \\\\ 1 \\end{array}\\right]$. This line is shown in the figure below.</p><p><img src=\"/media/ch06/line-regress-2.svg\" alt=\"The line that best approximates the three data points.\" width=\"220\" height=\"220\"></p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>After plotting the points, we see that it's not possible to draw a line through all three points.</p></li><li><p>We have the equations</p>$$ \\begin{aligned} b + m & {}={} 1 \\\\ b + 2m & {}={} 1 \\\\ b + 3m & {}={} 3 \\end{aligned} $$</li><li><p>We have $\\kA = \\begin{bmatrix} 1 & 1 \\\\ 1 & 2 \\\\ 1 & 3 \\\\ \\end{bmatrix}$ and $\\kvecb=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 3 \\end{array}\\right]$.</p></li><li><p>Finding the reduced row echelon form of the associated augmented matrix tells us this is an inconsistent system. Since a solution would describe a line passing through the three points, we should expect this.</p></li><li><p>Applying Gram-Schmidt gives us the orthogonal basis $\\mathbf{w}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right]$ and $\\mathbf{w}_2 = \\left[\\begin{array}{r}-1 \\\\ 0 \\\\ 1 \\end{array}\\right]$. Projecting $\\kvecb$ onto $\\kCol(\\kA)$ gives $\\kvecbhat=\\left[\\begin{array}{r}2/3 \\\\ 5/3 \\\\ 8/3 \\end{array}\\right]$.</p></li><li><p>Solving the equation $\\kA\\kvecx = \\kvecbhat$ gives $\\kvecx=\\left[\\begin{array}{c}-1/3 \\\\ 1 \\end{array}\\right]$, which describes a line having vertical intercept $b=-1/3$ and the slope $=1$. This line is shown in the figure below.</p><p><img src=\"/media/ch06/line-regress-2.svg\" alt=\"The line that best approximates the three data points.\" width=\"220\" height=\"220\"></p></li></ol>"
+   },
+   "changes": "The book’s empty grid for plotting (Figure 6.5.2) and the empty Sage cell of part (d) are left out; its two citations link to Figure 6.5.3 + 6.5.6, which draws the three points and their line, and the answer’s “shown in” points to the drawing below it."
+  },
+  {
+   "id": "a3",
+   "source_id": "6.5.3",
+   "source_number": "6.5.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-6-5-5"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>The rate at which a cricket chirps is related to the outdoor temperature, as reflected in some experimental data that we'll study in this activity. The chirp rate $C$ is expressed in chirps per second while the temperature $T$ is in degrees Fahrenheit. Evaluate the following cell to load the data:</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/crickets.csv')\ndata = [vector(row) for row in df.values]\nchirps = vector(df['Chirps'])\ntemps = vector(df['Temperature'])\nprint(df)\nlist_plot(data, color='blue', size=40, xmin=12, xmax=22, ymin=60, ymax=100)</code></pre><p>Evaluating this cell also provides:</p><ul><li>the vectors <code>chirps</code> and <code>temps</code> formed from the columns of the dataset.</li><li>the command <code>onesvec(n)</code>, which creates an $n$-dimensional vector whose entries are all one.</li><li>Remember that you can form a matrix whose columns are the vectors <code>v1</code> and <code>v2</code> with <code>matrix([v1, v2]).T</code>.</li></ul><p>We would like to represent this relationship by a linear function</p>$$ \\beta_0 + \\beta_1 C = T\\text{.} $$<ol type=\"a\"><li><p>Use the first data point $(C_1,T_1)=(20.0,88.6)$ to write an equation involving $\\beta_0$ and $\\beta_1$.</p></li><li><p>Suppose that we represent the unknowns using a vector $\\kvecx = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right]$. Use the 15 data points to create the matrix $\\kA$ and vector $\\kvecb$ so that the linear system $\\kA\\kvecx= \\kvecb$ describes the unknown vector $\\kvecx$.</p></li><li><p>Write the normal equations $\\kAT\\kA\\kvecxhat = \\kAT\\kvecb$; that is, find the matrix $\\kAT\\kA$ and the vector $\\kAT\\kvecb$.</p></li><li><p>Solve the normal equations to find $\\kvecxhat$, the least-squares approximate solution to the equation $\\kA\\kvecx=\\kvecb$. Call your solution <code>xhat</code> since <code>x</code> has another meaning in Sage.</p><p>What are the values of $\\beta_0$ and $\\beta_1$ that you found?</p></li><li><p>If the chirp rate is 22 chirps per second, what is your prediction for the temperature?</p><p>You can plot the data and your line, assuming you called the solution <code>xhat</code>, using the cell below.</p><pre class=\"sage\"><code>plot_model(xhat, data, domain=(12, 22))</code></pre></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\beta_0 + 20.0\\beta_1 = 88.6$.</p></li><li><p>$\\kA$ is the $15\\times2$ matrix whose first column consists only of 1's and whose second column is the vector of chirp rates. The vector $\\kvecb$ is the vector of temperatures.</p></li><li><p>$\\kAT\\kA=\\begin{bmatrix} 15.0 & 248.5 \\\\ 248.5 & 4157.9 \\\\ \\end{bmatrix}$ and $\\kAT\\kvecb = \\left[\\begin{array}{r}1190.2 \\\\ 19857.7 \\end{array}\\right]$</p></li><li><p>$\\kvecxhat = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right] = \\left[\\begin{array}{r}22.8 \\\\ 3.4 \\end{array}\\right]$.</p></li><li><p>$97.9$ degrees.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have the equation $\\beta_0 + 20.0\\beta_1 = 88.6$.</p></li><li><p>$\\kA$ is the $15\\times2$ matrix whose first column consists only of 1's and whose second column is the vector of chirp rates. The vector $\\kvecb$ is the vector of temperatures.</p></li><li><p>$\\kAT\\kA=\\begin{bmatrix} 15.0 & 248.5 \\\\ 248.5 & 4157.9 \\\\ \\end{bmatrix}$ and $\\kAT\\kvecb = \\left[\\begin{array}{r}1190.2 \\\\ 19857.7 \\end{array}\\right]$</p></li><li><p>$\\kvecxhat = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right] = \\left[\\begin{array}{r}22.8 \\\\ 3.4 \\end{array}\\right]$.</p></li><li><p>The predicted temperature is $\\beta_0 + 22\\beta_1 = 97.9$ degrees.</p></li></ol>"
+   },
+   "changes": "The empty Sage cells of parts (b) and (d) are left out; the polynomial-fit Sim plots the cricket data and its line."
+  },
+  {
+   "id": "a4",
+   "source_id": "6.5.4",
+   "source_number": "6.5.4",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "qr-method"
+   },
+   "cite": "qr-method",
+   "prompt": "<ol type=\"a\"><li><p>Suppose we are interested in finding the least-squares approximate solution to the equation $\\kA\\kvecx = \\kvecb$ and that we have the $\\kQ\\kR$ factorization $\\kA=\\kQ\\kR$. Explain why the least-squares approximate solution is given by solving</p>$$ \\begin{aligned} \\kA\\kvecxhat & = \\kQ\\kQT\\kvecb \\\\ \\\\ \\kQ\\kR\\kvecxhat & = \\kQ\\kQT\\kvecb \\\\ \\end{aligned} $$</li><li><p>Multiply both sides of the second expression by $\\kQT$ and explain why</p>$$ \\kR\\kvecxhat = \\kQT\\kvecb. $$<p>Since $\\kR$ is upper triangular, this is a relatively simple equation to solve using back substitution, as we saw in <a href=\"/understanding-linear-algebra/ch05/5.1/\">Section 5.1</a>. We will therefore write the least-squares approximate solution as</p>$$ \\kvecxhat = \\kRinv\\kQT\\kvecb, $$<p>and put this to use in the following context.</p></li><li><p>Brozak’s formula, which is used to calculate a person's body fat index $BFI$, is</p>$$ BFI = 100 \\left(\\frac{4.57}{\\rho} - 4.142\\right) $$<p>where $\\rho$ denotes a person's body density in grams per cubic centimeter. Obtaining an accurate measure of $\\rho$ is difficult, however, because it requires submerging the person in water and measuring the volume of water displaced. Instead, we will gather several other body measurements, which are more easily obtained, and use it to predict $BFI$.</p><p>For instance, suppose we take 10 patients and measure their weight $w$ in pounds, height $h$ in inches, abdomen $a$ in centimeters, wrist circumference $r$ in centimeters, neck circumference $n$ in centimeters, and $BFI$. Evaluating the following cell loads and displays the data.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/bfi.csv')\nweight = vector(df['Weight'])\nheight = vector(df['Height'])\nabdomen = vector(df['Abdomen'])\nwrist = vector(df['Wrist'])\nneck = vector(df['Neck'])\nBFI = vector(df['BFI'])\nprint(df)</code></pre><p>In addition, that cell provides:</p><ol type=\"a\"><li><p>vectors <code>weight</code>, <code>height</code>, <code>abdomen</code>, <code>wrist</code>, <code>neck</code>, and <code>BFI</code> formed from the columns of the dataset.</p></li><li><p>the command <code>onesvec(n)</code>, which returns an $n$-dimensional vector whose entries are all one.</p></li><li><p>the command <code>QR(A)</code> that returns the $\\kQ\\kR$ factorization of $\\kA$ as <code>Q, R = QR(A)</code>.</p></li><li><p>the command <code>demean(v)</code>, which returns the demeaned vector $\\kvecvtilde$.</p></li></ol><p>We would like to find the linear function</p>$$ \\beta_0 + \\beta_1w + \\beta_2h + \\beta_3a + \\beta_4r + \\beta_5n = BFI $$<p>that best fits the data.</p><p>Use the first data point to write an equation for the parameters $\\beta_0,\\beta_1,\\ldots,\\beta_5$.</p></li><li><p>Describe the linear system $\\kA\\kvecx = \\kvecb$ for these parameters. More specifically, describe how the matrix $\\kA$ and the vector $\\kvecb$ are formed.</p></li><li><p>Construct the matrix $\\kA$ and find its $\\kQ\\kR$ factorization in the cell below.</p></li><li><p>Find the least-squares approximate solution $\\kvecxhat$ by solving the equation $\\kR\\kvecxhat = \\kQT\\kvecb$. You may want to use <code>N(xhat)</code> to display a decimal approximation of the vector. What are the parameters $\\beta_0,\\beta_1,\\ldots,\\beta_5$ that best fit the data?</p></li><li><p>Find the coefficient of determination $R^2$ for your parameters. What does this imply about the quality of the fit?</p></li><li><p>Suppose a person's measurements are: weight 190, height 70, abdomen 90, wrist 18, and neck 35. Estimate this person's $BFI$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>Use the fact that $\\kvecbhat=\\kQ\\kQT\\kvecb$.</p></li><li><p>Use the fact that $\\kQT\\kQ=I$.</p></li><li><p>$\\beta_0 + 154\\beta_1 + 68\\beta_2 + 85\\beta_3 + 17\\beta_4 + 36\\beta_5 = 13$</p></li><li><p>$\\kA$ is the $10\\times6$ matrix whose columns are a vector of all 1's followed by the vectors of weights, heights, abdominal, wrist, and neck measurements. The vector $\\kvecb$ is the vector of BFI readings.</p></li><li><p>$\\kQ$ is a $10\\times6$ matrix and $\\kR$ is a $6\\times6$ upper triangular matrix.</p></li><li><p>We find that</p>$$ \\beta_0 = 54.08, \\beta_1 = 0.19, \\beta_2 = -2.62, \\beta_3 = 0.92, \\beta_4 = 2.70, \\beta_5 = -0.41 $$</li><li><p>$R^2=0.95$</p></li><li><p>Evaluating $\\beta_0 + 190\\beta_1 + 70\\beta_2 + 90\\beta_3 + 18\\beta_4 + 35\\beta_5 = 22.9$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The columns of $\\kQ$ form an orthonormal basis for $\\kCol(\\kA)$ so that $\\kvecbhat=\\kQ\\kQT\\kvecb$. The equation $\\kA\\kvecxhat=\\kvecbhat$ then becomes $\\kQ\\kR\\kvecxhat=\\kQ\\kQT\\kvecb$.</p></li><li><p>Since $\\kQT\\kQ=I$, we have $\\kQT\\kQ\\kR\\kvecxhat = \\kQT\\kQ\\kQT\\kvecb$, which gives $\\kR\\kvecxhat = \\kQT\\kvecb$.</p></li><li><p>$\\beta_0 + 154\\beta_1 + 68\\beta_2 + 85\\beta_3 + 17\\beta_4 + 36\\beta_5 = 13$</p></li><li><p>$\\kA$ is the $10\\times6$ matrix whose columns are a vector of all 1's followed by the vectors of weights, heights, abdominal, wrist, and neck measurements. The vector $\\kvecb$ is the vector of BFI readings.</p></li><li><p>$\\kQ$ is a $10\\times6$ matrix and $\\kR$ is a $6\\times6$ upper triangular matrix.</p></li><li><p>We find that</p>$$ \\beta_0 = 54.08, \\beta_1 = 0.19, \\beta_2 = -2.62, \\beta_3 = 0.92, \\beta_4 = 2.70, \\beta_5 = -0.41 $$</li><li><p>$R^2=0.95$</p></li><li><p>Evaluating $\\beta_0 + 190\\beta_1 + 70\\beta_2 + 90\\beta_3 + 18\\beta_4 + 35\\beta_5 = 22.9$</p></li></ol>"
+   },
+   "changes": "The empty Sage cells of parts (e) and (g) are left out."
+  },
+  {
+   "id": "a5",
+   "source_id": "6.5.5",
+   "source_number": "6.5.5",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "polynomial-models"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<ol type=\"a\"><li><p>Suppose that we have a small dataset containing the points $(0,2)$, $(1,1)$, $(2,3)$, and $(3,3)$, such as appear when the following cell is evaluated.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py',\nglobals())\ndata = [[0, 2], [1, 1], [2, 3], [3, 3]]\nlist_plot(data, color='blue', size=40)</code></pre><p>In addition to loading and plotting the data, evaluating that cell provides the following commands:</p><ul><li><code>Q, R = QR(A)</code> returns the $\\kQ\\kR$ factorization of $\\kA$.</li><li><code>demean(v)</code> returns the demeaned vector $\\kvecvtilde$.</li></ul><p>Let's fit a quadratic function of the form</p>$$ \\beta_0 + \\beta_1 x + \\beta_2 x^2 = y $$<p>to this dataset.</p><p>Write four equations, one for each data point, that describe the coefficients $\\beta_0$, $\\beta_1$, and $\\beta_2$.</p></li><li><p>Express these four equations as a linear system $\\kA\\kvecx = \\kvecb$ where $\\kvecx = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\\\ \\beta_2 \\end{array}\\right]$.</p><p>Find the $\\kQ\\kR$ factorization of $\\kA$ and use it to find the least-squares approximate solution $\\kvecxhat$.</p></li><li><p>Use the parameters $\\beta_0$, $\\beta_1$, and $\\beta_2$ that you found to write the quadratic function that fits the data. You can plot this function, along with the data, by entering your function in the place indicated below.</p><pre class=\"sage\"><code>list_plot(data, color='blue', size=40) + plot( **your function here**,\n0, 3, color='red')</code></pre></li><li><p>What is your predicted $y$ value when $x=1.5$?</p></li><li><p>Find the coefficient of determination $R^2$ for the quadratic function. What does this say about the quality of the fit?</p></li><li><p>Now fit a cubic polynomial of the form</p>$$ \\beta_0 + \\beta_1x + \\beta_2 x^2 + \\beta_3x^3 = y $$<p>to this dataset.</p></li><li><p>Find the coefficient of determination $R^2$ for the cubic function. What does this say about the quality of the fit?</p></li><li><p>What do you notice when you plot the cubic function along with the data? How does this reflect the value of $R^2$ that you found?</p><pre class=\"sage\"><code>list_plot(data, color='blue', size=40) + plot( **your function here**,\n0, 3, color='red')</code></pre></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>We have the equations</p>$$ \\begin{aligned} \\beta_0 + 0\\beta_1 + 0^2\\beta_2 & {}={} 2 \\\\ \\beta_0 + 1\\beta_1 + 1^2\\beta_2 & {}={} 1 \\\\ \\beta_0 + 2\\beta_1 + 2^2\\beta_2 & {}={} 3 \\\\ \\beta_0 + 3\\beta_1 + 3^2\\beta_2 & {}={} 3 \\end{aligned} $$</li><li><p>$\\kvecxhat = \\left[\\begin{array}{r}7/4 \\\\ -1/4 \\\\ 1/4 \\end{array}\\right]$</p></li><li><p>$\\frac74 - \\frac14 x + \\frac14x^2 = y$.</p></li><li><p>$1.9375$.</p></li><li><p>$0.54$</p></li><li><p>$2-\\frac{25}{6}x+4x^2-\\frac56x^3 = y$.</p></li><li><p>$R^2=1$</p></li><li><p>The graph of the cubic function passes through each data point.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have the equations</p>$$ \\begin{aligned} \\beta_0 + 0\\beta_1 + 0^2\\beta_2 & {}={} 2 \\\\ \\beta_0 + 1\\beta_1 + 1^2\\beta_2 & {}={} 1 \\\\ \\beta_0 + 2\\beta_1 + 2^2\\beta_2 & {}={} 3 \\\\ \\beta_0 + 3\\beta_1 + 3^2\\beta_2 & {}={} 3 \\end{aligned} $$</li><li><p>With $\\kA=\\begin{bmatrix} 1 & 0 & 0 \\\\ 1 & 1 & 1 \\\\ 1 & 2 & 4 \\\\ 1 & 3 & 9 \\\\ \\end{bmatrix}$ and $\\kvecb=\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 3 \\\\ 3 \\end{array}\\right]$, we find $\\kvecxhat = \\left[\\begin{array}{r}7/4 \\\\ -1/4 \\\\ 1/4 \\end{array}\\right]$</p></li><li><p>The quadratic function is $\\frac74 - \\frac14 x + \\frac14x^2 = y$.</p></li><li><p>The predicted value is $y=\\frac74 - \\frac14(1.5)+\\frac14(1.5)^2 = 1.9375$.</p></li><li><p>$R^2 = 0.54$</p></li><li><p>We find $2-\\frac{25}{6}x+4x^2-\\frac56x^3 = y$.</p></li><li><p>$R^2=1$, which means that we have a perfect fit.</p></li><li><p>The graph of the cubic function passes through each data point.</p></li></ol>"
+   },
+   "changes": "The empty Sage cells of parts (b) and (f) are left out; the polynomial-fit Sim draws the quadratic and the cubic through the four points."
+  },
+  {
+   "id": "a6",
+   "source_id": "6.5.6",
+   "source_number": "6.5.6",
+   "kind": "activity",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "inline",
+    "after": "sim-polynomial-fit"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>This activity explores a dataset describing Arctic sea ice and that comes from <a href=\"http://sustainabilitymath.org/\">sustainabilitymath.org</a></p><p>Evaluating the cell below will plot the extent of Arctic sea ice, in millions of square kilometers, during the twelve months of 2012.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/sea_ice.csv')\ndata = [vector([row[0], row[2]]) for row in df.values]\nmonth = vector(df['Month'])\nice = vector(df['2012'])\nprint(df[['Month', '2012']])\nlist_plot(data, color='blue', size=40)</code></pre><p>In addition, you have access to a few special variables and commands:</p><ul><li><code>month</code> is the vector of month values and <code>ice</code> is the vector of sea ice values from the table above.</li><li><code>vandermonde(x, k)</code> constructs the Vandermonde matrix of degree $k$ using the points in the vector <code>x</code>.</li><li><code>Q, R = QR(A)</code> provides the $\\kQ\\kR$ factorization of $\\kA$.</li><li><code>demean(v)</code> returns the demeaned vector $\\kvecvtilde$.</li></ul><ol type=\"a\"><li><p>Find the vector $\\kvecxhat$, the least-squares approximate solution to the linear system that results from fitting a degree 5 polynomial to the data.</p></li><li><p>If your result is stored in the variable <code>xhat</code>, you may plot the polynomial and the data together using the following cell.</p><pre class=\"sage\"><code>plot_model(xhat, data)</code></pre></li><li><p>Find the coefficient of determination $R^2$ for this polynomial fit.</p></li><li><p>Repeat these steps to fit a degree 8 polynomial to the data, plot the polynomial with the data, and find $R^2$.</p></li><li><p>Repeat one more time by fitting a degree 11 polynomial to the data, creating a plot, and finding $R^2$.</p><p>It's certainly true that higher degree polynomials fit the data better, as seen by the increasing values of $R^2$, but that's not always a good thing. For instance, when $k=11$, you may notice that the graph of the polynomial wiggles a little more than we would expect. In this case, the polynomial is trying too hard to fit the data, which usually contains some uncertainty, especially if it's obtained from measurements. The error built in to the data is called <em>noise,</em> and its presence means that we shouldn't expect our polynomial to fit the data perfectly. When we choose a polynomial whose degree is too high, we give the noise too much weight in the model, which leads to some undesirable behavior, like the wiggles in the graph.</p><p>Fitting the data with a polynomial whose degree is too high is called <em>overfitting</em>, a phenomenon that can appear in many machine learning applications. Generally speaking, we would like to choose $k$ large enough to capture the essential features of the data but not so large that we overfit and build the noise into the model. There are ways to determine the optimal value of $k$, but we won't pursue that here.</p></li><li><p>Choosing a reasonable value of $k$, estimate the extent of Arctic sea ice at month 6.5, roughly at the Summer Solstice.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kvecxhat = \\begin{bmatrix} 17.4\\\\-7.1\\\\4.5\\\\-1.1\\\\0.1\\\\-0.003 \\end{bmatrix}$</p></li><li><p>The fifth degree polynomial fits the data fairly well.</p></li><li><p>$R^2=0.99$</p></li><li><p>$R^2=0.9997$.</p></li><li><p>$R^2=1$</p></li><li><p>$8.7$ million square kilometers of sea ice.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\kvecxhat = \\begin{bmatrix} 17.4\\\\-7.1\\\\4.5\\\\-1.1\\\\0.1\\\\-0.003 \\end{bmatrix}$</p></li><li><p>The fifth degree polynomial fits the data fairly well.</p></li><li><p>$R^2=0.99$</p></li><li><p>$R^2=0.9997$.</p></li><li><p>$R^2=1$</p></li><li><p>$k=5$ seems like a good choice, and this gives the prediction of $8.7$ million square kilometers of sea ice.</p></li></ol>"
+   },
+   "changes": "The empty Sage cells of parts (a), (d) and (e) are left out; the polynomial-fit Sim draws the fits of degree 5, 8 and 11."
+  },
+  {
+   "id": "e1",
+   "source_id": "6.5.1",
+   "source_number": "6.5.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "approximate-solutions",
+   "prompt": "<p>Suppose we write the linear system</p>$$ \\begin{bmatrix} 1 & -1 \\\\ 2 & -1 \\\\ -1 & 3 \\end{bmatrix} \\kvecx = \\left[\\begin{array}{r}-8 \\\\ 5 \\\\ -10 \\end{array}\\right] $$<p>as $\\kA\\kvecx=\\kvecb$.</p><ol type=\"a\"><li><p>Find an orthogonal basis for $\\kCol(\\kA)$.</p></li><li><p>Find $\\kvecbhat$, the orthogonal projection of $\\kvecb$ onto $\\kCol(\\kA)$.</p></li><li><p>Find a solution to the linear system $\\kA\\kvecx = \\kvecbhat$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\mathbf{w}_1=\\left[\\begin{array}{r}1 \\\\ 2 \\\\ -1 \\end{array}\\right]$ and $\\mathbf{w}_2=\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 2 \\end{array}\\right]$</p></li><li><p>$\\kvecbhat = \\left[\\begin{array}{r}2 \\\\ 1 \\\\ -8 \\end{array}\\right]$.</p></li><li><p>$\\kvecx=\\left[\\begin{array}{r}-1 \\\\ -3 \\end{array}\\right]$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Applying Gram-Schmidt gives the orthogonal basis</p>$$ \\mathbf{w}_1=\\left[\\begin{array}{r}1 \\\\ 2 \\\\ -1 \\end{array}\\right],\\hspace{24pt} \\mathbf{w}_2=\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 2 \\end{array}\\right] $$</li><li><p>Applying the Projection Formula gives $\\kvecbhat = \\left[\\begin{array}{r}2 \\\\ 1 \\\\ -8 \\end{array}\\right]$.</p></li><li><p>Solving the linear system gives $\\kvecx=\\left[\\begin{array}{r}-1 \\\\ -3 \\end{array}\\right]$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "6.5.2",
+   "source_number": "6.5.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>Consider the data in Table 6.5.9.</p><div class=\"book-table\" id=\"table-lst-squares-line\"><span class=\"tcap\"><span class=\"eyebrow\">Table 6.5.9</span><span>A dataset with four points.</span></span><table><thead><tr><th>$x$</th><th>$y$</th></tr></thead><tbody><tr><td>1</td><td>1</td></tr><tr><td>2</td><td>1</td></tr><tr><td>3</td><td>1</td></tr><tr><td>4</td><td>2</td></tr></tbody></table></div><ol type=\"a\"><li><p>Set up the linear system $\\kA\\kvecx=\\kvecb$ that describes the line $b + mx = y$ passing through these points.</p></li><li><p>Write the normal equations that describe the least-squares approximate solution to $\\kA\\kvecx=\\kvecb$.</p></li><li><p>Find the least-squares approximate solution $\\kvecxhat$ and plot the data and the resulting line.</p></li><li><p>What is your predicted $y$-value when $x=3.5$?</p></li><li><p>Find the coefficient of determination $R^2$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kA=\\begin{bmatrix} 1 & 1 \\\\ 1 & 2 \\\\ 1 & 3 \\\\ 1 & 4 \\\\ \\end{bmatrix}$, $\\kvecb=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 2 \\end{array}\\right]$.</p></li><li><p>$\\begin{bmatrix} 4 & 10 \\\\ 10 & 30 \\\\ \\end{bmatrix} \\kvecxhat = \\left[\\begin{array}{r}5 \\\\ 14 \\end{array}\\right]$</p></li><li><p>$\\kvecxhat = \\left[\\begin{array}{r}1/2 \\\\ 3/10 \\end{array}\\right]$</p></li><li><p>$1.55$.</p></li><li><p>$R^2=0.6$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA=\\begin{bmatrix} 1 & 1 \\\\ 1 & 2 \\\\ 1 & 3 \\\\ 1 & 4 \\\\ \\end{bmatrix}$ and the vector $\\kvecb=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 2 \\end{array}\\right]$.</p></li><li><p>$\\begin{bmatrix} 4 & 10 \\\\ 10 & 30 \\\\ \\end{bmatrix} \\kvecxhat = \\left[\\begin{array}{r}5 \\\\ 14 \\end{array}\\right]$</p></li><li><p>$\\kvecxhat = \\left[\\begin{array}{r}1/2 \\\\ 3/10 \\end{array}\\right]$</p></li><li><p>The predicted value is $y=1/2 + 3/10*3.5 = 1.55$.</p></li><li><p>$R^2=0.6$</p></li></ol>"
+   },
+   "changes": "The empty Sage cell is left out; the polynomial-fit Sim plots the data of Table 6.5.9 and its line."
+  },
+  {
+   "id": "e3",
+   "source_id": "6.5.3",
+   "source_number": "6.5.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>Consider the four points in Table 6.5.9.</p><div class=\"book-table\" id=\"table-lst-squares-line-e3\"><span class=\"tcap\"><span class=\"eyebrow\">Table 6.5.9</span><span>A dataset with four points.</span></span><table><thead><tr><th>$x$</th><th>$y$</th></tr></thead><tbody><tr><td>1</td><td>1</td></tr><tr><td>2</td><td>1</td></tr><tr><td>3</td><td>1</td></tr><tr><td>4</td><td>2</td></tr></tbody></table></div><ol type=\"a\"><li><p>Set up a linear system $\\kA\\kvecx = \\kvecb$ that describes a quadratic function</p>$$ \\beta_0+\\beta_1x+\\beta_2x^2 = y $$<p>passing through the points.</p></li><li><p>Use a $\\kQ\\kR$ factorization to find the least-squares approximate solution $\\kvecxhat$ and plot the data and the graph of the resulting quadratic function.</p></li><li><p>What is your predicted $y$-value when $x=3.5$?</p></li><li><p>Find the coefficient of determination $R^2$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have the Vandermonde matrix $\\kA = \\begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 2 & 4 \\\\ 1 & 3 & 9 \\\\ 1 & 4 & 16\\\\ \\end{bmatrix}$ and vector $\\kvecb=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\\\ 2 \\end{array}\\right]$.</p></li><li><p>The quadratic function is $1.75 - 0.95x + 0.25x^2$.</p></li><li><p>This gives the predicted value $1.75 - 0.95(3.5) + 0.25(3.5)^2=1.488$.</p></li><li><p>$R^2=0.93$</p></li></ol>"
+   },
+   "changes": "Table 6.5.9 is repeated from Exercise 6.5.2, and the empty Sage cell is left out; the polynomial-fit Sim draws the quadratic."
+  },
+  {
+   "id": "e4",
+   "source_id": "6.5.4",
+   "source_number": "6.5.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "linear-regression",
+   "prompt": "<p>Consider the data in Table 6.5.10.</p><div class=\"book-table\" id=\"table-lst-squares-multi\"><span class=\"tcap\"><span class=\"eyebrow\">Table 6.5.10</span><span>A simple dataset</span></span><table><thead><tr><th>$x_1$</th><th>$x_2$</th><th>$y$</th></tr></thead><tbody><tr><td>1</td><td>1</td><td>4.2</td></tr><tr><td>1</td><td>2</td><td>3.3</td></tr><tr><td>2</td><td>1</td><td>5.9</td></tr><tr><td>2</td><td>2</td><td>5.1</td></tr><tr><td>3</td><td>2</td><td>7.5</td></tr><tr><td>3</td><td>3</td><td>6.3</td></tr></tbody></table></div><ol type=\"a\"><li><p>Set up a linear system $\\kA\\kvecx = \\kvecb$ that describes the relationship</p>$$ \\beta_0 + \\beta_1 x_1 + \\beta_2 x_2 = y. $$</li><li><p>Find the least-squares approximate solution $\\kvecxhat$.</p></li><li><p>What is your predicted $y$-value when $x_1 = 2.4$ and $x_2=2.9$?</p></li><li><p>Find the coefficient of determination $R^2$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 1 & 2 \\\\ 1 & 2 & 1 \\\\ 1 & 2 & 2 \\\\ 1 & 3 & 2 \\\\ 1 & 3 & 3 \\\\ \\end{bmatrix} \\kvecx = \\begin{bmatrix} 4.2 \\\\ 3.3 \\\\ 5.9 \\\\ 5.1 \\\\ 7.5 \\\\ 6.3 \\end{bmatrix}$</p></li><li><p>$\\kvecxhat=\\left[\\begin{array}{r}2.95 \\\\ 2.00 \\\\ -0.85 \\end{array}\\right]$</p></li><li><p>$2.95+2.00(2.4)-0.85(2.9) = 5.27$.</p></li><li><p>$R^2=0.99$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\begin{bmatrix} 1 & 1 & 1 \\\\ 1 & 1 & 2 \\\\ 1 & 2 & 1 \\\\ 1 & 2 & 2 \\\\ 1 & 3 & 2 \\\\ 1 & 3 & 3 \\\\ \\end{bmatrix} \\kvecx = \\begin{bmatrix} 4.2 \\\\ 3.3 \\\\ 5.9 \\\\ 5.1 \\\\ 7.5 \\\\ 6.3 \\end{bmatrix}$</p></li><li><p>$\\kvecxhat=\\left[\\begin{array}{r}2.95 \\\\ 2.00 \\\\ -0.85 \\end{array}\\right]$</p></li><li><p>$2.95+2.00(2.4)-0.85(2.9) = 5.27$.</p></li><li><p>$R^2=0.99$</p></li></ol>"
+   },
+   "changes": "The empty Sage cell is left out."
+  },
+  {
+   "id": "e5",
+   "source_id": "6.5.5",
+   "source_number": "6.5.5",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "least-squares-solution",
+   "prompt": "<p>Determine whether the following statements are true or false and explain your thinking.</p><ol type=\"a\"><li><p>If $\\kA\\kvecx=\\kvecb$ is consistent, then $\\kvecxhat$ is a solution to $\\kA\\kvecx=\\kvecb$.</p></li><li><p>If $R^2=1$, then the least-squares approximate solution $\\kvecxhat$ is also a solution to the original equation $\\kA\\kvecx=\\kvecb$.</p></li><li><p>Given the $\\kQ\\kR$ factorization $\\kA=\\kQ\\kR$, we have $\\kA\\kvecxhat=\\kQT\\kQ\\kvecb$.</p></li><li><p>A $\\kQ\\kR$ factorization provides a method for finding the least-squares approximate solution to $\\kA\\kvecx=\\kvecb$ that is more reliable than solving the normal equations.</p></li><li><p>A solution to $\\kA\\kAT\\kvecx = \\kA\\kvecb$ is the least-squares approximate solution to $\\kA\\kvecx = \\kvecb$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>True</p></li><li><p>True</p></li><li><p>False</p></li><li><p>True</p></li><li><p>False</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>True. If $\\kA\\kvecx=\\kvecb$, then $\\kvecb$ is in $\\kCol(\\kA)$ so $\\kA\\kvecxhat = \\kvecbhat = \\kvecb$.</p></li><li><p>True. If $R^2 = 1 - \\frac{|\\kA\\kvecxhat - \\kvecb|^2} {|\\kvecbtilde|^2} = 1$, then $|\\kA\\kvecxhat-\\kvecb| = 0$. Therefore, $\\kA\\kvecxhat = \\kvecb$.</p></li><li><p>False. The product $\\kQT\\kQ = I$ rather than the matrix that projects vectors orthogonally onto $\\kCol(\\kA)$.</p></li><li><p>True, numerical issues are more likely to arise when solving the normal equations.</p></li><li><p>False. The normal equations $\\kAT\\kA\\kvecxhat = \\kAT\\kvecb$ gives the least-squares approximate solution.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "6.5.6",
+   "source_number": "6.5.6",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "least-squares-solution",
+   "prompt": "<p>Explain your response to the following questions.</p><ol type=\"a\"><li><p>If $\\kvecxhat=\\kveczero$, what does this say about the vector $\\kvecb$?</p></li><li><p>If the columns of $\\kA$ are orthonormal, how can you easily find the least-squares approximate solution to $\\kA\\kvecx=\\kvecb$?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kvecb$ is in $\\kCol(\\kA)^\\perp = \\kNul(\\kAT)$.</p></li><li><p>$\\kvecxhat = \\kAT\\kvecb$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Since $\\kA\\kvecxhat = \\kvecbhat$ and $\\kvecxhat = \\kveczero$, we know that $\\kvecbhat=\\kveczero$. This says that $\\kvecb$ is in $\\kCol(\\kA)^\\perp = \\kNul(\\kAT)$.</p></li><li><p>In this case, $\\kvecbhat = \\kA\\kAT\\kvecb$, which means we have $\\kA\\kvecxhat = \\kA\\kAT\\kvecb$. If we multiply both sides by $\\kAT$, we have $\\kvecxhat = \\kAT\\kvecb$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "6.5.7",
+   "source_number": "6.5.7",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>The following cell loads in some data showing the number of people in Bangladesh living without electricity over 27 years. It also defines vectors <code>year</code>, which records the years in the dataset, and <code>people</code>, which records the number of people.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/bangladesh.csv')\ndata = [vector(row) for row in df.values]\nyear = vector(df['Year'])\npeople = vector(df['People'])\nprint(df)\nlist_plot(data, size=40, color='blue')</code></pre><ol type=\"a\"><li><p>Suppose we want to write</p>$$ N = \\beta_0 + \\beta_1 t $$<p>where $t$ is the year and $N$ is the number of people. Construct the matrix $\\kA$ and vector $\\kvecb$ so that the linear system $\\kA\\kvecx=\\kvecb$ describes the vector $\\kvecx=\\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\end{array}\\right]$.</p></li><li><p>Using a $\\kQ\\kR$ factorization of $\\kA$, find the values of $\\beta_0$ and $\\beta_1$ in the least-squares approximate solution $\\kvecxhat$.</p></li><li><p>What is the coefficient of determination $R^2$ and what does this tell us about the quality of the approximation?</p></li><li><p>What is your prediction for the number of people living without electricity in 1985?</p></li><li><p>Estimate the year in which there will be no people living without electricity.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA$ will be the $27\\times 2$ matrix whose first column is all 1's and whose second column is the vector of years. The vector $\\kvecb$ is the vector that records the number of people.</p></li><li><p>$N = 3.88\\times10^9 - 1.90\\times10^6t$.</p></li><li><p>$R^2=0.90$</p></li><li><p>$1.14\\times10^8$.</p></li><li><p>2045</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA$ will be the $27\\times 2$ matrix whose first column is all 1's and whose second column is the vector of years. The vector $\\kvecb$ is the vector that records the number of people.</p></li><li><p>We obtain $N = 3.88\\times10^9 - 1.90\\times10^6t$.</p></li><li><p>$R^2=0.90$</p></li><li><p>$3.88\\times10^9 - 1.90\\times10^6(1985) = 1.14\\times10^8$.</p></li><li><p>Solve $N = 3.88\\times10^9 - 1.90\\times10^6t=0$ to obtain 2045.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "6.5.8",
+   "source_number": "6.5.8",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>This problem concerns a dataset describing planets in our Solar system. For each planet, we have the length $L$ of the semi-major axis, essentially the distance from the planet to the Sun in AU (astronomical units), and the period $P$, the length of time in years required to complete one orbit around the Sun.</p><p>We would like to model this data using the function $P = CL^r$ where $C$ and $r$ are parameters we need to determine. Since this isn't a linear function, we will transform this relationship by taking the natural logarithm of both sides to obtain</p>$$ \\ln(P) = \\ln(C) + r\\ln(L). $$<p>Evaluating the following cell loads the dataset and defines two vectors <code>logaxis</code>, whose components are $\\ln(L)$, and <code>logperiod</code>, whose components are $\\ln(P)$.</p><pre class=\"sage\"><code>import numpy as np\nsage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/planets.csv',index_col=0)\nlogaxis = vector(np.log(df['Semi-major axis']))\nlogperiod = vector(np.log(df['Period']))\nprint(df)</code></pre><ol type=\"a\"><li><p>Construct the matrix $\\kA$ and vector $\\kvecb$ so that the solution to $\\kA\\kvecx=\\kvecb$ is the vector $\\kvecx=\\left[\\begin{array}{c}\\ln(C) \\\\ r \\end{array}\\right]$.</p></li><li><p>Find the least-squares approximate solution $\\kvecxhat$. What does this give for the values of $C$ and $r$?</p></li><li><p>Find the coefficient of determination $R^2$. What does this tell us about the quality of the approximation?</p></li><li><p>Suppose that the orbit of an asteroid has a semi-major axis whose length is $L=4.0$ AU. Estimate the period $P$ of the asteroid's orbit.</p></li><li><p>Halley's Comet has a period of $P=75$ years. Estimate the length of its semi-major axis.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA$ is the $9\\times2$ matrix whose first column is all 1's and whose second column is the vector of the logarithms of the semi-major axes. The vector $\\kvecb$ is the vector that records the logarithms of the periods.</p></li><li><p>$C=0.996$ and $r=1.50$.</p></li><li><p>$R^2=1.000$</p></li><li><p>$7.99$ years.</p></li><li><p>$17.9$ AU.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA$ is the $9\\times2$ matrix whose first column is all 1's and whose second column is the vector of the logarithms of the semi-major axes. The vector $\\kvecb$ is the vector that records the logarithms of the periods.</p></li><li><p>We find $\\kvecxhat=\\left[\\begin{array}{r}\\ln(C) \\\\ r \\end{array}\\right] = \\left[\\begin{array}{r}-0.0036 \\\\ 1.501 \\end{array}\\right]$ so that $C=e^{-0.0036} = 0.996$ and $r=1.50$. This means that $P = 0.996L^{1.5}$.</p></li><li><p>$R^2=1.000$, which means that we have a very good fit because this data reflects a physical law.</p></li><li><p>$P = 0.996(4.0)^{1.5}=7.99$ years.</p></li><li><p>The expression $\\ln(P) = \\ln(C) + r\\ln(L)$ means that $\\ln(76) = \\ln(C) + r\\ln(L)$. Solving for $L = 17.9$ AU.<sup class=\"fn\" data-note=\"c-exercise-6-5-8-e\"></sup></p></li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "6.5.9",
+   "source_number": "6.5.9",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-polynomial-fit",
+   "prompt": "<p>Evaluating the following cell loads a dataset describing the temperature in the Earth's atmosphere at various altitudes. There are also two vectors <code>altitude</code>, expressed in kilometers, and <code>temperature</code>, in degrees Celsius.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/altitude-temps.csv')\ndata = [vector(row) for row in df.values]\naltitude = vector(df['Altitude'])\ntemperature = vector(df['Temperature'])\nprint(df)\nlist_plot(data, size=40, color='blue')</code></pre><ol type=\"a\"><li><p>Describe how to form the matrix $\\kA$ and vector $\\kvecb$ so that the linear system $\\kA\\kvecx=\\kvecb$ describes a degree $k$ polynomial fitting the data.</p></li><li><p>After choosing a value of $k$, construct the matrix $\\kA$ and vector $\\kvecb$, and find the least-squares approximate solution $\\kvecxhat$.</p></li><li><p>Plot the polynomial and data using <code>plot_model(xhat, data)</code>.</p></li><li><p>Now examine what happens as you vary the degree of the polynomial $k$. Choose an appropriate value of $k$ that seems to capture the most important features of the data while avoiding overfitting, and explain your choice.</p></li><li><p>Use your value of $k$ to estimate the temperature at an altitude of 55 kilometers.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA$ will be the Vandermonde matrix of degree $k$ using the altitude readings while $\\kvecb$ is the vector of temperatures.</p></li><li><p>$k=6$ appears to give a good fit without overfitting.</p></li><li><p>We have</p>$$ 18.0-10.3x+0.35x^2+0.0003x^3-0.0001x^4+1.5\\times10^{-6}x^5 -4.7\\times 10^{-9}x^6\\text{.} $$</li><li><p>A small value of $k$ does not adequately track important features of the data. If we increase $k$ too far, the graph tries too hard to match the data, and we see spurious features in the graph.</p></li><li><p>We estimate the temperature to be $-7$ degrees Celsius.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The matrix $\\kA$ will be the Vandermonde matrix of degree $k$ using the altitude readings while $\\kvecb$ is the vector of temperatures.</p></li><li><p>$k=6$ appears to give a good fit without overfitting.</p></li><li><p>We have</p>$$ 18.0-10.3x+0.35x^2+0.0003x^3-0.0001x^4+1.5\\times10^{-6}x^5 -4.7\\times 10^{-9}x^6\\text{.} $$</li><li><p>A small value of $k$ does not adequately track important features of the data. If we increase $k$ too far, the graph tries too hard to match the data, and we see spurious features in the graph.</p></li><li><p>$k=6$ seems to work well. With this function, we estimate the temperature to be $-7$ degrees Celsius.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "6.5.10",
+   "source_number": "6.5.10",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "linear-regression",
+   "prompt": "<p>The following cell loads some data describing 1057 houses in a particular real estate market. For each house, we record the living area in square feet, the lot size in acres, the age in years, and the price in dollars. The cell also defines variables <code>area</code>, <code>size</code>, <code>age</code>, and <code>price</code>.</p><pre class=\"sage\"><code>sage.repl.load.load('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/orthogonality.py', globals())\ndf = pd.read_csv('https://raw.githubusercontent.com/davidaustinm/ula_modules/master/data/housing.csv',index_col=0)\ndf = df.fillna(df.mean())\narea = vector(df['Living.Area'])\nsize = vector(df['Lot.Size'])\nage = vector(df['Age'])\nprice = vector(df['Price'])\ndf</code></pre><p>We will use linear regression to predict the price of a house given its living area, lot size, and age:</p>$$ \\beta_0 + \\beta_1~\\text{Living Area} + \\beta_2~\\text{Lot Size} + \\beta_3~\\text{Age} = \\text{Price}. $$<ol type=\"a\"><li><p>Use a $\\kQ\\kR$ factorization to find the least-squares approximate solution $\\kvecxhat$.</p></li><li><p>Discuss the significance of the signs of $\\beta_1$, $\\beta_2$, and $\\beta_3$.</p></li><li><p>If two houses are identical except for differing in age by one year, how would you predict that their prices compare to each another?</p></li><li><p>Find the coefficient of determination $R^2$. What does this say about the quality of the fit?</p></li><li><p>Predict the price of a house whose living area is 2000 square feet, lot size is 1.5 acres, and age is 50 years.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kvecxhat = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\\\ \\beta_2 \\\\ \\beta_3 \\end{array}\\right] = \\left[\\begin{array}{r}20823 \\\\ 84.7 \\\\ 588.4 \\\\ -263.6 \\end{array}\\right]$</p></li><li><p>Increasing the living area or the lot size will cause the house price to increase, but an older house will cost less.</p></li><li><p>A house that's one year older will cost about ＄263.60 less.</p></li><li><p>$R^2=0.59$</p></li><li><p>We estimate ＄177966.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\kvecxhat = \\left[\\begin{array}{r}\\beta_0 \\\\ \\beta_1 \\\\ \\beta_2 \\\\ \\beta_3 \\end{array}\\right] = \\left[\\begin{array}{r}20823 \\\\ 84.7 \\\\ 588.4 \\\\ -263.6 \\end{array}\\right]$</p></li><li><p>$\\beta_1$ and $\\beta_2$ are positive, which means that increasing the living area or the lot size will cause the house price to increase. However, $\\beta_3$ is negative, which means that an older house will cost less.</p></li><li><p>Because $\\beta_3=-263.6$, we would expect a house that's one year older to cost ＄263.60 less.</p></li><li><p>$R^2=0.59$, which is far from perfect without being terrible. There are other factors that are not included in the dataset that can also influence the house price, such as number of bedrooms and the location.</p></li><li><p>We estimate ＄177966.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e11",
+   "source_id": "6.5.11",
+   "source_number": "6.5.11",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-6-5-4",
+   "prompt": "<p>We observed that if the columns of $\\kA$ are linearly independent, then there is a unique least-squares approximate solution to the equation $\\kA\\kvecx=\\kvecb$ because the equation $\\kA\\kvecxhat=\\kvecbhat$ has a unique solution. We also said that $\\kvecxhat$ is the unique solution to the normal equation $\\kAT\\kA\\kvecxhat = \\kAT\\kvecb$ without explaining why this equation has a unique solution. This exercise offers an explanation.</p><p>Assuming that the columns of $\\kA$ are linearly independent, we would like to conclude that the equation $\\kAT\\kA\\kvecxhat=\\kAT\\kvecb$ has a unique solution.</p><ol type=\"a\"><li><p>Suppose that $\\kvecx$ is a vector for which $\\kAT\\kA\\kvecx = \\kveczero$. Explain why the following argument is valid and allows us to conclude that $\\kA\\kvecx = \\kveczero$.</p>$$ \\begin{aligned} \\kAT\\kA\\kvecx & = \\kveczero \\\\ \\kvecx\\cdot \\kAT\\kA\\kvecx & = \\kvecx\\cdot\\kveczero = 0 \\\\ (\\kA\\kvecx)\\cdot(\\kA\\kvecx) & = 0 \\\\ \\left|\\kA\\kvecx\\right|^2 & = 0. \\\\ \\end{aligned} $$<p>In other words, if $\\kAT\\kA\\kvecx = \\kveczero$, we know that $\\kA\\kvecx = \\kveczero$.</p></li><li><p>If the columns of $\\kA$ are linearly independent and $\\kA\\kvecx = \\kveczero$, what do we know about the vector $\\kvecx$?</p></li><li><p>Explain why $\\kAT\\kA\\kvecx = \\kveczero$ can only happen when $\\kvecx = \\kveczero$.</p></li><li><p>Assuming that the columns of $\\kA$ are linearly independent, explain why $\\kAT\\kA\\kvecxhat=\\kAT\\kvecb$ has a unique solution.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>Use the fact that $\\kvecx\\cdot(\\kAT\\kA\\kvecx)= (\\kA\\kvecx)^T(\\kA\\kvecx)$.</p></li><li><p>It must be true that $\\kvecx=\\kveczero$.</p></li><li><p>This follows from the previous two parts of this exercise.</p></li><li><p>The columns of $\\kAT\\kA$ must be linearly independent.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Starting with the assumption that $\\kAT\\kA\\kvecx = \\kveczero$, we dot both sides of the equation with $\\kvecx$ to obtain $\\kvecx \\cdot \\kAT\\kA\\kvecx = 0$. From here, we write</p>$$ \\begin{aligned} \\kvecx\\cdot \\kAT\\kA\\kvecx & = 0 \\\\ \\kvecx^T\\kAT\\kA\\kvecx & = 0 \\\\ (\\kA\\kvecx)^T(\\kA\\kvecx) & = 0 \\\\ (\\kA\\kvecx)\\cdot (\\kA\\kvecx) & = 0 \\\\ \\left|\\kA\\kvecx\\right|^2 & = 0. \\\\ \\end{aligned} $$<p>This says that the length of $\\kA\\kvecx$ must be zero, which tells us that $\\kA\\kvecx=\\kveczero$.</p></li><li><p>If the columns of $\\kA$ are linearly independent, we know that the only solution to the homogeneous equation $\\kA\\kvecx = \\kveczero$ is $\\kvecx = \\kveczero$.</p></li><li><p>The previous two parts of this exercise tell us that $\\kAT\\kA\\kvecx = \\kveczero$ implies that $\\kA\\kvecx = \\kveczero$, which implies that $\\kvecx = \\kveczero$.</p></li><li><p>Since the only solution to the homogeneous equation $\\kAT\\kA\\kvecx = \\kveczero$ is $\\kvecx=\\kveczero$, the columns of $\\kAT\\kA$ are linearly independent, which means that $\\kAT\\kA\\kvecxhat=\\kAT\\kvecb$ has only one solution.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e12",
+   "source_id": "6.5.12",
+   "source_number": "6.5.12",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-6-5-7",
+   "prompt": "<p>This problem is about the meaning of the coefficient of determination $R^2$ and its connection to variance, a topic that appears in the next section. Throughout this problem, we consider the linear system $\\kA\\kvecx=\\kvecb$ and the approximate least-squares solution $\\kvecxhat$, where $\\kA\\kvecxhat=\\kvecbhat$. We suppose that $\\kA$ is an $m\\times n$ matrix, and we will denote the $m$-dimensional vector $\\kvecone = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ \\vdots \\\\ 1 \\end{array}\\right]$.</p><ol type=\"a\"><li><p>Explain why $\\overline{\\kvecb}$, the mean of the components of $\\kvecb$, can be found as the dot product</p>$$ \\overline{\\kvecb} = \\frac 1m \\kvecb\\cdot\\kvecone. $$</li><li><p>In the examples we have seen in this section, explain why $\\kvecone$ is in $\\kCol(\\kA)$.</p></li><li><p>If we write $\\kvecb = \\kvecbhat + \\kvecbperp$, explain why</p>$$ \\kvecbperp\\cdot\\kvecone = 0 $$<p>and hence why the mean of the components of $\\kvecbperp$ is zero.</p></li><li><p>The variance of an $m$-dimensional vector $\\mathbf{v}$ is $\\text{Var}(\\mathbf{v}) = \\frac1m \\left|\\kvecvtilde\\right|^2$, where $\\kvecvtilde$ is the vector obtained by demeaning $\\mathbf{v}$.</p><p>Explain why</p>$$ \\text{Var}(\\kvecb) = \\text{Var}(\\kvecbhat) + \\text{Var}(\\kvecbperp). $$</li><li><p>Explain why</p>$$ \\frac{\\left|\\kvecb - \\kA\\kvecxhat\\right|^2}{\\left|\\kvecbtilde\\right|^2} = \\frac{\\text{Var}(\\kvecbperp)}{\\text{Var}(\\kvecb)} $$<p>and hence</p>$$ R^2 = \\frac{\\text{Var}(\\kvecbhat)}{\\text{Var}(\\kvecb)} = \\frac{\\text{Var}(\\kA\\kvecxhat)}{\\text{Var}(\\kvecb)}. $$<p>These expressions indicate why it is sometimes said that $R^2$ measures the “fraction of variance explained” by the function we are using to fit the data. As seen in the previous exercise, there may be other features that are not recorded in the dataset that influence the quantity we wish to predict.</p></li><li><p>Explain why $0\\leq R^2 \\leq 1$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\kvecb\\cdot\\kvecone$ simply sums the components of $\\kvecb$.</p></li><li><p>$\\kvecone$ is a column of $\\kA$.</p></li><li><p>$\\kvecbperp$ is in $\\kCol(\\kA)^\\perp$.</p></li><li><p>Use the fact that $\\kvecbhat$ and $\\kvecbperp$ are orthogonal.</p></li><li><p>This follows from $\\kvecb = \\kvecbhat + \\kvecbperp$.</p></li><li><p>This follow from $\\text{Var}(\\kvecb) = \\text{Var}(\\kvecbhat) + \\text{Var}(\\kvecbperp)$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\kvecb\\cdot\\kvecone$ simply sums the components of $\\kvecb$.</p></li><li><p>The examples we've seen fit the data using functions that have a constant term such as $y=\\beta_0+\\beta_1x$. This means that $\\kvecone$ will be a column of the matrix $\\kA$ and hence in $\\kCol(\\kA)$.</p></li><li><p>Since $\\kvecone$ is in $\\kCol(\\kA)$, any vector in $\\kCol(\\kA)^\\perp$, such as $\\kvecbperp$, will be orthogonal to $\\kvecone$.</p></li><li><p>Notice that</p>$$ \\kvecb\\cdot\\kvecone = \\kvecbhat\\cdot\\kvecone + \\kvecbperp\\cdot\\kvecone = \\kvecbhat\\cdot\\kvecone $$<p>which says that</p>$$ \\kvecbtilde = \\widetilde{\\kvecbhat} + \\kvecbperp\\text{.} $$<p>Since $\\kvecbhat$ and $\\kvecbperp$ are orthogonal, we have $\\widetilde{\\kvecbhat}\\cdot\\kvecbperp = 0$. This means that</p>$$ |\\kvecbtilde|^2 = (\\widetilde{\\kvecbhat}+\\kvecbperp)\\cdot (\\widetilde{\\kvecbhat}+\\kvecbperp) = |\\widetilde{\\kvecbhat}|^2 + |\\kvecbperp|^2 $$<p>so that $\\text{Var}(\\kvecb) = \\text{Var}(\\kvecbhat)+\\text{Var}(\\kvecbperp)$.</p></li><li><p>$|\\kvecb-\\kA\\kvecxhat|^2 = |\\kvecb-\\kvecbhat|^2 = |\\kvecbperp|^2$, which explains why</p>$$ \\frac{\\left|\\kvecb - \\kA\\kvecxhat\\right|^2}{\\left|\\kvecbtilde\\right|^2} = \\frac{\\text{Var}(\\kvecbperp)}{\\text{Var}(\\kvecb)}\\text{.} $$<p>Then</p>$$ R^2 = 1 - \\frac{\\left|\\kvecb - \\kA\\kvecxhat\\right|^2}{\\left|\\kvecbtilde\\right|^2} = 1-\\frac{\\text{Var}(\\kvecbperp)}{\\text{Var}(\\kvecb)} = \\frac{\\text{Var}(\\kvecb) - \\text{Var}(\\kvecbperp)}{\\text{Var}(\\kvecb)} = \\frac{\\text{Var}(\\kvecbhat)}{\\text{Var}(\\kvecb)}\\text{.} $$</li><li><p>The variances are nonnegative so we have $R^2 \\geq 0$. Also,</p>$$ 1 = \\frac{\\text{Var}(\\kvecb)}{\\text{Var}(\\kvecb)} = \\frac{\\text{Var}(\\kvecbhat)+\\text{Var}(\\kvecbperp)}{\\text{Var}(\\kvecb)} \\geq \\frac{\\text{Var}(\\kvecbhat)}{\\text{Var}(\\kvecb)}=R^2\\text{.} $$</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "least-squares-problem"
+  },
+  {
+   "exercise": "a1",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "a1",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "a1",
+   "concept": "inconsistent-system"
+  },
+  {
+   "exercise": "a2",
+   "concept": "least-squares-problem"
+  },
+  {
+   "exercise": "a2",
+   "concept": "line-of-best-fit"
+  },
+  {
+   "exercise": "a2",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "a2",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "a3",
+   "concept": "normal-equations"
+  },
+  {
+   "exercise": "a3",
+   "concept": "linear-regression"
+  },
+  {
+   "exercise": "a4",
+   "concept": "least-squares-by-qr"
+  },
+  {
+   "exercise": "a4",
+   "concept": "qr-factorization"
+  },
+  {
+   "exercise": "a4",
+   "concept": "linear-regression"
+  },
+  {
+   "exercise": "a4",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "a5",
+   "concept": "polynomial-regression"
+  },
+  {
+   "exercise": "a5",
+   "concept": "least-squares-by-qr"
+  },
+  {
+   "exercise": "a5",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "a6",
+   "concept": "polynomial-regression"
+  },
+  {
+   "exercise": "a6",
+   "concept": "vandermonde-matrix"
+  },
+  {
+   "exercise": "a6",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e1",
+   "concept": "least-squares-problem"
+  },
+  {
+   "exercise": "e1",
+   "concept": "orthogonal-projection"
+  },
+  {
+   "exercise": "e1",
+   "concept": "gram-schmidt-process"
+  },
+  {
+   "exercise": "e2",
+   "concept": "normal-equations"
+  },
+  {
+   "exercise": "e2",
+   "concept": "line-of-best-fit"
+  },
+  {
+   "exercise": "e2",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e3",
+   "concept": "polynomial-regression"
+  },
+  {
+   "exercise": "e3",
+   "concept": "vandermonde-matrix"
+  },
+  {
+   "exercise": "e3",
+   "concept": "least-squares-by-qr"
+  },
+  {
+   "exercise": "e3",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-regression"
+  },
+  {
+   "exercise": "e4",
+   "concept": "least-squares-solution"
+  },
+  {
+   "exercise": "e4",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e5",
+   "concept": "least-squares-solution"
+  },
+  {
+   "exercise": "e5",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e5",
+   "concept": "least-squares-by-qr"
+  },
+  {
+   "exercise": "e5",
+   "concept": "normal-equations"
+  },
+  {
+   "exercise": "e6",
+   "concept": "least-squares-solution"
+  },
+  {
+   "exercise": "e6",
+   "concept": "orthogonal-complement-of-the-column-space"
+  },
+  {
+   "exercise": "e6",
+   "concept": "orthonormal-columns-give-identity"
+  },
+  {
+   "exercise": "e7",
+   "concept": "linear-regression"
+  },
+  {
+   "exercise": "e7",
+   "concept": "least-squares-by-qr"
+  },
+  {
+   "exercise": "e7",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e8",
+   "concept": "linear-regression"
+  },
+  {
+   "exercise": "e8",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e9",
+   "concept": "polynomial-regression"
+  },
+  {
+   "exercise": "e9",
+   "concept": "vandermonde-matrix"
+  },
+  {
+   "exercise": "e10",
+   "concept": "linear-regression"
+  },
+  {
+   "exercise": "e10",
+   "concept": "least-squares-by-qr"
+  },
+  {
+   "exercise": "e10",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e11",
+   "concept": "normal-equations"
+  },
+  {
+   "exercise": "e11",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e12",
+   "concept": "coefficient-of-determination"
+  },
+  {
+   "exercise": "e12",
+   "concept": "demeaned-vector"
+  },
+  {
+   "exercise": "e12",
+   "concept": "orthogonal-decomposition-theorem"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "fn-statistical-learning",
+   "kind": "book",
+   "number": "1",
+   "html": "For example, see Gareth James, Daniela Witten, Trevor Hastie, Robert Tibshirani. <em>An Introduction to Statistical Learning: with Applications in R.</em> Springer, 2013."
+  },
+  {
+   "id": "c-exercise-6-5-8-e",
+   "kind": "correction",
+   "html": "The book writes $\\ln(76)$ for Halley’s period of $P = 75$ years, and its $17.9$ AU comes from $76$. With $\\ln(75) = \\ln(C) + r\\ln(L)$, $C = 0.996$ and $r = 1.501$, the semi-major axis is $L = 17.8$ AU."
+  },
+  {
+   "id": "c-figure-6-5-6",
+   "kind": "correction",
+   "figure": "sim-three-point-fit",
+   "html": "The book’s right-hand drawing of Figure 6.5.6 draws the line $y = x - 1/3$ through the points $(10, 10)$, $(20, 10)$, $(30, 30)$; the least-squares line of the scaled data is $y = x - 10/3$, every coordinate of the left-hand line multiplied by $10$."
+  }
+ ],
+ "derivations": [
+  {
+   "id": "normal-equation",
+   "what": "the normal equation",
+   "source": "Understanding Linear Algebra, 6.5 Orthogonal least squares",
+   "nodes": [
+    {
+     "assumes": [
+      {
+       "text": "The vector $\\kvecb - \\kvecbhat$ is orthogonal to $\\kCol(\\kA)$.",
+       "src": "6.3, Definition 6.3.12"
+      },
+      {
+       "text": "The orthogonal complement of the column space is $\\kCol(\\kA)^\\perp = \\kNul(\\kAT)$.",
+       "src": "6.2, Proposition 6.2.10"
+      },
+      {
+       "tex": "\\kA\\kvecxhat = \\kvecbhat"
+      },
+      {
+       "text": "Multiplying by a matrix distributes over a difference of vectors: $\\kAT(\\mathbf{u} - \\mathbf{v}) = \\kAT\\mathbf{u} - \\kAT\\mathbf{v}$.",
+       "src": "2.2, Proposition 2.2.3"
+      }
+     ],
+     "then": {
+      "tex": "\\kAT(\\mk{bh}{\\kvecbhat} - \\mk{b}{\\kvecb}) = \\mk{z}{\\kveczero}",
+      "uses": [
+       0,
+       1
+      ],
+      "why": "Since $\\kvecbhat - \\kvecb$ is orthogonal to $\\kCol(\\kA)$, it lies in $\\kCol(\\kA)^\\perp = \\kNul(\\kAT)$, so multiplying it by $\\kAT$ gives the zero vector."
+     },
+     "steps": [
+      {
+       "tex": "\\kAT(\\mk{bh}{\\kA\\kvecxhat} - \\mk{b}{\\kvecb}) = \\mk{z}{\\kveczero}",
+       "uses": [
+        2
+       ]
+      },
+      {
+       "tex": "\\mk{bh}{\\kAT\\kA\\kvecxhat} - \\mk{b}{\\kAT\\kvecb} = \\mk{z}{\\kveczero}",
+       "uses": [
+        3
+       ]
+      },
+      {
+       "tex": "\\mk{bh}{\\kAT\\kA\\kvecxhat} = \\mk{b}{\\kAT\\kvecb}",
+       "uses": []
+      }
+     ],
+     "src": "6.5, Proposition 6.5.4"
+    }
+   ]
+  }
+ ]
+}
