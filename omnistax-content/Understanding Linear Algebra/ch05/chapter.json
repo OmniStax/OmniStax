@@ -260,13 +260,15 @@
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvector associated to the dominant eigenvalue λ₁, which the normalized vectors x̄_k approach: [2, 1] in Example 5.2.1, [1, 1] in Example 5.2.2",
-   "section": "5.2"
+   "section": "5.2",
+   "ref": "v-1"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvector associated to the second eigenvalue λ₂, whose contribution to x_k shrinks relative to v₁'s at every step: [−1, 1] in both examples; an initial vector x₀ = v₂ never detects v₁",
-   "section": "5.2"
+   "section": "5.2",
+   "ref": "v-2"
   },
   {
    "sym": "w_vec",
