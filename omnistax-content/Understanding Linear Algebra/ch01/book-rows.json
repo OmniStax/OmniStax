@@ -42,6 +42,10 @@
   {
    "sym": "n",
    "latex": "n"
+  },
+  {
+   "sym": "s_i",
+   "latex": "s_i"
   }
  ],
  "concepts": [
@@ -59,12 +63,14 @@
    "forms": [
     {
      "id": "eq-linear-equation",
-     "latex": "a_1x_1 + a_2x_2 + \\ldots + a_nx_n = b"
+     "latex": "a_1x_1 + a_2x_2 + \\ldots + a_nx_n = b",
+     "anchor": "1.1-eq-linear-equation"
     },
     {
      "id": "eq-line-general-form",
      "latex": "ax + by = c",
-     "condition": "the equation of a line, two unknowns"
+     "condition": "the equation of a line, two unknowns",
+     "anchor": "1.1-eq-line-general-form"
     }
    ]
   },
@@ -91,7 +97,8 @@
    "forms": [
     {
      "id": "eq-solution-of-a-linear-system",
-     "latex": "x_1 = s_1,\\ x_2 = s_2,\\ \\ldots,\\ x_n = s_n"
+     "latex": "x_1 = s_1,\\ x_2 = s_2,\\ \\ldots,\\ x_n = s_n",
+     "anchor": "1.1-definition-1-1-12"
     }
    ]
   },
@@ -359,12 +366,14 @@
     {
      "id": "eq-row-reduction-operations",
      "latex": "2n^3 + n^2",
-     "condition": "an n × n matrix, roughly"
+     "condition": "an n × n matrix, roughly",
+     "anchor": "1.3-eq-row-reduction-operations"
     },
     {
      "id": "eq-row-reduction-operations-careful",
      "latex": "\\frac{2}{3}n^3",
-     "condition": "a more careful accounting"
+     "condition": "a more careful accounting",
+     "anchor": "1.3-careful-accounting"
     }
    ]
   },

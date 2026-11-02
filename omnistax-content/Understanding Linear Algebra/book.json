@@ -3760,5 +3760,73 @@
       "prereq": "dimension-of-the-null-space"
     }
   ],
-  "sheets": []
+  "sheets": [],
+  "colours": {
+    "palette": "families",
+    "vision": "normal",
+    "assign": {
+      "vector": {
+        "light": "#CB0283",
+        "dark": "#F12CA0"
+      },
+      "matrix": {
+        "light": "#774AFF",
+        "dark": "#856FF7"
+      },
+      "region": {
+        "light": "#677806",
+        "dark": "#899E01"
+      },
+      "eigenvalue": {
+        "light": "#84039E",
+        "dark": "#E47CFF"
+      },
+      "point": {
+        "light": "#A43A3C",
+        "dark": "#E97875"
+      },
+      "curve": {
+        "light": "#443303",
+        "dark": "#FFCD4F"
+      }
+    },
+    "referentOrder": [
+      0,
+      1,
+      5,
+      6,
+      7,
+      8,
+      10,
+      11,
+      12,
+      14,
+      15,
+      16,
+      18,
+      19,
+      20,
+      22,
+      23,
+      24,
+      26,
+      28,
+      29,
+      30,
+      32,
+      33,
+      34,
+      35,
+      4,
+      21,
+      2,
+      13,
+      25,
+      3,
+      9,
+      17,
+      27,
+      31
+    ]
+  }
 }

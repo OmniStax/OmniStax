@@ -39,3 +39,14 @@ photographs and previews), `book.json` (identity, six types, four
 exercise kinds, highlights with words off), `RULES.md`, `COLOR.md`,
 `exploration.md` with the 3Blue1Brown survey, and `briefs/` for the
 build's agents.
+
+
+## Pass 2 (2026-11-02): Chapter 1 pass: Systems of equations (1.1–1.4) after the section builds
+
+Date 2026-11-02; claude-fable-5-1 at high effort. Steps of `briefs/final.md`:
+
+1. Wants applied: anchors on all 13 variables rows of the chapter and on its 5 forms; a symbols row `s_i` and a variables row `1.1/s_i` added through `book-rows.json` and `ost merge`; the referent group of 1.1 (six, one group) recorded in `ch01/COLOR.md`. No concept, edge or glossary change was wanted or made.
+2. Cross-section: 25 end exercises, each kept once with a distinct source number; 12 activity cards against `modules.json`'s 12 (3 + 4 + 2 + 3); 42 concepts each with exactly one `introduces` span; 61 edges, Hasse-reduced and acyclic (checked by script); figures in book order: 1.1.5 + 1.1.6, 1.1.7 + 1.1.8, 1.1.9 + 1.1.10 as folds, 1.1.1–1.1.4 the dropped grids (said in 1.1's notes), 1.3.3–1.3.5 faithful copies inside the exercise cards; nothing held across sections.
+3. Read of every `text.html` and `figures.js`: fixed the 1.4 link to 1.3's Augmentation Principle box (`#principle-augmentation-principle` → `#prop-augmentation-principle`, in the text and in Activity 1.4.2's card); moved the converter's orphan punctuation into the displays before it (1.2 three places, 1.3 two); trimmed three captions that spoke of presets and controls (1.1's two folds, 1.4's Sim) to what the reader sees. No leftover marker, no `$` as currency, no "demo", no hex colour, no still figure with a cycle, no slider for a discrete state, no unmarked referent.
+4. `config.md` line 17 and its status line updated.
+5. `ost check` clean for Chapter 1; `npm test`, `test:books`, `astro check`, a build and a Playwright pass over the four pages in light and dark are recorded in the pass report.
