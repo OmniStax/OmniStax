@@ -1,0 +1,987 @@
+{
+ "id": "6.2",
+ "module": "sec-transpose",
+ "chapter": "6",
+ "title": "Orthogonal complements and the matrix transpose",
+ "lead": "This section collects every <span data-concept=\"vector\">vector</span> <span data-concept=\"orthogonal-vectors\">orthogonal</span> to a given <span data-concept=\"subspace\">subspace</span> into one set, its <span data-concept=\"orthogonal-complement\">orthogonal complement</span>, and describes that set as the solutions of a <span data-concept=\"linear-system-of-equations\">linear system</span>. It then introduces the <span data-concept=\"transpose\">transpose</span> of a <span data-concept=\"matrix\">matrix</span>, which writes <span data-concept=\"dot-product\">dot products</span> as a <span data-concept=\"matrix-vector-product\">matrix product</span>, and studies its algebraic properties.",
+ "objectives": [],
+ "summary_html": "<p>This section introduced the <span data-concept=\"transpose\">matrix transpose</span>, its connection to <span data-concept=\"dot-product\">dot products</span>, and its use in describing the <span data-concept=\"orthogonal-complement\">orthogonal complement</span> of a <span data-concept=\"subspace\">subspace</span>.</p><ul><li>The columns of the matrix $\\kA$ are the rows of the <span data-concept=\"transpose\">matrix transpose</span> $\\kAT$.</li><li><span data-concept=\"dot-product-via-transpose\">The components of the product $\\kAT\\kvecx$ are the dot products of $\\kvecx$ with the columns of $\\kA$.</span></li><li><span data-concept=\"orthogonal-complement-of-the-column-space\">The orthogonal complement of the column space of $\\kA$ equals the null space of $\\kAT$; that is, $\\kCol(\\kA)^\\perp = \\kNul(\\kAT)$.</span></li><li><p>If $\\kW$ is a <span data-concept=\"subspace\">subspace</span> of ${\\mathbb R}^p$, then</p>$$ \\dim \\kW + \\dim \\kWperp = p. $$</li></ul>",
+ "notes": "The two Sage cells of Activities 6.2.4 and 6.2.5, both empty cells for the reader to type into, are left out, and the blank grid of Preview Activity 6.2.1 (Figure 6.2.1) is not drawn; the activities and the checkpoint stand in the text as cards.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section (the preview activity prints a solution only); Checkpoint 6.2.16, which the book prints after the Summary with no answer, stands as a card after Activity 6.2.5 with an AI-written solution. Three slips in the book’s key (a basis vector in Activity 6.2.2 e, Aᵀ for Bᵀ in Activity 6.2.3 a, and the answer No for AAᵀ in Exercise 6.2.6 b) are kept as printed and noted under their cards. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-line-and-complement",
+   "kind": "sim",
+   "number": "6.2.2",
+   "originals": [
+    "/media/ch06/orthog-lines.svg",
+    "/media/ch06/orthog-comp.svg"
+   ],
+   "original_caption": "On the left is a line L and its orthogonal complement L⊥. On the right is a plane W and its orthogonal complement W⊥ in R3.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-col-and-nul-transpose",
+   "kind": "sim",
+   "number": "6.2.11",
+   "originals": [
+    "/media/ch06/nul-at.svg"
+   ],
+   "original_caption": "The orthogonal complement of the column space of A is the null space of A transpose.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "orthogonality-simplifies",
+   "concept": "dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonality-simplifies",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonality-simplifies",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonal-complement-of-l",
+   "concept": "orthogonal-complement",
+   "verb": "introduces"
+  },
+  {
+   "span": "orthogonal-complement-of-l",
+   "concept": "subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "orthogonal-complement-of-l",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-line-and-complement",
+   "concept": "orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-line-and-complement",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-6-2-3",
+   "concept": "orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "definition-6-2-3",
+   "concept": "subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "typical-example",
+   "concept": "orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "complement-is-a-subspace",
+   "concept": "orthogonal-complement-is-a-subspace",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-orthog-comp-line",
+   "concept": "finding-an-orthogonal-complement",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-orthog-comp-line",
+   "concept": "parametric-description",
+   "verb": "uses"
+  },
+  {
+   "span": "example-orthog-comp-line",
+   "concept": "dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "example-orthog-comp-gen",
+   "concept": "finding-an-orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-orthog-comp-gen",
+   "concept": "orthogonal-complement-is-a-subspace",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-orthog-comp-gen",
+   "concept": "properties-of-the-dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "example-orthog-comp-gen",
+   "concept": "homogeneous-matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "example-orthog-comp-gen",
+   "concept": "basis-of-a-subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "transpose-defined",
+   "concept": "orthogonal-complement",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-6-2-6",
+   "concept": "transpose",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-6-2-6",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-6-2-7",
+   "concept": "transpose",
+   "verb": "reinforces"
+  },
+  {
+   "span": "transpose-and-dot-products",
+   "concept": "dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "transpose-and-dot-products",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-transpose-multiplication",
+   "concept": "dot-product-via-transpose",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-transpose-multiplication",
+   "concept": "matrix-vector-product",
+   "verb": "uses"
+  },
+  {
+   "span": "example-6-2-9",
+   "concept": "dot-product-via-transpose",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-6-2-9",
+   "concept": "finding-an-orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-6-2-9",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "w-is-col-a",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "col-perp-is-nul",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "introduces"
+  },
+  {
+   "span": "col-perp-is-nul",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-col-orthog",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-col-and-nul-transpose",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-col-and-nul-transpose",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-col-and-nul-transpose",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "simple-operation",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "general-properties",
+   "concept": "properties-of-the-transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "assemblage-prop-transpose",
+   "concept": "properties-of-the-transpose",
+   "verb": "introduces"
+  },
+  {
+   "span": "assemblage-prop-transpose",
+   "concept": "transpose-of-a-product",
+   "verb": "introduces"
+  },
+  {
+   "span": "assemblage-prop-transpose",
+   "concept": "determinant-of-the-transpose",
+   "verb": "introduces"
+  },
+  {
+   "span": "assemblage-prop-transpose",
+   "concept": "determinant",
+   "verb": "uses"
+  },
+  {
+   "span": "assemblage-prop-transpose",
+   "concept": "matrix-inverse",
+   "verb": "uses"
+  },
+  {
+   "span": "assemblage-prop-transpose",
+   "concept": "matrix-product",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-col-row-rank",
+   "concept": "rank-of-the-transpose",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-col-row-rank",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "dimension-relationship",
+   "concept": "basis-and-dimension-of-the-column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "dimension-relationship",
+   "concept": "dimension-of-the-null-space",
+   "verb": "uses"
+  },
+  {
+   "span": "dimension-relationship",
+   "concept": "dimension",
+   "verb": "uses"
+  },
+  {
+   "span": "dimension-argument",
+   "concept": "rank-of-the-transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "dimension-argument",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "dimension-argument",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-dimension-of-the-orthogonal-complement",
+   "concept": "dimension-of-the-orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-orthog-dim",
+   "concept": "dimension-of-the-orthogonal-complement",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-6-2-14",
+   "concept": "dimension-of-the-orthogonal-complement",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-6-2-15",
+   "concept": "dimension-of-the-orthogonal-complement",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "6.2.1",
+   "source_number": "6.2.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "introduction"
+   },
+   "cite": "sim-line-and-complement",
+   "prompt": "<ol type=\"a\"><li>Sketch the vector $\\kvecv=\\left[\\begin{array}{r}-1 \\\\ 2 \\end{array}\\right]$ on Figure 6.2.1 and one vector that is orthogonal to it.</li><li>If a vector $\\kvecx$ is orthogonal to $\\kvecv$, what do we know about the dot product $\\kvecv\\cdot\\kvecx$?</li><li>If we write $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$, use the dot product to write an equation for the vectors orthogonal to $\\kvecv$ in terms of $x$ and $y$.</li><li>Use this equation to sketch the set of all vectors orthogonal to $\\kvecv$ in Figure 6.2.1.</li><li><a href=\"/understanding-linear-algebra/ch03/3.5/\">Section 3.5</a> introduced the column space $\\kCol(\\kA)$ and null space $\\kNul(\\kA)$ of a matrix $\\kA$. If $\\kA$ is a matrix, what is the meaning of the null space $\\kNul(\\kA)$?</li><li>What is the meaning of the column space $\\kCol(\\kA)$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>The vector $\\kvecw=\\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right]$ is an example of a vector orthogonal to $\\kvecv$.</li><li>The dot product must be zero.</li><li>$\\kvecv\\cdot\\kvecx = -x+2y = 0$.</li><li>This is the line $y=\\frac12 x$.</li><li>It is the set of vectors $\\kvecx$ for which $\\kA\\kvecx = \\kveczero$.</li><li>It is the set of vector $\\kvecb$ for which the equation $\\kA\\kvecx=\\kvecb$ is consistent.</li></ol>"
+   },
+   "changes": "The blank grid of Figure 6.2.1 is left out; the upper panel of Figure 6.2.2 draws the vector v = [−1, 2] and the line of vectors orthogonal to it."
+  },
+  {
+   "id": "a2",
+   "source_id": "6.2.2",
+   "source_number": "6.2.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "complement-is-a-subspace"
+   },
+   "cite": "complement-is-a-subspace",
+   "prompt": "<p>Suppose that $\\kvecwone=\\left[\\begin{array}{r}1 \\\\ 0 \\\\ -2 \\end{array}\\right]$ and $\\kvecwtwo=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\end{array}\\right]$ form a basis for $\\kW$, a two-dimensional subspace of ${\\mathbb R}^3$. We will find a description of the orthogonal complement $\\kWperp$.</p><ol type=\"a\"><li>Suppose that the vector $\\kvecx$ is orthogonal to $\\kvecwone$. If we write $\\kvecx=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right]$, use the fact that $\\kvecwone\\cdot\\kvecx = 0$ to write a linear equation for $x_1$, $x_2$, and $x_3$.</li><li>Suppose that $\\kvecx$ is also orthogonal to $\\kvecwtwo$. In the same way, write a linear equation for $x_1$, $x_2$, and $x_3$ that arises from the fact that $\\kvecwtwo\\cdot\\kvecx = 0$.</li><li>If $\\kvecx$ is orthogonal to both $\\kvecwone$ and $\\kvecwtwo$, these two equations give us a linear system $\\kB\\kvecx=\\kveczero$ for some matrix $\\kB$. Identify the matrix $\\kB$ and write a parametric description of the solution space to the equation $\\kB\\kvecx = \\kveczero$.</li><li><p>Since $\\kvecwone$ and $\\kvecwtwo$ form a basis for the two-dimensional subspace $\\kW$, any vector $\\kvecw$ in $\\kW$ can be written as a linear combination</p>$$ \\kvecw = c_1\\kvecwone + c_2\\kvecwtwo\\text{.} $$<p>If $\\kvecx$ is orthogonal to both $\\kvecwone$ and $\\kvecwtwo$, use the distributive property of dot products to explain why $\\kvecx$ is orthogonal to $\\kvecw$.</p></li><li>Give a basis for the orthogonal complement $\\kWperp$ and state the dimension $\\dim \\kWperp$.</li><li>Describe $(\\kWperp)^\\perp$, the orthogonal complement of $\\kWperp$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecwone\\cdot\\kvecx = x_1 - 2x_3 = 0$.</li><li>$\\kvecwtwo\\cdot\\kvecx = x_1+x_2 - x_3 = 0$.</li><li>$\\kB = \\begin{bmatrix} 1 & 0 & -2 \\\\ 1 & 1 & -1 \\\\ \\end{bmatrix}$ so $\\kvecx=x_3\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</li><li>By distributivity, $(c_1\\kvecwone+c_2\\kvecwtwo)\\cdot\\kvecx= c_1\\kvecwone\\cdot\\kvecx + c_2\\kvecwtwo\\cdot\\kvecx = 0$.</li><li>A basis consists of $\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 1 \\end{array}\\right]$<sup class=\"fn\" data-note=\"a2-basis\"></sup>, and $\\kWperp$ is one-dimensional.</li><li>The orthogonal complement of $\\kWperp$ is $\\kW$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>We have the equation $\\kvecwone\\cdot\\kvecx = x_1 - 2x_3 = 0$.</li><li>We have the equation $\\kvecwtwo\\cdot\\kvecx = x_1+x_2 - x_3 = 0$.</li><li><p>These two equations give $\\kB\\kvecx=\\kveczero$ where</p>$$ \\kB = \\begin{bmatrix} 1 & 0 & -2 \\\\ 1 & 1 & -1 \\\\ \\end{bmatrix} \\sim \\begin{bmatrix} 1 & 0 & -2 \\\\ 0 & 1 & 1 \\\\ \\end{bmatrix}\\text{,} $$<p>whose solutions have the parametric form $\\kvecx=x_3\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$.</p></li><li>By distributivity, $(c_1\\kvecwone+c_2\\kvecwtwo)\\cdot\\kvecx= c_1\\kvecwone\\cdot\\kvecx + c_2\\kvecwtwo\\cdot\\kvecx = 0$.</li><li>$\\kWperp$ is the solution space to the equation $\\kB\\kvecx=\\kveczero$. Therefore, a basis consists of the single vector $\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$, and $\\kWperp$ is one-dimensional.</li><li>Since every vector in $\\kWperp$ is orthogonal to every vector in $\\kW$, the orthogonal complement of $\\kWperp$ is $\\kW$.</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "6.2.3",
+   "source_number": "6.2.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-6-2-7"
+   },
+   "cite": "prop-transpose-multiplication",
+   "prompt": "<p>This activity illustrates how multiplying a vector by $\\kAT$ is related to computing dot products with the columns of $\\kA$. You’ll develop a better understanding of this relationship if you compute the dot products and matrix products in this activity without using technology.</p><ol type=\"a\"><li>If $\\kB = \\begin{bmatrix} 3 & 4 \\\\ -1 & 2 \\\\ 0 & -2 \\\\ \\end{bmatrix}$, write the matrix $\\kBT$.</li><li><p>Suppose that</p>$$ \\kvecvone=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ -2 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 2 \\end{array}\\right],\\hspace{24pt} \\kvecw=\\left[\\begin{array}{r}-2 \\\\ 2 \\\\ 3 \\end{array}\\right]\\text{.} $$<p>Find the dot products $\\kvecvone\\cdot\\kvecw$ and $\\kvecvtwo\\cdot\\kvecw$.</p></li><li>Now write the matrix $\\kA = \\begin{bmatrix} \\kvecvone & \\kvecvtwo \\end{bmatrix}$ and its transpose $\\kAT$. Find the product $\\kAT\\kvecw$ and describe how this product computes both dot products $\\kvecvone\\cdot\\kvecw$ and $\\kvecvtwo\\cdot\\kvecw$.</li><li>Suppose that $\\kvecx$ is a vector that is orthogonal to both $\\kvecvone$ and $\\kvecvtwo$. What does this say about the dot products $\\kvecvone\\cdot\\kvecx$ and $\\kvecvtwo\\cdot\\kvecx$? What does this say about the product $\\kAT\\kvecx$?</li><li>Use the matrix $\\kAT$ to give a parametric description of all the vectors $\\kvecx$ that are orthogonal to $\\kvecvone$ and $\\kvecvtwo$.</li><li>Remember that $\\kNul(\\kAT)$, the null space of $\\kAT$, is the solution set of the equation $\\kAT\\kvecx=\\kveczero$. If $\\kvecx$ is a vector in $\\kNul(\\kAT)$, explain why $\\kvecx$ must be orthogonal to both $\\kvecvone$ and $\\kvecvtwo$.</li><li>Remember that $\\kCol(\\kA)$, the column space of $\\kA$, is the set of linear combinations of the columns of $\\kA$. Therefore, any vector in $\\kCol(\\kA)$ can be written as $c_1\\kvecvone+c_2\\kvecvtwo$. If $\\kvecx$ is a vector in $\\kNul(\\kAT)$, explain why $\\kvecx$ is orthogonal to every vector in $\\kCol(\\kA)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kAT = \\begin{bmatrix} 3 & -1 & 0 \\\\ 4 & 2 & -2 \\end{bmatrix}$<sup class=\"fn\" data-note=\"a3-bt\"></sup></li><li>$\\kvecvone\\cdot\\kvecw =-10$, $\\kvecvtwo\\cdot\\kvecw =6$.</li><li>$$ \\kAT\\kvecw =\\left[\\begin{array}{r}\\kvecvone\\cdot\\kvecw \\\\ \\kvecvtwo\\cdot\\kvecw \\end{array}\\right] $$</li><li>$\\kAT\\kvecx = \\kveczero$.</li><li>$\\kvecx=x_3\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 1 \\end{array}\\right]$.</li><li>$\\kAT\\kvecx = \\left[\\begin{array}{r}\\kvecvone\\cdot\\kvecx \\\\ \\kvecvtwo\\cdot\\kvecx \\end{array}\\right] = \\left[\\begin{array}{r}0 \\\\ 0 \\end{array}\\right]$.</li><li>Apply the distributive property of dot products.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kAT = \\begin{bmatrix} 3 & -1 & 0 \\\\ 4 & 2 & -2 \\end{bmatrix}$</li><li>$$ \\begin{aligned} \\kvecvone\\cdot\\kvecw &{}={} 2(-2) + 0(2) + (-2)3 &{}={} -10 \\\\ \\kvecvtwo\\cdot\\kvecw &{}={} 1(-2) + 1(2) + 2(3) &{}={} 6 \\end{aligned} $$</li><li>$$ \\kAT\\kvecw = \\left[\\begin{array}{r}2(-2)+0(2)+(-2)3 \\\\ 1(-2)+1(2)+2(3) \\end{array}\\right] = \\left[\\begin{array}{r}-10 \\\\ 6 \\end{array}\\right] =\\left[\\begin{array}{r}\\kvecvone\\cdot\\kvecw \\\\ \\kvecvtwo\\cdot\\kvecw \\end{array}\\right] $$</li><li>Both dot products are 0 so we have $\\kAT\\kvecx = \\kveczero$.</li><li><p>We need to solve the equation $\\kAT\\kvecx = \\kveczero$ so we find the reduced row echelon form</p>$$ \\kAT \\sim \\begin{bmatrix} 1 & 0 & -1 \\\\ 0 & 1 & 3\\\\ \\end{bmatrix}\\text{.} $$<p>The vectors orthogonal to both $\\kvecvone$ and $\\kvecvtwo$ have the form $\\kvecx=x_3\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 1 \\end{array}\\right]$.</p></li><li>$\\kAT\\kvecx = \\left[\\begin{array}{r}\\kvecvone\\cdot\\kvecx \\\\ \\kvecvtwo\\cdot\\kvecx \\end{array}\\right] = \\left[\\begin{array}{r}0 \\\\ 0 \\end{array}\\right]$ tells us that $\\kvecvone\\cdot\\kvecx=0$ and $\\kvecvtwo\\cdot\\kvecx=0$.</li><li><p>Since $\\kvecx$ is orthogonal to both $\\kvecvone$ and $\\kvecvtwo$, we have</p>$$ (c_1\\kvecvone+c_2\\kvecvtwo)\\cdot\\kvecx = c_1\\kvecvone\\cdot\\kvecx + c_2\\kvecvtwo\\cdot\\kvecx = 0 $$</li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "6.2.4",
+   "source_number": "6.2.4",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "simple-operation"
+   },
+   "cite": "assemblage-prop-transpose",
+   "prompt": "<p>In Sage, the transpose of a matrix <code>A</code> is given by <code>A.T</code>. Define the matrices</p>$$ \\kA = \\begin{bmatrix} 1 & 0 & -3 \\\\ 2 & -2 & 1 \\\\ \\end{bmatrix}, \\hspace{6pt} \\kB = \\begin{bmatrix} 3 & -4 & 1 \\\\ 0 & 1 & 2 \\\\ \\end{bmatrix}, \\hspace{6pt} \\kC= \\begin{bmatrix} 1 & 0 & -3 \\\\ 2 & -2 & 1 \\\\ 3 & 2 & 0 \\\\ \\end{bmatrix}. $$<ol type=\"a\"><li>Evaluate $(\\kA+\\kB)^T$ and $\\kAT+\\kBT$. What do you notice about the relationship between these two matrices?</li><li>What happens if you transpose a matrix twice; that is, what is $(\\kAT)^T$?</li><li>Find $\\det(\\kC)$ and $\\det(\\kCT)$. What do you notice about the relationship between these determinants?</li><li><ol><li>Find the product $\\kA\\kC$ and its transpose $(\\kA\\kC)^T$.</li><li>Is it possible to compute the product $\\kAT\\kCT$? Explain why or why not.</li><li>Find the product $\\kCT\\kAT$ and compare it to $(\\kA\\kC)^T$. What do you notice about the relationship between these two matrices?</li></ol></li><li>What is the transpose of the identity matrix $\\kI$?</li><li>If a square matrix $\\kD$ is invertible, explain why you can guarantee that $\\kD^T$ is invertible and why $(\\kD^T)^{-1} = (\\kD^{-1})^T$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$(\\kA+\\kB)^T = \\kAT + \\kBT$.</li><li>$(\\kAT)^T = \\kA$.</li><li>$\\det(\\kCT) = \\det(\\kC)$</li><li>$(\\kA\\kC)^T=\\kCT\\kAT$.</li><li>$\\kI^T=\\kI$</li><li>$(\\kD^T)^{-1} = (\\kD^{-1})^T$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$(\\kA+\\kB)^T = \\kAT + \\kBT$.</li><li>$(\\kAT)^T = \\kA$.</li><li>$\\det(\\kCT) = \\det(\\kC)$</li><li><ol><li>$\\kA\\kC = \\begin{bmatrix} -8 & -6 & -3 \\\\ 1 & 6 & -8 \\end{bmatrix}$ and $(\\kA\\kC)^T = \\begin{bmatrix} -8 & 1 \\\\ -6 & 6 \\\\ -3 & -8 \\end{bmatrix}$</li><li>The product $\\kAT\\kCT$ is not defined because $\\kAT$ has two columns and $\\kCT$ has three rows.</li><li>$(\\kA\\kC)^T=\\kCT\\kAT$</li></ol></li><li>$\\kI^T=\\kI$</li><li>We have $\\kD\\kD^{-1} = \\kI$ so $(\\kD\\kD^{-1})^T = (\\kD^{-1})^T\\kD^T = \\kI^T=\\kI$. This means that $(\\kD^T)^{-1} = (\\kD^{-1})^T$.</li></ol>"
+   }
+  },
+  {
+   "id": "a5",
+   "source_id": "6.2.5",
+   "source_number": "6.2.5",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-6-2-15"
+   },
+   "cite": "prop-orthog-dim",
+   "prompt": "<ol type=\"a\"><li><p>Suppose that $\\kW$ is a $5$-dimensional subspace of ${\\mathbb R}^9$ and that $\\kA$ is a matrix whose columns form a basis for $\\kW$; that is, $\\kCol(\\kA) = \\kW$.</p><ol><li>What is the shape of $\\kA$?</li><li>What is the rank of $\\kA$?</li><li>What is the shape of $\\kAT$?</li><li>What is the rank of $\\kAT$?</li><li>What is $\\dim\\kNul(\\kAT)$?</li><li>What is $\\dim \\kWperp$?</li><li>How are the dimensions of $\\kW$ and $\\kWperp$ related?</li></ol></li><li><p>Suppose that $\\kW$ is a subspace of ${\\mathbb R}^4$ having basis</p>$$ \\kvecwone = \\left[\\begin{array}{r}1 \\\\ 0 \\\\ 2 \\\\ -1 \\end{array}\\right],\\hspace{24pt} \\kvecwtwo = \\left[\\begin{array}{r}-1 \\\\ 2 \\\\ -6 \\\\ 3 \\end{array}\\right]. $$<ol><li>Find the dimensions $\\dim \\kW$ and $\\dim \\kWperp$.</li><li>Find a basis for $\\kWperp$. It may be helpful to know that the Sage command <code>A.right_kernel()</code> produces a basis for $\\kNul(\\kA)$.</li><li>Verify that each of the basis vectors you found for $\\kWperp$ are orthogonal to the basis vectors for $\\kW$.</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><ol><li>$9\\times 5$</li><li>$5$</li><li>$5\\times 9$</li><li>$5$</li><li>$4$</li><li>$4$</li><li>$\\dim \\kW + \\dim \\kWperp = 9$</li></ol></li><li><ol><li>$2$</li><li>$\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 0 \\\\ 1 \\end{array}\\right]$ and $\\left[\\begin{array}{r}0 \\\\ 0 \\\\ 1 \\\\ 2 \\end{array}\\right]$ .</li><li>Verify by computing the four dot products.</li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><ol><li>$\\kA$ is $9\\times 5$.</li><li>$\\operatorname{rank}(\\kA) = 5$.</li><li>$\\kAT$ is $5\\times 9$.</li><li>$\\operatorname{rank}(\\kAT) = 5$</li><li>$\\dim \\kNul(\\kAT) = 9 - 5 = 4$</li><li>$\\dim \\kWperp = \\dim\\kNul(\\kAT) = 4$</li><li>$\\dim \\kW + \\dim \\kWperp = 9$ since the subspaces live in ${\\mathbb R}^9$.</li></ol></li><li><ol><li>$\\dim \\kW = 2$ so $\\dim \\kWperp = 4-2=2$.</li><li>A basis is $\\kvecvone=\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 0 \\\\ 1 \\end{array}\\right]$ and $\\kvecvtwo=\\left[\\begin{array}{r}0 \\\\ 0 \\\\ 1 \\\\ 2 \\end{array}\\right]$ .</li><li>You can verify by computing the four dot products.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "c16",
+   "source_id": "6.2.16",
+   "source_number": "6.2.16",
+   "kind": "checkpoint",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "example-6-2-15"
+   },
+   "cite": "definition-6-2-3",
+   "prompt": "<p><strong>Vectors in $\\kW$ and $\\kWperp$.</strong> Can a nonzero vector be in both $\\kW$ and $\\kWperp$? Explain your thinking.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "ai",
+    "solution": "<p>No. Suppose a vector $\\kvecv$ is in both $\\kW$ and $\\kWperp$. Because $\\kvecv$ is in $\\kWperp$, it is orthogonal to every vector in $\\kW$, and $\\kvecv$ is itself one of the vectors in $\\kW$, so $\\kvecv$ is orthogonal to itself: $\\kvecv\\cdot\\kvecv = 0$. But $\\kvecv\\cdot\\kvecv = |\\kvecv|^2$, the square of its length, so $|\\kvecv| = 0$ and $\\kvecv = \\kveczero$. The only vector in both $\\kW$ and $\\kWperp$ is the zero vector.</p>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "6.2.1",
+   "source_number": "6.2.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-orthog-dim",
+   "prompt": "<p>Suppose that $\\kW$ is a subspace of ${\\mathbb R}^4$ with basis</p>$$ \\kvecwone=\\left[\\begin{array}{r}-2 \\\\ 2 \\\\ 2 \\\\ -4 \\end{array}\\right],\\hspace{24pt} \\kvecwtwo=\\left[\\begin{array}{r}-2 \\\\ 3 \\\\ 5 \\\\ -5 \\end{array}\\right]. $$<ol type=\"a\"><li>What are the dimensions $\\dim \\kW$ and $\\dim \\kWperp$?</li><li>Find a basis for $\\kWperp$.</li><li>Verify that each of the basis vectors for $\\kWperp$ are orthogonal to $\\kvecwone$ and $\\kvecwtwo$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\dim \\kW = 2$ and $\\dim \\kWperp = 2$.</li><li>$\\kvecvone = \\left[\\begin{array}{r}-2 \\\\ -3 \\\\ 1 \\\\ 0 \\end{array}\\right]$ and $\\kvecvtwo=\\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 0 \\\\ 1 \\end{array}\\right]$</li><li>Use the dot product.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\dim \\kW = 2$ and $\\dim \\kWperp = 4-2 = 2$.</li><li>$\\kvecvone = \\left[\\begin{array}{r}-2 \\\\ -3 \\\\ 1 \\\\ 0 \\end{array}\\right]$ and $\\kvecvtwo=\\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 0 \\\\ 1 \\end{array}\\right]$</li><li>Verify that $\\mathbf{w}_i\\cdot\\mathbf{v}_j = 0$ for all $i$ and $j$.</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "6.2.2",
+   "source_number": "6.2.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-col-orthog",
+   "prompt": "<p>Consider the matrix $\\kA = \\begin{bmatrix} -1 & -2 & -2 \\\\ 1 & 3 & 4 \\\\ 2 & 1 & -2 \\end{bmatrix}$.</p><ol type=\"a\"><li>Find $\\operatorname{rank}(\\kA)$ and a basis for $\\kCol(\\kA)$.</li><li>Determine the dimension of $\\kCol(\\kA)^\\perp$ and find a basis for it.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\operatorname{rank}(\\kA) = 2$ and a basis for $\\kCol(\\kA)$ is $\\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 2 \\end{array}\\right]$ and $\\left[\\begin{array}{r}-2 \\\\ 3 \\\\ 1 \\end{array}\\right]$</li><li>$\\dim\\kCol(\\kA)^\\perp = 1$ with basis $\\left[\\begin{array}{r}5 \\\\ 3 \\\\ 1 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA\\sim\\begin{bmatrix} 1 & 0 & -2 \\\\ 0 & 1 & 2 \\\\ 0 & 0 & 0 \\end{bmatrix}$ so $\\operatorname{rank}(\\kA) = 2$ since there are two pivot positions. The reduced row echelon form shows that the third column is a linear combination of the first two so $\\left[\\begin{array}{r}-1 \\\\ 1 \\\\ 2 \\end{array}\\right]$ and $\\left[\\begin{array}{r}-2 \\\\ 3 \\\\ 1 \\end{array}\\right]$ form a basis for $\\kCol(\\kA)$.</li><li>We know that $\\dim \\kCol(\\kA)^\\perp = 3 - 2 = 1$. To find a basis, solve the equation $\\kAT\\kvecx = \\kveczero$ to obtain $\\left[\\begin{array}{r}5 \\\\ 3 \\\\ 1 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "6.2.3",
+   "source_number": "6.2.3",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-orthog-comp-line",
+   "prompt": "<p>Suppose that $\\kW$ is the subspace of ${\\mathbb R}^4$ defined as the solution set of the equation</p>$$ x_1 - 3x_2 + 5x_3 - 2x_4 = 0. $$<ol type=\"a\"><li>What are the dimensions $\\dim \\kW$ and $\\dim \\kWperp$?</li><li>Find a basis for $\\kW$.</li><li>Find a basis for $\\kWperp$.</li><li><p>In general, how can you easily find a basis for $\\kWperp$ when $\\kW$ is defined by</p>$$ Ax_1+Bx_2+Cx_3+Dx_4 = 0? $$</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\dim \\kW = 3$, $\\dim \\kWperp = 1$.</li><li>$\\left[\\begin{array}{r}3 \\\\ 1 \\\\ 0 \\\\ 0 \\end{array}\\right]$, $\\left[\\begin{array}{r}-5 \\\\ 0 \\\\ 1 \\\\ 0 \\end{array}\\right]$, and $\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 0 \\\\ 1 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 5 \\\\ -2 \\end{array}\\right]$</li><li>$\\left[\\begin{array}{r}A \\\\ B \\\\ C \\\\ D \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kW = \\kNul(\\kB)$ where $\\kB = \\begin{bmatrix}1 & -3 & 5 & -2 \\end{bmatrix}$ so $\\dim \\kW = 4 -1 =3$. Therefore, $\\dim \\kWperp = 4-3 = 1$.</li><li>A basis for $\\kW$ is $\\left[\\begin{array}{r}3 \\\\ 1 \\\\ 0 \\\\ 0 \\end{array}\\right]$, $\\left[\\begin{array}{r}-5 \\\\ 0 \\\\ 1 \\\\ 0 \\end{array}\\right]$, and $\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 0 \\\\ 1 \\end{array}\\right]$.</li><li>Since every vector in $\\kW$ satisfies $\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 5 \\\\ -2 \\end{array}\\right]\\cdot\\kvecx = 0$, a basis for $\\kWperp$ is $\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 5 \\\\ -2 \\end{array}\\right]$</li><li>$\\left[\\begin{array}{r}A \\\\ B \\\\ C \\\\ D \\end{array}\\right]$</li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "6.2.4",
+   "source_number": "6.2.4",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-col-orthog",
+   "prompt": "<p>Determine whether the following statements are true or false and explain your reasoning.</p><ol type=\"a\"><li>If $\\kA=\\begin{bmatrix} 2 & 1 \\\\ 1 & 1 \\\\ -3 & 1 \\end{bmatrix}$, then $\\kvecx=\\left[\\begin{array}{r}4 \\\\ -5 \\\\ 1 \\end{array}\\right]$ is in $\\kCol(\\kA)^\\perp$.</li><li>If $\\kA$ is a $2\\times3$ matrix and $\\kB$ is a $3\\times4$ matrix, then $(\\kA\\kB)^T = \\kAT\\kBT$ is a $4\\times2$ matrix.</li><li>If the columns of $\\kA$ are $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ and $\\kAT\\kvecx = \\left[\\begin{array}{r}2 \\\\ 0 \\\\ 1 \\end{array}\\right]$, then $\\kvecx$ is orthogonal to $\\kvecvtwo$.</li><li>If $\\kA$ is a $4\\times 4$ matrix with $\\operatorname{rank}(\\kA) = 3$, then $\\kCol(\\kA)^\\perp$ is a line in ${\\mathbb R}^4$.</li><li>If $\\kA$ is a $5\\times 7$ matrix with $\\operatorname{rank}(\\kA) = 5$, then $\\operatorname{rank}(\\kAT) = 7$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>True</li><li>False</li><li>True</li><li>True</li><li>False</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>True, since $\\kAT\\kvecx=\\kveczero$, $\\kvecx$ is in $\\kCol(\\kA)^\\perp$.</li><li>False, $(\\kA\\kB)^T$ is a $4\\times2$ matrix, but it is given by $(\\kA\\kB)^T=\\kBT\\kAT$.</li><li>True, because the second component of $\\kAT\\kvecx = \\kvecvtwo\\cdot\\kvecx=0$.</li><li>True, because $\\dim\\kCol(\\kA)^\\perp = 4-\\dim\\kCol(\\kA) = 4-3 = 1$.</li><li>False, $\\operatorname{rank}(\\kAT) = \\operatorname{rank}(\\kA) = 5$.</li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "6.2.5",
+   "source_number": "6.2.5",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "assemblage-prop-transpose",
+   "prompt": "<p>Apply properties of matrix operations to simplify the following expressions.</p><ol type=\"a\"><li>$\\kAT(\\kB\\kAT)^{-1}$</li><li>$(\\kA+\\kB)^T(\\kA+\\kB)$</li><li>$[\\kA(\\kA+\\kB)^T]^T$</li><li>$(\\kA + 2\\kI)^T$</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kB^{-1}$</li><li>$\\kAT\\kA + \\kBT\\kA + \\kAT\\kB + \\kBT\\kB$</li><li>$\\kA\\kAT+\\kB\\kAT$</li><li>$\\kAT+2\\kI$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kAT(\\kAT)^{-1}\\kB^{-1} = \\kB^{-1}$</li><li>$\\kAT\\kA + \\kBT\\kA + \\kAT\\kB + \\kBT\\kB$</li><li>$(\\kA+\\kB)\\kAT = \\kA\\kAT+\\kB\\kAT$</li><li>$\\kAT+2\\kI$</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "6.2.6",
+   "source_number": "6.2.6",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "assemblage-prop-transpose",
+   "prompt": "<p>A symmetric matrix $\\kA$ is one for which $\\kA=\\kAT$.</p><ol type=\"a\"><li>Explain why a symmetric matrix must be square.</li><li>If $\\kA$ and $\\kB$ are general matrices and $\\kD$ is a square diagonal matrix, which of the following matrices can you guarantee are symmetric?<ol><li>$\\kD$</li><li>$\\kB\\kA\\kB^{-1}$</li><li>$\\kA\\kAT$.</li><li>$\\kB\\kD\\kBT$</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>They must have the same number of rows and columns.</li><li><ol><li>Yes</li><li>No</li><li>No<sup class=\"fn\" data-note=\"e6-aat\"></sup></li><li>Yes</li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>If $\\kA$ is an $m\\times n$ matrix, then $\\kAT$ is $n\\times m$ If these matrices are the same, then $m=n$.</li><li><ol><li>If $\\kD$ is diagonal, then $\\kD^T = \\kD$.</li><li>$(\\kB\\kA\\kB^{-1})^T = (\\kB^{-1})^T\\kAT\\kBT$ so this matrix need not be symmetric.</li><li>$(\\kA\\kAT)^T = (\\kAT)^T\\kAT = \\kA\\kAT$ so this matrix is symmetric.</li><li>$(\\kB\\kD\\kBT)^T = (\\kBT)^T\\kD^T\\kBT = \\kB\\kD\\kBT$ so this matrix is symmetric.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "6.2.7",
+   "source_number": "6.2.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "assemblage-prop-transpose",
+   "prompt": "<p>If $\\kA$ is a square matrix, remember that the characteristic polynomial of $\\kA$ is $\\det(\\kA-\\klambda \\kI)$ and that the roots of the characteristic polynomial are the eigenvalues of $\\kA$.</p><ol type=\"a\"><li>Explain why $\\kA$ and $\\kAT$ have the same characteristic polynomial.</li><li>Explain why $\\kA$ and $\\kAT$ have the same set of eigenvalues.</li><li>Suppose that $\\kA$ is diagonalizable with diagonalization $\\kA=\\kP\\kD\\kPinv$. Explain why $\\kAT$ is diagonalizable and find a diagonalization.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Use properties of the matrix transpose.</li><li>Because they have the same characteristic polynomial.</li><li>$\\kAT = (\\kP^T)^{-1} \\kD \\kP^T$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$(\\kA-\\klambda \\kI)^T = \\kAT - \\klambda \\kI$ and therefore $\\det(\\kAT-\\klambda \\kI) = \\det[(\\kA-\\klambda \\kI)^T] = \\det(\\kA-\\klambda \\kI)$.</li><li>The eigenvalues of a matrix are given by the roots of its characteristic polynomial. Since $\\kA$ and $\\kAT$ have the same characteristic polynomial, they have the same eigenvalues.</li><li>$\\kAT = (\\kP\\kD\\kPinv)^T = (\\kP^T)^{-1} \\kD \\kP^T$</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "6.2.8",
+   "source_number": "6.2.8",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-6-2-3",
+   "prompt": "<p>This exercise introduces a version of the Pythagorean theorem that we’ll use later.</p><ol type=\"a\"><li><p>Suppose that $\\kvecv$ and $\\kvecw$ are orthogonal to one another. Use the dot product to explain why</p>$$ \\left|\\kvecv+\\kvecw\\right|^2 = \\left|\\kvecv\\right|^2 + \\left|\\kvecw\\right|^2. $$</li><li><p>Suppose that $\\kW$ is a subspace of ${\\mathbb R}^m$ and that $\\kvecz$ is a vector in ${\\mathbb R}^m$ for which</p>$$ \\kvecz = \\kvecx + \\kvecy, $$<p>where $\\kvecx$ is in $\\kW$ and $\\kvecy$ is in $\\kWperp$. Explain why</p>$$ \\left|\\kvecz\\right|^2 = \\left|\\kvecx\\right|^2 + \\left|\\kvecy\\right|^2, $$<p>which is an expression of the Pythagorean theorem.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left|\\kvecv+\\kvecw\\right|^2 = \\kvecv\\cdot\\kvecv+\\kvecw\\cdot\\kvecw$</li><li>Because $\\kvecx$ and $\\kvecy$ are orthogonal.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left|\\kvecv+\\kvecw\\right|^2 = (\\kvecv+\\kvecw)\\cdot(\\kvecv+\\kvecw) = \\kvecv\\cdot\\kvecv+2\\kvecv\\cdot\\kvecw+\\kvecw\\cdot\\kvecw = \\kvecv\\cdot\\kvecv+\\kvecw\\cdot\\kvecw$</li><li>Because $\\kvecx$ and $\\kvecy$ are orthogonal.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "6.2.9",
+   "source_number": "6.2.9",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "assemblage-prop-transpose",
+   "prompt": "<p>In the next chapter, symmetric matrices—that is, matrices for which $\\kA=\\kAT$—play an important role. It turns out that eigenvectors of a symmetric matrix that are associated to different eigenvalues are orthogonal. We will explain this fact in this exercise.</p><ol type=\"a\"><li>Viewing a vector as a matrix having one column, we may write $\\kvecx\\cdot\\kvecy = \\kvecx^T\\kvecy$. If $\\kA$ is a matrix, explain why $\\kvecx\\cdot (\\kA\\kvecy) = (\\kAT\\kvecx) \\cdot \\kvecy$.</li><li>We have seen that the matrix $\\kA=\\begin{bmatrix} 1 & 2 \\\\ 2 & 1 \\end{bmatrix}$ has eigenvectors $\\kvecvone=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$, with associated eigenvalue $\\klambdaone=3$, and $\\kvecvtwo = \\left[\\begin{array}{r}1 \\\\ -1 \\end{array}\\right]$, with associated eigenvalue $\\klambdatwo = -1$. Verify that $\\kA$ is symmetric and that $\\kvecvone$ and $\\kvecvtwo$ are orthogonal.</li><li>Suppose that $\\kA$ is a general symmetric matrix and that $\\kvecvone$ is an eigenvector associated to eigenvalue $\\klambdaone$ and that $\\kvecvtwo$ is an eigenvector associated to a different eigenvalue $\\klambdatwo$. Beginning with $\\kvecvone\\cdot (\\kA\\kvecvtwo)$, apply the identity from the first part of this exercise to explain why $\\kvecvone$ and $\\kvecvtwo$ are orthogonal.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Use properties of the transpose.</li><li>Compute the dot product of $\\kvecvone$ and $\\kvecvtwo$.</li><li>It follows that $(\\klambdaone-\\klambdatwo)\\kvecvone\\cdot\\kvecvtwo = 0$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecx\\cdot(\\kA\\kvecy) = \\kvecx^T\\kA\\kvecy = (\\kAT\\kvecx)^T\\kvecy = (\\kAT\\kvecx)\\cdot\\kvecy$.</li><li>$\\kAT = \\kA$ and $\\kvecvone\\cdot\\kvecvtwo=0$.</li><li>$$ \\begin{aligned} \\kvecvone\\cdot(\\kA\\kvecvtwo) & {}={} (\\kA\\kvecvone)\\cdot\\kvecvtwo \\\\ \\klambdatwo\\kvecvone\\cdot\\kvecvtwo & {}={} \\klambdaone\\kvecvone\\cdot\\kvecvtwo \\\\ (\\klambdaone-\\klambdatwo)\\kvecvone\\cdot\\kvecvtwo&{}={} 0 \\end{aligned} $$<p>so $\\kvecvone\\cdot\\kvecvtwo=0$ since $\\klambdaone-\\klambdatwo\\neq 0$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "6.2.10",
+   "source_number": "6.2.10",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-col-orthog",
+   "prompt": "<p>Given an $m\\times n$ matrix $\\kA$, the <em>row space</em> of $\\kA$ is the column space of $\\kAT$; that is, $\\text{Row}(\\kA) = \\kCol(\\kAT)$.</p><ol type=\"a\"><li>Suppose that $\\kA$ is a $7\\times 15$ matrix. For what $p$ is $\\text{Row}(\\kA)$ a subspace of ${\\mathbb R}^p$?</li><li>How can <a href=\"#prop-col-orthog\">Proposition 6.2.10</a> help us describe $\\text{Row}(\\kA)^\\perp$?</li><li>Suppose that $\\kA = \\begin{bmatrix} -1 & -2 & 2 & 1 \\\\ 2 & 4 & -1 & 5 \\\\ 1 & 2 & 0 & 3 \\end{bmatrix}$. Find bases for $\\text{Row}(\\kA)$ and $\\text{Row}(\\kA)^\\perp$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$p=15$</li><li>$\\text{Row}(\\kA)^\\perp = \\ \\kNul(\\kA)$</li><li>A basis for $\\text{Row}(\\kA)$ are the three rows of $\\kA$. A basis for $\\text{Row}(\\kA)^\\perp = \\kNul(\\kA)$ is $\\left[\\begin{array}{r}-2 \\\\ 1 \\\\ 0 \\\\ 0 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Since $\\kAT$ is $15\\times7$, it follows that $\\text{Row}(\\kA)=\\kCol(\\kAT)$ is a subspace of ${\\mathbb R}^{15}$.</li><li>$\\text{Row}(\\kA)^\\perp = \\kCol(\\kAT)^\\perp = \\kNul((\\kAT)^T) = \\kNul(\\kA)$</li><li>$\\operatorname{rank}(\\kA) = 3$ so $\\operatorname{rank}(\\kAT)=\\dim\\kCol(\\kAT) = \\dim\\text{Row}(\\kA) = 3$. A basis for $\\text{Row}(\\kA)$ are the three rows of $\\kA$. $\\text{Row}(\\kA)^\\perp = \\kNul(\\kA)$ is one-dimensional with basis $\\left[\\begin{array}{r}-2 \\\\ 1 \\\\ 0 \\\\ 0 \\end{array}\\right]$.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "orthogonal-vectors"
+  },
+  {
+   "exercise": "a1",
+   "concept": "dot-product"
+  },
+  {
+   "exercise": "a1",
+   "concept": "kernel"
+  },
+  {
+   "exercise": "a1",
+   "concept": "column-space"
+  },
+  {
+   "exercise": "a2",
+   "concept": "orthogonal-complement"
+  },
+  {
+   "exercise": "a2",
+   "concept": "orthogonal-complement-is-a-subspace"
+  },
+  {
+   "exercise": "a2",
+   "concept": "finding-an-orthogonal-complement"
+  },
+  {
+   "exercise": "a2",
+   "concept": "parametric-description"
+  },
+  {
+   "exercise": "a3",
+   "concept": "transpose"
+  },
+  {
+   "exercise": "a3",
+   "concept": "dot-product-via-transpose"
+  },
+  {
+   "exercise": "a3",
+   "concept": "orthogonal-complement-of-the-column-space"
+  },
+  {
+   "exercise": "a4",
+   "concept": "properties-of-the-transpose"
+  },
+  {
+   "exercise": "a4",
+   "concept": "transpose-of-a-product"
+  },
+  {
+   "exercise": "a4",
+   "concept": "determinant-of-the-transpose"
+  },
+  {
+   "exercise": "a5",
+   "concept": "dimension-of-the-orthogonal-complement"
+  },
+  {
+   "exercise": "a5",
+   "concept": "rank-of-the-transpose"
+  },
+  {
+   "exercise": "a5",
+   "concept": "finding-an-orthogonal-complement"
+  },
+  {
+   "exercise": "c16",
+   "concept": "orthogonal-complement"
+  },
+  {
+   "exercise": "c16",
+   "concept": "orthogonal-vectors"
+  },
+  {
+   "exercise": "c16",
+   "concept": "magnitude-of-a-vector"
+  },
+  {
+   "exercise": "e1",
+   "concept": "finding-an-orthogonal-complement"
+  },
+  {
+   "exercise": "e1",
+   "concept": "dimension-of-the-orthogonal-complement"
+  },
+  {
+   "exercise": "e2",
+   "concept": "orthogonal-complement-of-the-column-space"
+  },
+  {
+   "exercise": "e2",
+   "concept": "rank"
+  },
+  {
+   "exercise": "e2",
+   "concept": "dimension-of-the-orthogonal-complement"
+  },
+  {
+   "exercise": "e3",
+   "concept": "finding-an-orthogonal-complement"
+  },
+  {
+   "exercise": "e3",
+   "concept": "dimension-of-the-orthogonal-complement"
+  },
+  {
+   "exercise": "e4",
+   "concept": "orthogonal-complement-of-the-column-space"
+  },
+  {
+   "exercise": "e4",
+   "concept": "transpose-of-a-product"
+  },
+  {
+   "exercise": "e4",
+   "concept": "dot-product-via-transpose"
+  },
+  {
+   "exercise": "e4",
+   "concept": "dimension-of-the-orthogonal-complement"
+  },
+  {
+   "exercise": "e4",
+   "concept": "rank-of-the-transpose"
+  },
+  {
+   "exercise": "e5",
+   "concept": "properties-of-the-transpose"
+  },
+  {
+   "exercise": "e5",
+   "concept": "transpose-of-a-product"
+  },
+  {
+   "exercise": "e6",
+   "concept": "transpose"
+  },
+  {
+   "exercise": "e6",
+   "concept": "transpose-of-a-product"
+  },
+  {
+   "exercise": "e7",
+   "concept": "determinant-of-the-transpose"
+  },
+  {
+   "exercise": "e7",
+   "concept": "properties-of-the-transpose"
+  },
+  {
+   "exercise": "e7",
+   "concept": "characteristic-polynomial"
+  },
+  {
+   "exercise": "e7",
+   "concept": "diagonalization"
+  },
+  {
+   "exercise": "e8",
+   "concept": "orthogonal-vectors"
+  },
+  {
+   "exercise": "e8",
+   "concept": "orthogonal-complement"
+  },
+  {
+   "exercise": "e9",
+   "concept": "transpose-of-a-product"
+  },
+  {
+   "exercise": "e9",
+   "concept": "dot-product-via-transpose"
+  },
+  {
+   "exercise": "e9",
+   "concept": "eigenvector"
+  },
+  {
+   "exercise": "e10",
+   "concept": "orthogonal-complement-of-the-column-space"
+  },
+  {
+   "exercise": "e10",
+   "concept": "transpose"
+  },
+  {
+   "exercise": "e10",
+   "concept": "properties-of-the-transpose"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "a2-basis",
+   "kind": "correction",
+   "html": "The book’s answer prints the basis vector $\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 1 \\end{array}\\right]$, which is not orthogonal to $\\kvecwone$: $\\kvecwone\\cdot\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 1 \\end{array}\\right] = 1 - 2 = -1$. The basis vector of $\\kWperp$ is $\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 1 \\end{array}\\right]$, as part c’s parametric description and the solution give."
+  },
+  {
+   "id": "a3-bt",
+   "kind": "correction",
+   "html": "The book writes $\\kAT$ here and in the solution where the part asks for $\\kBT$; the matrix shown, $\\begin{bmatrix} 3 & -1 & 0 \\\\ 4 & 2 & -2 \\end{bmatrix}$, is $\\kBT$."
+  },
+  {
+   "id": "e6-aat",
+   "kind": "correction",
+   "html": "The book’s answer says No for $\\kA\\kAT$, but its solution shows $(\\kA\\kAT)^T = (\\kAT)^T\\kAT = \\kA\\kAT$, so $\\kA\\kAT$ is always symmetric: the answer is Yes."
+  }
+ ],
+ "derivations": [
+  {
+   "id": "dimension-of-the-orthogonal-complement",
+   "what": "dim W + dim W⊥ = m",
+   "source": "Understanding Linear Algebra, 6.2 Orthogonal complements and the matrix transpose",
+   "nodes": [
+    {
+     "assumes": [
+      {
+       "text": "The columns $\\kvecwone, \\kvecwtwo, \\ldots, \\kvecwn$ of $\\kA$ form a basis of $\\kW$, so $\\kCol(\\kA) = \\kW$."
+      },
+      {
+       "tex": "\\dim\\kW = n"
+      }
+     ],
+     "then": {
+      "tex": "\\mk{r}{\\operatorname{rank}(\\kA)} = \\mk{c}{\\dim\\kCol(\\kA)}",
+      "src": "3.5, Proposition 3.5.9"
+     },
+     "steps": [
+      {
+       "tex": "\\mk{r}{\\operatorname{rank}(\\kA)} = \\mk{c}{\\dim\\kW}",
+       "uses": [
+        0
+       ]
+      },
+      {
+       "tex": "\\mk{r}{\\operatorname{rank}(\\kA)} = \\mk{c}{n}",
+       "uses": [
+        1
+       ]
+      }
+     ]
+    },
+    {
+     "assumes": [
+      {
+       "step": 0
+      }
+     ],
+     "then": {
+      "tex": "\\mk{t}{\\operatorname{rank}(\\kAT)} = \\mk{r}{\\operatorname{rank}(\\kA)}",
+      "src": "Proposition 6.2.12"
+     },
+     "steps": [
+      {
+       "tex": "\\mk{t}{\\operatorname{rank}(\\kAT)} = \\mk{r}{n}",
+       "uses": [
+        0
+       ]
+      }
+     ]
+    },
+    {
+     "assumes": [
+      {
+       "text": "The null space of a matrix with $m$ columns has dimension $m$ minus its rank, and $\\kAT$, an $n\\times m$ matrix, has $m$ columns.",
+       "src": "3.5, Proposition 3.5.12"
+      },
+      {
+       "step": 1
+      },
+      {
+       "tex": "\\dim\\kW = n"
+      },
+      {
+       "text": "The columns $\\kvecwone, \\kvecwtwo, \\ldots, \\kvecwn$ of $\\kA$ form a basis of $\\kW$, so $\\kCol(\\kA) = \\kW$."
+      }
+     ],
+     "then": {
+      "tex": "\\mk{d}{\\dim\\kWperp} = \\mk{n}{\\dim\\kNul(\\kAT)}",
+      "src": "Proposition 6.2.10",
+      "uses": [
+       3
+      ],
+      "why": "Since $\\kW = \\kCol(\\kA)$, Proposition 6.2.10 says $\\kWperp = \\kCol(\\kA)^\\perp = \\kNul(\\kAT)$."
+     },
+     "steps": [
+      {
+       "tex": "\\mk{d}{\\dim\\kWperp} = \\mk{m}{m} - \\mk{k}{\\operatorname{rank}(\\kAT)}",
+       "uses": [
+        0
+       ],
+       "map": {
+        "n": [
+         "m",
+         "k"
+        ]
+       }
+      },
+      {
+       "tex": "\\mk{d}{\\dim\\kWperp} = \\mk{m}{m} - \\mk{k}{n}",
+       "uses": [
+        1
+       ]
+      },
+      {
+       "tex": "\\mk{d}{\\dim\\kWperp} = \\mk{m}{m} - \\mk{k}{\\dim\\kW}",
+       "uses": [
+        2
+       ]
+      }
+     ]
+    },
+    {
+     "assumes": [
+      {
+       "step": 2
+      }
+     ],
+     "then": {
+      "tex": "\\mk{d}{\\dim\\kWperp} = \\mk{m}{m} - \\mk{k}{\\dim\\kW}"
+     },
+     "steps": [
+      {
+       "tex": "\\mk{k}{\\dim\\kW} + \\mk{d}{\\dim\\kWperp} = \\mk{m}{m}",
+       "uses": []
+      }
+     ],
+     "src": "Proposition 6.2.13"
+    }
+   ]
+  }
+ ]
+}

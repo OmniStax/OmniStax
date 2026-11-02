@@ -1,0 +1,141 @@
+<section id="opening">
+<h2>Orthogonality and linear systems</h2>
+<p id="orthogonality-simplifies">We’ve now seen how the <span data-concept="dot-product">dot product</span> enables us to determine the angle between two <span data-concept="vector">vectors</span> and, more specifically, when two <span data-concept="vector">vectors</span> are <span data-concept="orthogonal-vectors">orthogonal</span>. Moving forward, we will explore how the orthogonality condition simplifies many common tasks, such as expressing a <span data-concept="vector">vector</span> as a <span data-concept="linear-combination">linear combination</span> of a given set of <span data-concept="vector">vectors</span>.</p>
+<p id="this-section">This section introduces the notion of an <span data-concept="orthogonal-complement">orthogonal complement</span>, the set of <span data-concept="vector">vectors</span> each of which is <span data-concept="orthogonal-vectors">orthogonal</span> to a prescribed <span data-concept="subspace">subspace</span>. We’ll also find a way to describe <span data-concept="dot-product">dot products</span> using <span data-concept="matrix-product">matrix products</span>, which allows us to study orthogonality using many of the tools for understanding <span data-concept="linear-system-of-equations">linear systems</span> that we developed earlier.</p>
+</section>
+
+<section id="introduction">
+<h2>Introduction</h2>
+<div class="exercises" data-place="introduction"></div>
+</section>
+
+<section id="orthogonal-complements">
+<h2>Orthogonal complements</h2>
+<p id="orthogonal-complement-of-l">The preview activity presented us with a <span data-concept="vector">vector</span> $\kvecv$ and led us through the process of describing all the <span data-concept="vector">vectors</span> <span data-concept="orthogonal-vectors">orthogonal</span> to $\kvecv$. Notice that the set of scalar multiples of $\kvecv$ describes a line $\kL$, a 1-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^2$. We then described a second line consisting of all the <span data-concept="vector">vectors</span> <span data-concept="orthogonal-vectors">orthogonal</span> to $\kvecv$. Notice that every <span data-concept="vector">vector</span> on this line is <span data-concept="orthogonal-vectors">orthogonal</span> to every <span data-concept="vector">vector</span> on the line $\kL$. We call this new line the <em><span data-concept="orthogonal-complement">orthogonal complement</span></em> of $\kL$ and denote it by $\kLperp$. The lines $\kL$ and $\kLperp$ are illustrated on the left of Figure 6.2.2.</p>
+<figure class="sim" id="sim-line-and-complement" data-figure="6.2.2" data-original="/media/ch06/orthog-lines.svg,/media/ch06/orthog-comp.svg" data-original-caption="On the left is a line L and its orthogonal complement L⊥. On the right is a plane W and its orthogonal complement W⊥ in R3.">
+  <div class="sim-head"><span class="eyebrow">Figure 6.2.2</span><span>Above, the line $\kL$ of multiples of $\kvecv$ in ${\mathbb R}^2$ and its <span data-concept="orthogonal-complement">orthogonal complement</span> $\kLperp$, the line of <span data-concept="vector">vectors</span> $\kvecx$ with $\kvecv\cdot\kvecx = 0$. However $\kvecv$ is turned, $\kLperp$ turns with it and meets $\kL$ at a right angle. Below, a plane $\kW$ in ${\mathbb R}^3$, spanned by the <span data-concept="vector">vectors</span> $\kvecwone$ and $\kvecwtwo$ of Activity 6.2.2, and its <span data-concept="orthogonal-complement">orthogonal complement</span> $\kWperp$, the line through the origin square to the plane. For the line of Example 6.2.4 the two trade places: the <span data-concept="orthogonal-complement">orthogonal complement</span> of a line in ${\mathbb R}^3$ is a plane.</span></div>
+</figure>
+<p id="general-context">The next definition places this example into a more general context.</p>
+<div class="note" id="definition-6-2-3">
+<div class="eyebrow">Definition 6.2.3</div>
+<p>Given a <span data-concept="subspace">subspace</span> $\kW$ of ${\mathbb R}^m$, the <em><span data-concept="orthogonal-complement">orthogonal complement</span></em> of $\kW$ is the set of <span data-concept="vector">vectors</span> in ${\mathbb R}^m$ each of which is <span data-concept="orthogonal-vectors">orthogonal</span> to every <span data-concept="vector">vector</span> in $\kW$. We denote the <span data-concept="orthogonal-complement">orthogonal complement</span> by $\kWperp$.</p>
+</div>
+<p id="typical-example">A typical example appears on the right of Figure 6.2.2. Here we see a plane $\kW$, a two-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^3$, and its <span data-concept="orthogonal-complement">orthogonal complement</span> $\kWperp$, which is a line in ${\mathbb R}^3$.</p>
+<p id="complement-is-a-subspace">As the next activity demonstrates, <span data-concept="orthogonal-complement-is-a-subspace">the orthogonal complement of a subspace $\kW$ is itself a subspace</span> of ${\mathbb R}^m$.</p>
+<div class="exercises" data-place="complement-is-a-subspace"></div>
+<div class="example" id="example-orthog-comp-line">
+<h3>Example 6.2.4</h3>
+<p>If $\kL$ is the line defined by $\kvecv=\left[\begin{array}{r}1 \\ -2 \\ 3 \end{array}\right]$ in ${\mathbb R}^3$, we will describe the <span data-concept="orthogonal-complement">orthogonal complement</span> $\kLperp$, the set of <span data-concept="vector">vectors</span> <span data-concept="orthogonal-vectors">orthogonal</span> to $\kL$.</p>
+<p>If $\kvecx$ is <span data-concept="orthogonal-vectors">orthogonal</span> to $\kL$, it must be <span data-concept="orthogonal-vectors">orthogonal</span> to $\kvecv$ so we have</p>
+$$ \kvecv\cdot\kvecx = x_1-2x_2+3x_3 = 0\text{.} $$
+<p>We can describe the solutions to this equation <span data-concept="parametric-description">parametrically</span> as</p>
+$$ \kvecx=\left[\begin{array}{r}x_1 \\ x_2 \\ x_3 \end{array}\right] = \left[\begin{array}{c}2x_2-3x_3 \\ x_2 \\ x_3 \end{array}\right] = x_2\left[\begin{array}{r}2 \\ 1 \\ 0 \end{array}\right]+x_3\left[\begin{array}{r}-3 \\ 0 \\ 1 \end{array}\right]\text{.} $$
+<p>Therefore, the <span data-concept="orthogonal-complement">orthogonal complement</span> $\kLperp$ is a plane, a two-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^3$, spanned by the <span data-concept="vector">vectors</span> $\left[\begin{array}{r}2 \\ 1 \\ 0 \end{array}\right]$ and $\left[\begin{array}{r}-3 \\ 0 \\ 1 \end{array}\right]$.</p>
+</div>
+<div class="example" id="example-orthog-comp-gen">
+<h3>Example 6.2.5</h3>
+<p>Suppose that $\kW$ is the $2$-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^5$ with <span data-concept="basis-of-a-subspace">basis</span></p>
+$$ \kvecwone=\left[\begin{array}{r}-1 \\ -2 \\ 2 \\ 3 \\ -4 \\ \end{array}\right],\hspace{24pt} \kvecwtwo=\left[\begin{array}{r}2 \\ 4 \\ 2 \\ 0 \\ 2 \\ \end{array}\right]\text{.} $$
+<p>We will give a description of the <span data-concept="orthogonal-complement">orthogonal complement</span> $\kWperp$.</p>
+<p>If $\kvecx$ is in $\kWperp$, we know that $\kvecx$ is <span data-concept="orthogonal-vectors">orthogonal</span> to both $\kvecwone$ and $\kvecwtwo$. Therefore,</p>
+$$ \begin{aligned} \kvecwone\cdot\kvecx & {}={}-x_1-2x_2+2x_3+3x_4-4x_5 & {}={} 0 \\ \kvecwtwo\cdot\kvecx & {}={} 2x_1+4x_2+2x_3+0x_4+2x_5 & {}={} 0 \end{aligned} $$
+<p>In other words, $\kB\kvecx=\kveczero$ where</p>
+$$ \kB = \begin{bmatrix} -1 & -2 & 2 & 3 & -4 \\ 2 & 4 & 2 & 0 & 2 \end{bmatrix} \sim \begin{bmatrix} 1 & 2 & 0 & -1 & 2 \\ 0 & 0 & 1 & 1 & -1 \end{bmatrix}\text{.} $$
+<p>The solutions may be described <span data-concept="parametric-description">parametrically</span> as</p>
+$$ \kvecx=\left[\begin{array}{r}x_1 \\ x_2 \\ x_3 \\ x_4 \\ x_5 \\ \end{array}\right] =x_2\left[\begin{array}{r}-2 \\ 1 \\ 0 \\ 0 \\ 0 \\ \end{array}\right] + x_4\left[\begin{array}{r}1 \\ 0 \\ -1 \\ 1 \\ 0 \\ \end{array}\right] + x_5\left[\begin{array}{r}-2 \\ 0 \\ 1 \\ 0 \\ 1 \\ \end{array}\right]\text{.} $$
+<p>The <span data-concept="properties-of-the-dot-product">distributive property of dot products</span> implies that any <span data-concept="vector">vector</span> that is <span data-concept="orthogonal-vectors">orthogonal</span> to both $\kvecwone$ and $\kvecwtwo$ is also <span data-concept="orthogonal-vectors">orthogonal</span> to any <span data-concept="linear-combination">linear combination</span> of $\kvecwone$ and $\kvecwtwo$ since</p>
+$$ (c_1\kvecwone + c_2\kvecwtwo)\cdot\kvecx = c_1\kvecwone\cdot\kvecx + c_2\kvecwtwo\cdot\kvecx = 0\text{.} $$
+<p>Therefore, $\kWperp$ is a $3$-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^5$ with <span data-concept="basis-of-a-subspace">basis</span></p>
+$$ \kvecvone=\left[\begin{array}{r}-2 \\ 1 \\ 0 \\ 0 \\ 0 \\ \end{array}\right], \hspace{24pt} \kvecvtwo=\left[\begin{array}{r}1 \\ 0 \\ -1 \\ 1 \\ 0 \\ \end{array}\right], \hspace{24pt} \kvecvthree=\left[\begin{array}{r}-2 \\ 0 \\ 1 \\ 0 \\ 1 \\ \end{array}\right]\text{.} $$
+<p>One may check that the <span data-concept="vector">vectors</span> $\kvecvone$, $\kvecvtwo$, and $\kvecvthree$ are each <span data-concept="orthogonal-vectors">orthogonal</span> to both $\kvecwone$ and $\kvecwtwo$.</p>
+</div>
+</section>
+
+<section id="the-matrix-transpose">
+<h2>The matrix transpose</h2>
+<p id="transpose-defined">The previous activity and examples show how we can describe the <span data-concept="orthogonal-complement">orthogonal complement</span> of a <span data-concept="subspace">subspace</span> as the solution set of a particular <span data-concept="linear-system-of-equations">linear system</span>. We will make this connection more explicit by defining a new <span data-concept="matrix">matrix</span> operation called the <em><span data-concept="transpose">transpose</span></em>.</p>
+<div class="note" id="definition-6-2-6">
+<div class="eyebrow">Definition 6.2.6</div>
+<p>The <em><span data-concept="transpose">transpose</span></em> of the $m\times n$ <span data-concept="matrix">matrix</span> $\kA$ is the $n\times m$ <span data-concept="matrix">matrix</span> $\kAT$ whose rows are the columns of $\kA$.</p>
+</div>
+<div class="example" id="example-6-2-7">
+<h3>Example 6.2.7</h3>
+<p>If $\kA=\begin{bmatrix} 4 & -3 & 0 & 5 \\ -1 & 2 & 1 & 3 \\ \end{bmatrix}$, then $\kAT=\begin{bmatrix} 4 & -1 \\ -3 & 2 \\ 0 & 1 \\ 5 & 3 \\ \end{bmatrix}$</p>
+</div>
+<div class="exercises" data-place="example-6-2-7"></div>
+<p id="transpose-and-dot-products">The previous activity demonstrates an important connection between the <span data-concept="transpose">matrix transpose</span> and <span data-concept="dot-product">dot products</span>. More specifically, the components of the product $\kAT\kvecx$ are simply the <span data-concept="dot-product">dot products</span> of the columns of $\kA$ with $\kvecx$. We will make frequent use of this observation so let’s record it as a proposition.</p>
+<div class="note" id="prop-transpose-multiplication">
+<div class="eyebrow">Proposition 6.2.8</div>
+<p>If $\kA$ is the <span data-concept="matrix">matrix</span> whose columns are $\kvecvone,\kvecvtwo,\ldots,\kvecvn$, then</p>
+$$ \kAT\kvecx = \begin{bmatrix} \kvecvone\cdot\kvecx \\ \kvecvtwo\cdot\kvecx \\ \vdots \\ \kvecvn\cdot\kvecx \\ \end{bmatrix} $$
+</div>
+<div class="example" id="example-6-2-9">
+<h3>Example 6.2.9</h3>
+<p>Suppose that $\kW$ is a <span data-concept="subspace">subspace</span> of ${\mathbb R}^4$ having <span data-concept="basis-of-a-subspace">basis</span></p>
+$$ \kvecwone=\left[\begin{array}{r}1 \\ 0 \\ 2 \\ 1 \end{array}\right],\hspace{24pt} \kvecwtwo=\left[\begin{array}{r}2 \\ 1 \\ 3 \\ 4 \end{array}\right]\text{,} $$
+<p>and that we wish to describe the <span data-concept="orthogonal-complement">orthogonal complement</span> $\kWperp$.</p>
+<p>If $\kA$ is the <span data-concept="matrix">matrix</span> $\kA = \begin{bmatrix}\kvecwone & \kvecwtwo\end{bmatrix}$ and $\kvecx$ is in $\kWperp$, we have</p>
+$$ \kAT\kvecx = \left[\begin{array}{r}\kvecwone\cdot\kvecx \\ \kvecwtwo\cdot\kvecx \end{array}\right] = \left[\begin{array}{r}0 \\ 0 \end{array}\right]\text{.} $$
+<p>Describing <span data-concept="vector">vectors</span> $\kvecx$ that are <span data-concept="orthogonal-vectors">orthogonal</span> to both $\kvecwone$ and $\kvecwtwo$ is therefore equivalent to the more familiar task of describing the solution set $\kAT\kvecx = \kveczero$. To do so, we find the <span data-concept="reduced-row-echelon-form">reduced row echelon form</span> of $\kAT$ and write the solution set <span data-concept="parametric-description">parametrically</span> as</p>
+$$ \kvecx = x_3\left[\begin{array}{r}-2 \\ 1 \\ 1 \\ 0 \end{array}\right] + x_4\left[\begin{array}{r}-1 \\ -2 \\ 0 \\ 1 \end{array}\right]\text{.} $$
+<p>Once again, the <span data-concept="properties-of-the-dot-product">distributive property of dot products</span> tells us that such a <span data-concept="vector">vector</span> is also <span data-concept="orthogonal-vectors">orthogonal</span> to any <span data-concept="linear-combination">linear combination</span> of $\kvecwone$ and $\kvecwtwo$ so this solution set is, in fact, the <span data-concept="orthogonal-complement">orthogonal complement</span> $\kWperp$. Indeed, we see that the <span data-concept="vector">vectors</span></p>
+$$ \kvecvone=\left[\begin{array}{r}-2 \\ 1 \\ 1 \\ 0 \end{array}\right],\hspace{24pt} \kvecvtwo=\left[\begin{array}{r}-1 \\ -2 \\ 0 \\ 1 \end{array}\right] $$
+<p>form a <span data-concept="basis-of-a-subspace">basis</span> for $\kWperp$, which is a two-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^4$.</p>
+</div>
+<p id="w-is-col-a">To place this example in a slightly more general context, note that $\kvecwone$ and $\kvecwtwo$, the columns of $\kA$, form a <span data-concept="basis-of-a-subspace">basis</span> of $\kW$. Since $\kCol(\kA)$, the <span data-concept="column-space">column space</span> of $\kA$ is the <span data-concept="subspace">subspace</span> of <span data-concept="linear-combination">linear combinations</span> of the columns of $\kA$, we have $\kW=\kCol(\kA)$.</p>
+<p id="col-perp-is-nul">This example also shows that <span data-concept="orthogonal-complement-of-the-column-space">the orthogonal complement $\kWperp = \kCol(\kA)^\perp$ is described by the solution set of $\kAT\kvecx = \kveczero$</span>. This solution set is what we have called $\kNul(\kAT)$, the <span data-concept="kernel">null space</span> of $\kAT$. In this way, we see the following proposition, which is visually represented in Figure 6.2.11.</p>
+<div class="note" id="prop-col-orthog">
+<div class="eyebrow">Proposition 6.2.10</div>
+<p>For any <span data-concept="matrix">matrix</span> $\kA$, the <span data-concept="orthogonal-complement">orthogonal complement</span> of $\kCol(\kA)$ is $\kNul(\kAT)$; that is,</p>
+$$ \kCol(\kA)^\perp = \kNul(\kAT)\text{.} $$
+</div>
+<figure class="sim" id="sim-col-and-nul-transpose" data-figure="6.2.11" data-original="/media/ch06/nul-at.svg" data-original-caption="The orthogonal complement of the column space of A is the null space of A transpose.">
+  <div class="sim-head"><span class="eyebrow">Figure 6.2.11</span><span>The <span data-concept="column-space">column space</span> $\kCol(\kA)$ of a $3\times 2$ <span data-concept="matrix">matrix</span> $\kA$ is the plane its two columns span, and the <span data-concept="kernel">null space</span> $\kNul(\kAT)$ of its <span data-concept="transpose">transpose</span> is the set of <span data-concept="vector">vectors</span> $\kvecx$ with $\kAT\kvecx = \kveczero$, those <span data-concept="orthogonal-vectors">orthogonal</span> to both columns: a line square to the plane, whatever the columns are. The matrices are those of Activities 6.2.2 and 6.2.3. When the second column is a multiple of the first, $\kCol(\kA)$ shrinks to a line and $\kNul(\kAT)$ opens into the plane square to it.</span></div>
+</figure>
+</section>
+
+<section id="properties-of-the-matrix-transpose">
+<h2>Properties of the matrix transpose</h2>
+<p id="simple-operation">The <span data-concept="transpose">transpose</span> is a simple algebraic operation performed on a <span data-concept="matrix">matrix</span>. The next activity explores some of its properties.</p>
+<div class="exercises" data-place="simple-operation"></div>
+<p id="general-properties">In spite of the fact that we are looking at some specific examples, this activity demonstrates the following general <span data-concept="properties-of-the-transpose">properties of the transpose</span>, which may be verified with a little effort.</p>
+<div class="note" id="assemblage-prop-transpose">
+<div class="eyebrow">Summary · Properties of the transpose</div>
+<p>Here are some <span data-concept="properties-of-the-transpose">properties of the matrix transpose</span>, expressed in terms of general <span data-concept="matrix">matrices</span> $\kA$, $\kB$, and $\kC$. We assume that $\kC$ is a <span data-concept="square-matrix">square matrix</span>.</p>
+<ul>
+<li>If $\kA+\kB$ is defined, then $(\kA+\kB)^T = \kAT+\kBT$.</li>
+<li>$(s\kA)^T = s\kAT$.</li>
+<li>$(\kAT)^T = \kA$.</li>
+<li><span data-concept="determinant-of-the-transpose">$\det(\kC) = \det(\kCT)$</span>.</li>
+<li><span data-concept="transpose-of-a-product">If $\kA\kB$ is defined, then $(\kA\kB)^T = \kBT\kAT$</span>. Notice that the order of the multiplication is reversed.</li>
+<li>If $\kC$ is <span data-concept="invertible-matrix">invertible</span>, then $(\kCT)^{-1} = (\kCinv)^T$.</li>
+</ul>
+</div>
+<p id="final-property">There is one final property we wish to record though we will wait until <a href="/understanding-linear-algebra/ch07/7.4/">Section 7.4</a> to explain why it is true.</p>
+<div class="note" id="prop-col-row-rank">
+<div class="eyebrow">Proposition 6.2.12</div>
+<p>For any <span data-concept="matrix">matrix</span> $\kA$, we have</p>
+$$ \operatorname{rank}(\kA) = \operatorname{rank}(\kAT)\text{.} $$
+</div>
+<p id="dimension-relationship">This proposition is important because it implies a relationship between the <span data-concept="dimension">dimensions</span> of a <span data-concept="subspace">subspace</span> and its <span data-concept="orthogonal-complement">orthogonal complement</span>. For instance, if $\kA$ is an $m\times n$ <span data-concept="matrix">matrix</span>, we saw in <a href="/understanding-linear-algebra/ch03/3.5/">Section 3.5</a> that <span data-concept="basis-and-dimension-of-the-column-space">$\dim\kCol(\kA) = \operatorname{rank}(\kA)$</span> and <span data-concept="dimension-of-the-null-space">$\dim\kNul(\kA) = n-\operatorname{rank}(\kA)$</span>.</p>
+<p id="dimension-argument">Now suppose that $\kW$ is an $n$-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^m$ with <span data-concept="basis-of-a-subspace">basis</span> $\kvecwone,\kvecwtwo,\ldots,\kvecwn$. If we form the $m\times n$ <span data-concept="matrix">matrix</span> $\kA=\begin{bmatrix}\kvecwone & \kvecwtwo & \ldots & \kvecwn\end{bmatrix}$, then $\kCol(\kA) = \kW$ so that</p>
+$$ \operatorname{rank}(\kA) = \dim\kCol(\kA) = \dim \kW = n\text{.} $$
+<p>The <span data-concept="transpose">transpose</span> $\kAT$ is an $n\times m$ <span data-concept="matrix">matrix</span> having <span data-concept="rank-of-the-transpose">$\operatorname{rank}(\kAT) = \operatorname{rank}(\kA)= n$</span>. Since <span data-concept="orthogonal-complement-of-the-column-space">$\kWperp = \kNul(\kAT)$</span>, we have</p>
+$$ \dim \kWperp = \dim\kNul(\kAT) = m - \operatorname{rank}(\kAT) = m-n = m-\dim \kW\text{.} $$
+<p id="explains-proposition">This explains the following proposition.</p>
+<figure class="dv" id="drv-dimension-of-the-orthogonal-complement"></figure>
+<div class="note" id="prop-orthog-dim">
+<div class="eyebrow">Proposition 6.2.13</div>
+<p>If $\kW$ is a <span data-concept="subspace">subspace</span> of ${\mathbb R}^m$, then</p>
+$$ \dim \kW + \dim \kWperp = m\text{.} $$
+</div>
+<div class="example" id="example-6-2-14">
+<h3>Example 6.2.14</h3>
+<p>In <a href="#example-orthog-comp-line">Example 6.2.4</a>, we constructed the <span data-concept="orthogonal-complement">orthogonal complement</span> of a line in ${\mathbb R}^3$. The <span data-concept="dimension">dimension</span> of the <span data-concept="orthogonal-complement">orthogonal complement</span> should be $3 - 1 = 2$, which explains why we found the <span data-concept="orthogonal-complement">orthogonal complement</span> to be a plane.</p>
+</div>
+<div class="example" id="example-6-2-15">
+<h3>Example 6.2.15</h3>
+<p>In <a href="#example-orthog-comp-gen">Example 6.2.5</a>, we looked at $\kW$, a $2$-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^5$ and found its <span data-concept="orthogonal-complement">orthogonal complement</span> $\kWperp$ to be a $5-2=3$-dimensional <span data-concept="subspace">subspace</span> of ${\mathbb R}^5$.</p>
+</div>
+<div class="exercises" data-place="example-6-2-15"></div>
+</section>
