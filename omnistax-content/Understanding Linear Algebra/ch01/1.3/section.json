@@ -1,0 +1,638 @@
+{
+ "id": "1.3",
+ "module": "sec-sage-introduction",
+ "chapter": "1",
+ "title": "Computation with Sage",
+ "lead": "Sage is a computer program that does linear algebra. This section shows how to enter a <span data-concept=\"matrix\">matrix</span> and ask for its <span data-concept=\"reduced-row-echelon-form\">reduced row echelon form</span>, notices what happens to that form when a <span data-concept=\"matrix\">matrix</span> gains extra columns, and asks how much work a computer does to row reduce a very large <span data-concept=\"matrix\">matrix</span>.",
+ "objectives": [],
+ "summary_html": "<p>We learned some basic features of Sage with an emphasis on finding the <span data-concept=\"reduced-row-echelon-form\">reduced row echelon form</span> of a <span data-concept=\"matrix\">matrix</span>.</p><ul><li>Sage can <span data-concept=\"sage-arithmetic\">perform basic arithmetic using standard operators</span>. Sage can also save results from one command to be reused in a later command.</li><li>We may <span data-concept=\"matrix-in-sage\">define matrices in Sage</span> and <span data-concept=\"rref-in-sage\">find the reduced row echelon form using the <code>rref</code> command</span>.</li><li>We saw an example of the <a href=\"#prop-augmentation-principle\"><span data-concept=\"augmentation-principle\">Augmentation Principle</span></a>, which we then stated as a general principle.</li><li>We saw that the <span data-concept=\"computational-effort-of-row-reduction\">computational effort required to find the reduced row echelon form of an $n\\times n$ matrix is proportional to $n^3$</span>.</li></ul><p>Appendix A contains a reference outlining the Sage commands that we have encountered.</p>",
+ "notes": "The book’s 23 Sage cells are not live: the 7 that hold code stand as static code blocks, and the 16 empty cells, each inviting the reader to type, are left out with the task’s words kept.",
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "Bloom levels and concept tags are AI-generated. Every activity and exercise carries the book’s own answer and solution, each computed answer confirmed with SymPy. Two slips in the book’s key are kept as printed and corrected in a note under the card: Exercise 1.3.1’s solution prints the augmented matrix’s third row with −2 where the system has −x, and Activity 1.3.2 (c)’s solution gives x₁ = −2 where the system gives x₁ = 2. The 16 empty Sage cells of the activities and exercises are left out, each part keeping the book’s words.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "figures": [
+  {
+   "id": "sim-row-reduction-effort",
+   "kind": "sim",
+   "draws": [],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "cowen",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "sage-cells",
+   "concept": "sage-arithmetic",
+   "verb": "introduces"
+  },
+  {
+   "span": "unique-rref",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "unique-rref",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "unique-rref",
+   "concept": "row-equivalence",
+   "verb": "uses"
+  },
+  {
+   "span": "unique-rref",
+   "concept": "uniqueness-of-reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "uniqueness-of-reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "gauss-jordan-elimination",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "row-equivalence",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "solution-space",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "why-rref",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "rref-by-computer",
+   "concept": "rref-in-sage",
+   "verb": "introduces"
+  },
+  {
+   "span": "rows-and-columns",
+   "concept": "matrix-shape",
+   "verb": "introduces"
+  },
+  {
+   "span": "rows-and-columns",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "enter-matrix",
+   "concept": "matrix-in-sage",
+   "verb": "introduces"
+  },
+  {
+   "span": "enter-matrix",
+   "concept": "matrix-shape",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-confirms",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "arguments",
+   "concept": "matrix-in-sage",
+   "verb": "reinforces"
+  },
+  {
+   "span": "arguments",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "arguments",
+   "concept": "coefficient-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sage-syntax",
+   "concept": "matrix-in-sage",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rows-form",
+   "concept": "matrix-in-sage",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-practices",
+   "concept": "matrix-in-sage",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sage-practices",
+   "concept": "rref-in-sage",
+   "verb": "reinforces"
+  },
+  {
+   "span": "augmentation-recap",
+   "concept": "augmentation",
+   "verb": "introduces"
+  },
+  {
+   "span": "augmentation-recap",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "augmentation-recap",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "augmentation-example",
+   "concept": "augmentation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "augmentation-example",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "augmentation-example",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "coefficient-inside",
+   "concept": "augmentation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "coefficient-inside",
+   "concept": "coefficient-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "general-principle",
+   "concept": "gauss-jordan-elimination",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-augmentation-principle",
+   "concept": "augmentation-principle",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-augmentation-principle",
+   "concept": "augmentation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-augmentation-principle",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "limits",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "limits",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "square-matrix",
+   "concept": "matrix-shape",
+   "verb": "reinforces"
+  },
+  {
+   "span": "operation-costs",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "replacement-count",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "replacement-count",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "scaling-count",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "total-operations",
+   "concept": "computational-effort-of-row-reduction",
+   "verb": "introduces"
+  },
+  {
+   "span": "obs-1-3-2",
+   "concept": "computational-effort-of-row-reduction",
+   "verb": "reinforces"
+  },
+  {
+   "span": "careful-accounting",
+   "concept": "computational-effort-of-row-reduction",
+   "verb": "reinforces"
+  },
+  {
+   "span": "careful-accounting",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "careful-accounting",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-reduction-effort",
+   "concept": "computational-effort-of-row-reduction",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-row-reduction-effort",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-reduction-effort",
+   "concept": "matrix-shape",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-reduction-effort",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "trillion",
+   "concept": "computational-effort-of-row-reduction",
+   "verb": "reinforces"
+  },
+  {
+   "span": "trillion",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "universe",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "universe",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "1.3.1",
+   "source_number": "1.3.1",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "sage-commands"
+   },
+   "cite": "sage-cells",
+   "prompt": "<p><strong>Basic Sage commands.</strong></p><ol type=\"a\"><li><p>Sage uses the standard operators +, -, *, /, and ^ for the usual arithmetic operations. By entering text in the cell below, ask Sage to evaluate</p>$$ 3 + 4(2^4 - 1) $$<p>.</p></li><li><p>Notice that we can create new lines by pressing <em>Enter</em> and entering additional commands on them. What happens when you evaluate this Sage cell?</p><pre class=\"sage\"><code>5 * 3\n10 - 4</code></pre><p>Notice that we only see the result from the last command. With the <code>print</code> command, we may see earlier results, if we wish.</p><pre class=\"sage\"><code>print(5 * 3)\nprint(10 - 4)</code></pre></li><li><p>We may give a name to the result of one command and refer to it in a later command.</p><pre class=\"sage\"><code>income = 1500 * 12\ntaxes = income * 0.15\nprint(taxes)</code></pre><p>Suppose you have three tests in your linear algebra class and your scores are 90, 100, and 98. In the Sage cell below, add your scores together and call the result <code>total</code>. On the next line, find the average of your test scores and print it.</p></li><li><p>If you are not a programmer, you may ignore this part. If you are an experienced programmer, however, you should know that Sage is written in the Python programming language and that you may enter Python code into a Sage cell.</p><pre class=\"sage\"><code>for i in range(10):\n    print(i)</code></pre></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<ol type=\"a\"><li><pre><code>3 + 4*(2^4 - 1)</code></pre></li><li>Only the results of the last line are displayed.</li><li><pre><code>total = 90 + 100 + 98\naverage = total / 3\nprint(average)</code></pre></li><li>This cells print the integers from 0 to 9.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "1.3.2",
+   "source_number": "1.3.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "matrix-by-rows"
+   },
+   "cite": "enter-matrix",
+   "prompt": "<p><strong>Using Sage to find row reduced echelon matrices.</strong></p><ol type=\"a\"><li><p>Enter the following matrix into Sage.</p>$$ \\left[ \\begin{array}{rrrr} -1 & -2 & 2 & -1 \\\\ 2 & 4 & -1 & 5 \\\\ 1 & 2 & 0 & 3 \\end{array} \\right] $$</li><li><p>Give the matrix the name $\\kA$ by entering</p><pre><code>A = matrix( ..., ..., [ ... ])</code></pre><p>We may then find its reduced row echelon form by entering</p><pre><code>A = matrix( ..., ..., [ ... ])\nA.rref()</code></pre><p>A common mistake is to forget the parentheses after <code>rref</code>.</p><p>Use Sage to find the reduced row echelon form of the matrix from part (a) of this activity.</p></li><li><p>Use Sage to describe the solution space of the system of linear equations</p>$$ \\begin{alignedat}{5} -x_1 & & & & & {}+{} & 2x_4 & {}={} & 4 \\\\ & & 3x_2 & {}+{} & x_3 & {}+{} & 2x_4 & {}={} & 3 \\\\ 4x_1 & {}-{} & 3x_2 & & & {}+{} & x_4 & {}={} & 14 \\\\ & & 2x_2 & {}+{} & 2x_3 & {}+{} & x_4 & {}={} & 1 \\\\ \\end{alignedat} $$</li><li><p>Consider the two matrices:</p>$$ \\begin{array}{rcl} \\kA & = & \\left[ \\begin{array}{rrrr} 1 & -2 & 1 & -3 \\\\ -2 & 4 & 1 & 1 \\\\ -4 & 8 & -1 & 7 \\\\ \\end{array}\\right] \\\\ \\kB & = & \\left[ \\begin{array}{rrrrrr} 1 & -2 & 1 & -3 & 0 & 3 \\\\ -2 & 4 & 1 & 1 & 1 & -1 \\\\ -4 & 8 & -1 & 7 & 3 & 2 \\\\ \\end{array}\\right] \\\\ \\end{array} $$<p>We say that $\\kB$ is an <em>augmentation</em> of $\\kA$ because it is obtained from $\\kA$ by adding some more columns.</p><p>Using Sage, define the matrices and compare their reduced row echelon forms. What do you notice about the relationship between the two reduced row echelon forms?</p></li><li><p>Using the system of equations in part (c), write the augmented matrix corresponding to the system of equations. What did you find for the reduced row echelon form of the augmented matrix?</p><p>Now write the coefficient matrix of this system of equations. What does part (d) of this activity tell you about its reduced row echelon form?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<ol type=\"a\"><li><pre><code>matrix(3, 4, [-1,-2, 2,-1,\n               2, 4,-1, 5,\n               1, 2, 0, 3])</code></pre></li><li><p>The reduced row echelon form of the matrix is</p>$$ \\begin{bmatrix} 1 & 2 & 0 & 3 \\\\ 0 & 0 & 1 & 1 \\\\ 0 & 0 & 0 & 0 \\end{bmatrix}. $$</li><li><p>Sage tells us that the reduced row echelon form of the corresponding augmented matrix is</p>$$ \\begin{bmatrix} 1 & 0 & 0 & 0 & -2 \\\\ 0 & 1 & 0 & 0 & -1 \\\\ 0 & 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 & 3 \\\\ \\end{bmatrix} $$<p>so there is a unique solution $(x_1,x_2,x_3,x_4) = (-2,-1,0,3)$.<sup class=\"fn\" data-note=\"fn-act-1-3-2-c\"></sup></p></li><li>The first four columns of the reduced row echelon form of $\\kB$ form the reduced row echelon form of $\\kA$.</li><li><p>The reduced row echelon form of the coefficient matrix is</p>$$ \\begin{bmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ \\end{bmatrix}. $$</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "1.3.1",
+   "source_number": "1.3.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rref-by-computer",
+   "prompt": "<p>Consider the linear system</p>$$ \\begin{alignedat}{4} x & {}+{} & 2y & {}-{} & z & {}={} & 1 \\\\ 3x & {}+{} & 2y & {}+{} & 2z & {}={} & 7 \\\\ -x & & & {}+{} & 4z & {}={} & -3 \\\\ \\end{alignedat} $$<p>Write this system as an augmented matrix and use Sage to find a description of the solution space.</p>",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "x",
+      "value": 3
+     },
+     {
+      "part": "y",
+      "value": -1
+     },
+     {
+      "part": "z",
+      "value": 0
+     }
+    ],
+    "solution": "<p>We can use Sage to find the reduced row echelon form of the corresponding augmented matrix:</p>$$ \\left[\\begin{array}{rrr|r} 1 & 2 & -1 & 1 \\\\ 3 & 2 & 2 & 7 \\\\ -2 & 0 & 4 & -3 \\\\ \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & 0 & 3 \\\\ 0 & 1 & 0 & -1 \\\\ 0 & 0 & 1 & 0 \\end{array}\\right]\\text{.} $$<p><sup class=\"fn\" data-note=\"fn-ex-1-3-1\"></sup>This shows that there is exactly one solution $(3,-1,0)$.</p>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "1.3.2",
+   "source_number": "1.3.2",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rref-by-computer",
+   "prompt": "<p>Shown below are some traffic patterns in the downtown area of a large city. The figures give the number of cars per hour traveling along each road. Any car that drives into an intersection must also leave the intersection. This means that the number of cars entering an intersection in an hour is equal to the number of cars leaving the intersection.</p><ol type=\"a\"><li><p>Let's begin with the following traffic pattern.</p><ol type=\"i\"><li><p>How many cars per hour enter the upper left intersection? How many cars per hour leave this intersection? Use this to form a linear equation in the variables $x$, $y$, $z$, and $w$.</p><figure class=\"photo\"><img src=\"/media/ch01/1-3-traffic-b.svg\" alt=\"A set of intersecting streets along with a measure of the rate of traffic flow on each street.\"><figcaption><span class=\"eyebrow\">Figure 1.3.3</span><span>A set of intersecting streets along with a measure of the rate of traffic flow on each street.</span></figcaption></figure></li><li>Form three more linear equations from the other three intersections to form a linear system having four equations in four variables. Then use Sage to find the solution space to this system.</li><li>Is there exactly one solution or infinitely many solutions? Explain why you would expect this given the information provided.</li></ol></li><li><p>Another traffic pattern is shown below.</p><figure class=\"photo\"><img src=\"/media/ch01/1-3-traffic-a.svg\" alt=\"A set of intersecting streets along with a measure of the rate of traffic flow on each street.\"><figcaption><span class=\"eyebrow\">Figure 1.3.4</span><span>Another set of intersecting streets along with a measure of the rate of traffic flow on each street.</span></figcaption></figure><ol type=\"i\"><li>Once again, write a linear system for the quantities $x$, $y$, $z$, and $w$ and solve the system using the Sage cell below.</li><li>What can you say about the solution of this linear system? Is there exactly one solution or infinitely many solutions? Explain why you would expect this given the information provided.</li><li>What is the smallest possible amount of traffic flowing through $x$?</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<ol type=\"a\"><li><p>We will form a linear system by considering each intersection and equating the number of cars that enter the intersection to the number of cars that leave.</p><ol><li>For the intersection in the upper left, the number of cars that enter is $x$ while the number of cars that leave is $y + 100$. This gives the equation $x = y + 100$ or $x-y = 100$.</li><li><p>By studying the other three intersections, we form a linear system consisting of four equations in four variables:</p>$$ \\begin{alignedat}{5} x & {}-{} & y & & & & & {}={} & 100 \\\\ & & y & {}-{} & z & & & {}={} & -250 \\\\ & & & & & & w & {}={} & 160 \\\\ & & & & z & {}-{} & w & {}={} & 390\\text{.} \\\\ \\end{alignedat} $$<p>If we express these equations in terms of an augmented matrix and use Sage to find its reduced row echelon form, we find</p>$$ \\left[\\begin{array}{rrrr|r} 1 & -1 & 0 & 0 & 100 \\\\ 0 & 1 & -1 & 0 & -250 \\\\ 0 & 0 & 0 & 1 & 160 \\\\ 0 & 0 & 1 & -1 & 390 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrrr} 1 & 0 & 0 & 0 & 400 \\\\ 0 & 1 & 0 & 0 & 300 \\\\ 0 & 0 & 1 & 0 & 550 \\\\ 0 & 0 & 0 & 1 & 160 \\end{array}\\right] $$</li><li>There is exactly one solution: $x=400$, $y=300$, $z=550$, and $w=160$. This is what we expect since the traffic flow $w$ is determined by the upper right intersection. From here, all the other flows are determined as well.</li></ol></li><li><p>Let's now look at another traffic pattern.</p><ol><li><p>In this case, we find the equations:</p>$$ \\begin{alignedat}{5} x & {}+{} & y & & & & & {}={} & 650 \\\\ x & & & {}-{} & z & & & {}={} & -150 \\\\ & & y & & & {}+{} & w & {}={} & 580 \\\\ & & & & z & {}-{} & w & {}={} & 220\\text{.} \\\\ \\end{alignedat} $$<p>This gives the augmented matrix:</p>$$ \\left[\\begin{array}{rrrr|r} 1 & 1 & 0 & 0 & 650 \\\\ 1 & 0 & -1 & 0 & -150 \\\\ 0 & 1 & 0 & 1 & 580 \\\\ 0 & 0 & 1 & -1 & 220 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrrr} 1 & 0 & 0 & -1 & 70 \\\\ 0 & 1 & 0 & 1 & 580 \\\\ 0 & 0 & 1 & -1 & 220 \\\\ 0 & 0 & 0 & 0 & 0 \\end{array}\\right]\\text{.} $$</li><li><p>Here, we may view $w$ as a free variable and write</p>$$ \\begin{alignedat}{3} x & {}={} & 70 + w \\\\ y & {}={} & 580 - w \\\\ z & {}={} & 220 + w\\text{.} \\\\ \\end{alignedat} $$<p>This shows that there are infinitely many solutions. This makes sense since the unknown flows $x$, $y$, $z$, and $w$ form a loop. For instance, we can add one car to each of $x$, $z$, and $w$ provided we remove one from $y$.</p></li><li>Since we must have $y\\geq 0$, it follows that the free variable $w$ satisfies $0\\leq w \\leq 580$. This means that $x$ satisfies $70 \\leq x \\leq 650$.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "1.3.3",
+   "source_number": "1.3.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rref-by-computer",
+   "prompt": "<p>A typical problem in thermodynamics is to find the steady-state temperature distribution inside a thin plate if we know the temperature around the boundary. Let $T_1, T_2, \\ldots, T_6$ be the temperatures at the six nodes inside the plate as shown below.</p><p>The temperature at a node is approximately the average of the four nearest nodes: for instance,</p>$$ T_1 = (10 + 15 + T_2 + T_4)/4 $$<p>, which we may rewrite as</p>$$ 4T_1 - T_2 - T_4 = 25 $$<p>.</p><p>Set up a linear system to find the temperature at these six points inside the plate. Then use Sage to solve the linear system. If all the entries of the matrix are integers, Sage will compute the reduced row echelon form using rational numbers. To view a decimal approximation of the results, you may use</p><pre><code>A.rref().numerical_approx(digits=4)</code></pre><p>In the real world, the approximation becomes better as we add more and more points into the grid. This is a situation where we may want to solve a linear system having millions of equations and millions of variables.</p>",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "T₁",
+      "value": 14.86
+     },
+     {
+      "part": "T₂",
+      "value": 20.5
+     },
+     {
+      "part": "T₃",
+      "value": 26.19
+     },
+     {
+      "part": "T₄",
+      "value": 13.95
+     },
+     {
+      "part": "T₅",
+      "value": 20.93
+     },
+     {
+      "part": "T₆",
+      "value": 29.28
+     }
+    ],
+    "solution": "<p>We set up the equations</p>$$ \\begin{alignedat}{7} 4T_1 & {}-{} & T_2 & & & {}-{} & T_4 & & & & & {}={} & 25 \\\\ -T_1 & {}+{} & 4T_2 & {}-{} & T_3 & & &{}-{} & T_5 & & & {}={} & 20 \\\\ & & -T_2 & {}+{} & 4T_3 & & & & & {}-{} & T_6 & {}={} & 55 \\\\ -T_1 & & & & & {}{}+ & 4T_4 & {}-{} & T_5 & & & {}={} & 20 \\\\ & & -T_2 & & & {}-{} & T_4 & {}+{} & 4T_5 & {}-{} & T_6 & {}={} & 20 \\\\ & & & & -T_3 & & & {}-{} & T_5 & {}+{} & 4T_6 & {}={} & 70\\text{.} \\\\ \\end{alignedat} $$<p>Setting up an augmented matrix and using Sage to find its reduced row echelon form, we obtain</p>$$ \\begin{array}{rrr} T_1 = 14.86, & T_2 = 20.50, & T_3 = 26.19 \\\\ T_4 = 13.95, & T_5 = 20.93, & T_6 = 29.28\\text{.} \\\\ \\end{array} $$"
+   },
+   "figure": {
+    "src": "/media/ch01/1-3-heat.svg",
+    "alt": "The temperature distribution of a thin plate.",
+    "caption": "Figure 1.3.5 The temperature distribution of a thin plate."
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "1.3.4",
+   "source_number": "1.3.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rref-by-computer",
+   "prompt": "<p>The fuel inside model rocket motors is a black powder mixture that ideally consists of 60% charcoal, 30% potassium nitrate, and 10% sulfur by weight.</p><p>Suppose you work at a company that makes model rocket motors. When you come into work one morning, you learn that yesterday's first shift made a perfect batch of fuel. The second shift, however, misread the recipe and used 50% charcoal, 20% potassium nitrate and 30% sulfur. Then the two batches were mixed together. A chemical analysis shows that there are 100.3 pounds of charcoal in the mixture and 46.9 pounds of potassium nitrate.</p><ol type=\"a\"><li>Assuming the first shift produced $x$ pounds of fuel and the second $y$ pounds, set up a linear system in terms of $x$ and $y$. How many pounds of fuel did the first shift produce and how many did the second shift produce?</li><li>How much sulfur would you expect to find in the mixture?</li></ol>",
+   "answer": {
+    "type": "multi",
+    "generated_by": "source",
+    "parts": [
+     {
+      "part": "x",
+      "value": 113,
+      "unit": "lb"
+     },
+     {
+      "part": "y",
+      "value": 65,
+      "unit": "lb"
+     },
+     {
+      "part": "sulfur",
+      "value": 30.8,
+      "unit": "lb"
+     }
+    ],
+    "solution": "<ol type=\"a\"><li><p>Writing equations for the amount of charcoal and the amount of potassium nitrate, we have</p>$$ \\begin{alignedat}{3} 0.6x & {}+{} & 0.5y & {}={} & 100.3 \\\\ 0.3x & {}+{} & 0.2y & {}={} & 46.9\\text{.} \\\\ \\end{alignedat} $$<p>Solving this gives $x=113$ pounds and $y=65$ pounds.</p></li><li>The amount of sulfur will be $0.1x+0.3y = 30.8$ pounds.</li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "1.3.5",
+   "source_number": "1.3.5",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "rref-by-computer",
+   "prompt": "<p>This exercise is about balancing chemical reactions.</p><ol type=\"a\"><li><p>Chemists denote a molecule of water as $\\text{H}_2\\text{O}$, which means it is composed of two atoms of hydrogen (H) and one atom of oxygen (O). The process by which hydrogen burns is described by the chemical reaction</p>$$ x\\thinspace \\text{H}_2 + y\\thinspace\\text{O}_2 \\to z\\thinspace \\text{H}_2\\text{O} $$<p>This means that $x$ molecules of hydrogen $\\text{H}_2$ combine with $y$ molecules of oxygen $\\text{O}_2$ to produce $z$ water molecules. The number of hydrogen atoms is the same before and after the reaction; the same is true of the oxygen atoms.</p><ol><li>In terms of $x$, $y$, and $z$, how many hydrogen atoms are there before the reaction? How many hydrogen atoms are there after the reaction? Find a linear equation in $x$, $y$, and $z$ by equating these quantities.</li><li>Find a second linear equation in $x$, $y$, and $z$ by equating the number of oxygen atoms before and after the reaction.</li><li>Find the solutions of this linear system. Why are there infinitely many solutions?</li><li>In this chemical setting, $x$, $y$, and $z$ should be positive integers. Find the solution where $x$, $y$, and $z$ are the smallest possible positive integers.</li></ol></li><li><p>Now consider the reaction where potassium permanganate and manganese sulfate combine with water to produce manganese dioxide, potassium sulfate, and sulfuric acid:</p>$$ x_1\\thinspace \\text{K}\\text{Mn}\\text{O}_4 + x_2\\thinspace \\text{Mn}\\text{S}\\text{O}_4 + x_3\\thinspace \\text{H}_2\\text{O} \\to x_4\\thinspace \\text{Mn}\\text{O}_2 + x_5\\thinspace \\text{K}_2\\text{S}\\text{O}_4 + x_6\\thinspace \\text{H}_2\\text{S}\\text{O}_4. $$<p>As in the previous exercise, find the appropriate values for $x_1, x_2, \\ldots, x_6$ to balance the chemical reaction.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<ol type=\"a\"><li><p>We will equate the number of hydrogen and oxygen atoms before and after the reaction.</p><ol><li><p>Before the reaction, there are two hydrogen atoms for every hydrogen molecule. Since there are $x$ hydrogen molecules, we have $2x$ hydrogen atoms before the reaction.</p><p>After the reaction, there are two hydrogen atoms for every water molecule. Since there are $z$ hydrogen molecules, we have $2z$ hydrogen atoms after the reaction. This gives the equation $2x=2z$.</p></li><li>Similarly, there are $2y$ oxygen atoms before the reaction and $z$ oxygen atoms after. This gives the equation $2y = z$.</li><li><p>We have the linear system</p>$$ \\begin{alignedat}{4} 2x & & & {}-{} & 2z & {}={} & 0 \\\\ & & 2y & {}-{} & z & {}={} & 0\\text{.} \\\\ \\end{alignedat} $$<p>When we create the augmented matrix and find its reduced row echelon form, we see that $z$ is a free variable so that</p>$$ \\begin{alignedat}{2} x & {}={} & z \\\\ y & {}={} & \\frac12 z\\text{.} \\\\ \\end{alignedat} $$<p>We need all the quantities to be integers, and the smallest value of $z$ that makes $y$ an integer is $z=2$. Therefore, we have $x=2$, $y=1$, and $z=2$. The reaction is then</p>$$ 2\\thinspace \\text{H}_2 + \\thinspace\\text{O}_2 \\to 2\\thinspace \\text{H}_2\\text{O}\\text{.} $$</li></ol></li><li><p>Proceeding as in the previous part, we have</p>$$ \\begin{alignedat}{8} \\text{K:} & \\thinspace & x_1 & & & & & & & {}-{} & 2x_5 & & & {}={} & 0 \\\\ \\text{Mn:} & \\thinspace & x_1 & {}+{} & x_2 & & & {}-{} & x_4 & & & & & {}={} & 0 \\\\ \\text{O:} & \\thinspace & 4x_1 & {}+{} & 4x_2 & {}+{} & x_3 & {}-{} & 2x_4 & {}-{} & 4x_5 & {}-{} & 4x_6 & {}={} & 0 \\\\ \\text{S:} & \\thinspace & & & x_2 & & & & & {}-{} & x_5 & {}-{} & x_6 & {}={} & 0 \\\\ \\text{H:} & \\thinspace & & & & & 2x_3 & & & & & {}-{} & 2x_6 & {}= & 0\\text{.} \\\\ \\end{alignedat} $$<p>Solving this linear system, we find</p>$$ \\begin{alignedat}{2} x_1 & {}={} & x_6 \\\\ x_2 & {}={} & \\frac32 x_6 \\\\ x_3 & {}={} & x_6 \\\\ x_4 & {}={} & \\frac52 x_6 \\\\ x_5 & {}={} & \\frac12 x_6\\text{.} \\\\ \\end{alignedat} $$<p>Once again, we choose $x_6$ to be the smallest positive integer that causes all of the variables to be integers. This means that $x_6 = 2$ so that we have</p>$$ \\begin{array}{rrr} x_1 = 2, & x_2 = 3, & x_3 = 2, \\\\ x_4 = 5, & x_5 = 1, & x_6 = 2\\text{.} \\\\ \\end{array} $$<p>This gives the reaction:</p>$$ 2\\thinspace \\text{K}\\text{Mn}\\text{O}_4 + 3\\thinspace \\text{Mn}\\text{S}\\text{O}_4 + 2\\thinspace \\text{H}_2\\text{O} \\to 5\\thinspace \\text{Mn}\\text{O}_2 + \\thinspace \\text{K}_2\\text{S}\\text{O}_4 + 2\\thinspace \\text{H}_2\\text{S}\\text{O}_4. $$</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "1.3.6",
+   "source_number": "1.3.6",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "limits",
+   "prompt": "<p>We began this section by stating that increasing computational power has helped linear algebra assume a prominent role as a scientific tool. Later, we looked at one computational limitation: once a matrix gets to be too big, it is not reasonable to apply Gaussian elimination to find its reduced row echelon form.</p><p>In this exercise, we will see another limitation: computer arithmetic with real numbers is only an approximation because computers represent real numbers with only a finite number of bits. For instance, the number pi</p>$$ \\pi = 3.141592653589793238462643383279502884197169399\\ldots $$<p>would be approximated inside a computer by, say,</p>$$ \\pi\\approx 3.141592653589793 $$<p>Most of the time, this is not a problem. However, when we perform millions or even billions of arithmetic operations, the error in these approximations starts to accumulate and can lead to results that are wildly inaccurate. Here are two examples demonstrating this.</p><ol type=\"a\"><li><p>Let's first see an example showing that computer arithmetic really is an approximation. First, consider the linear system</p>$$ \\begin{alignedat}{4} x & {}+{} & \\frac12y & {}+{} & \\frac13z & {}={} & 1 \\\\ \\frac12x & {}+{} & \\frac13y & {}+{} & \\frac14z & {}={} & 0 \\\\ \\frac13x & {}+{} & \\frac14y & {}+{} & \\frac15z & {}={} & 0 \\\\ \\end{alignedat} $$<p>If the coefficients are entered into Sage as fractions, Sage will find the exact reduced row echelon form. Find the exact solution to this linear system.</p><p>Now let's ask Sage to compute with real numbers. We can do this by representing one of the coefficients as a decimal. For instance, the same linear system can be represented as</p>$$ \\begin{alignedat}{4} x & {}+{} & 0.5y & {}+{} & \\frac13z & {}={} & 1 \\\\ \\frac12x & {}+{} & \\frac13y & {}+{} & \\frac14z & {}={} & 0 \\\\ \\frac13x & {}+{} & \\frac14y & {}+{} & \\frac15z & {}={} & 0 \\\\ \\end{alignedat} $$<p>Most computers do arithmetic using either 32 or 64 bits. To magnify the problem so that we can see it better, we will ask Sage to do arithmetic using only 10 bits as follows.</p><pre class=\"sage\"><code>R = RealNumber\nRealNumber = RealField(10)\n\n# enter the matrix below\nA = matrix( ..., ..., [ ... ] )\n\nprint (A.rref())\nRealNumber = R</code></pre><p>What does Sage give for the solution now? Compare this to the exact solution that you found previously.</p></li><li><p>Some types of linear systems are particularly sensitive to errors resulting from computers' approximate arithmetic. For instance, suppose we are interested in the linear system</p>$$ \\begin{alignedat}{3} x & {}+{} & y & {}={} & 2 \\\\ x & {}+{} 1.001& y & {}={} & 2 \\\\ \\end{alignedat} $$<p>Find the solution to this linear system.</p><p>Suppose now that the computer has accumulated some error in one of the entries of this system so that it incorrectly stores the system as</p>$$ \\begin{alignedat}{3} x & {}+{} & y & {}={} & 2 \\\\ x & {}+{} 1.001& y & {}={} & 2.001 \\\\ \\end{alignedat} $$<p>Find the solution to this linear system.</p><p>Notice how a small error in one of the entries in the linear system leads to a solution that has a dramatically large error. Fortunately, this is an issue that has been well studied, and there are techniques that mitigate this type of behavior.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<ol type=\"a\"><li><p>The exact solution is</p>$$ x=9, y=-36, z=30\\text{.} $$<p>However, if we compute with only 10 bits, we find the approximate solution</p>$$ x=8.9, y=-35, z=29\\text{.} $$</li><li>This solution to the first system is $x=2$ and $y=0$. However, with just a small change in the system, we find the solution $x=1$ and $y=1$.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "sage-arithmetic"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-in-sage"
+  },
+  {
+   "exercise": "a2",
+   "concept": "rref-in-sage"
+  },
+  {
+   "exercise": "a2",
+   "concept": "augmentation"
+  },
+  {
+   "exercise": "a2",
+   "concept": "augmentation-principle"
+  },
+  {
+   "exercise": "a2",
+   "concept": "solution-space-from-reduced-row-echelon-form"
+  },
+  {
+   "exercise": "e1",
+   "concept": "rref-in-sage"
+  },
+  {
+   "exercise": "e1",
+   "concept": "augmented-matrix"
+  },
+  {
+   "exercise": "e1",
+   "concept": "solution-space-from-reduced-row-echelon-form"
+  },
+  {
+   "exercise": "e2",
+   "concept": "linear-system-of-equations"
+  },
+  {
+   "exercise": "e2",
+   "concept": "rref-in-sage"
+  },
+  {
+   "exercise": "e2",
+   "concept": "free-variable"
+  },
+  {
+   "exercise": "e2",
+   "concept": "solution-space-from-reduced-row-echelon-form"
+  },
+  {
+   "exercise": "e3",
+   "concept": "linear-system-of-equations"
+  },
+  {
+   "exercise": "e3",
+   "concept": "rref-in-sage"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-system-of-equations"
+  },
+  {
+   "exercise": "e4",
+   "concept": "rref-in-sage"
+  },
+  {
+   "exercise": "e5",
+   "concept": "linear-system-of-equations"
+  },
+  {
+   "exercise": "e5",
+   "concept": "free-variable"
+  },
+  {
+   "exercise": "e5",
+   "concept": "solution-space-from-reduced-row-echelon-form"
+  },
+  {
+   "exercise": "e6",
+   "concept": "rref-in-sage"
+  },
+  {
+   "exercise": "e6",
+   "concept": "solution-of-a-linear-system"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "fn-ex-1-3-1",
+   "kind": "correction",
+   "html": "The book prints the third row of the augmented matrix as $-2, 0, 4 \\mid -3$; the system’s third equation is $-x + 4z = -3$, so the row is $-1, 0, 4 \\mid -3$. Its reduced row echelon form is the one printed, and the solution $(3, -1, 0)$ is right for the system as stated (the matrix with $-2$ would give $(33/14, -13/28, 3/7)$)."
+  },
+  {
+   "id": "fn-act-1-3-2-c",
+   "kind": "correction",
+   "html": "The book prints the first row of the reduced matrix as $1, 0, 0, 0 \\mid -2$ and the solution as $(-2, -1, 0, 3)$. The system’s first equation, $-x_1 + 2x_4 = 4$, gives $x_1 = 2x_4 - 4 = 2$ when $x_4 = 3$, so the row reads $1, 0, 0, 0 \\mid 2$ and the unique solution is $(x_1, x_2, x_3, x_4) = (2, -1, 0, 3)$."
+  }
+ ]
+}

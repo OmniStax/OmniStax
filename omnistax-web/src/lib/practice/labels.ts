@@ -18,7 +18,8 @@ const titled = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 export const exerciseName = (ex: ExerciseDTO, kindName?: string, tr: TFn = t): string => {
   if (ex.id.startsWith('ai:')) return tr('practice.labels.aiExercise');
   if (ex.credit) return [ex.credit.short ?? ex.credit.title, ex.sourceNumber].filter(Boolean).join(' · ');
-  if (ex.sourceNumber) return tr('practice.labels.exercise', { n: ex.sourceNumber });
+  /* the kind's own label where the book gives one (Activity 1.2.2, Problem 5.17), else the generic word */
+  if (ex.sourceNumber) return kindName ? `${kindName} ${ex.sourceNumber}` : tr('practice.labels.exercise', { n: ex.sourceNumber });
   const kind = kindName ?? titled(ex.kind.replace(/-/g, ' '));
   const m = /^(?:p|cq|ap|cyu|cyl|ct|e)(\d+)$/i.exec(ex.id);
   return m ? `${kind} ${Number(m[1])}` : kind;
