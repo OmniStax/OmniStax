@@ -711,11 +711,11 @@
     "at": "end"
    },
    "cite": "powers-shrink",
-   "prompt": "<p>Suppose that $\\kA$ is a $2\\times2$ matrix with eigenvalues $4$ and $-3$ and that $B$ is a $2\\times2$ matrix with eigenvalues $4$ and $1$. If we apply the power method to find the dominant eigenvalue of these matrices to the same degree of accuracy, which matrix will require more steps in the algorithm? Explain your response.</p>",
+   "prompt": "<p>Suppose that $\\kA$ is a $2\\times2$ matrix with eigenvalues $4$ and $-3$ and that $\\kB$ is a $2\\times2$ matrix with eigenvalues $4$ and $1$. If we apply the power method to find the dominant eigenvalue of these matrices to the same degree of accuracy, which matrix will require more steps in the algorithm? Explain your response.</p>",
    "answer": {
     "type": "open",
     "generated_by": "source",
-    "solution": "<p><strong>Answer.</strong></p><p>We will need more steps when finding the dominant eigenvalue of $\\kA$.</p><p><strong>Solution.</strong></p><p>For both matrices, $\\klambdaone=4$ is the dominant eigenvalue and $\\klambdatwo$ is the eigenvalue closest to $0$. We will construct the initial vector as a linear combination of eigenvectors: $\\kvecxzero = c_1\\kvecvone+ c_2\\kvecvtwo$. Then $\\kAk\\kvecxzero = c_14^k\\kvecvone+c_2\\klambdatwo^k\\kvecvtwo$. For the matrix $B$, $\\klambdatwo=1$ is relatively small compared to $\\klambdaone=4$ so we expect the contribution from $\\kvecvtwo$ to become smaller more quickly. Therefore, we will need more steps in the power method to find the dominant eigenvalue of $\\kA$.</p>"
+    "solution": "<p><strong>Answer.</strong></p><p>We will need more steps when finding the dominant eigenvalue of $\\kA$.</p><p><strong>Solution.</strong></p><p>For both matrices, $\\klambdaone=4$ is the dominant eigenvalue and $\\klambdatwo$ is the eigenvalue closest to $0$. We will construct the initial vector as a linear combination of eigenvectors: $\\kvecxzero = c_1\\kvecvone+ c_2\\kvecvtwo$. Then $\\kAk\\kvecxzero = c_14^k\\kvecvone+c_2\\klambdatwo^k\\kvecvtwo$. For the matrix $\\kB$, $\\klambdatwo=1$ is relatively small compared to $\\klambdaone=4$ so we expect the contribution from $\\kvecvtwo$ to become smaller more quickly. Therefore, we will need more steps in the power method to find the dominant eigenvalue of $\\kA$.</p>"
    }
   },
   {

@@ -3747,12 +3747,14 @@
         {
           "id": "eq-round-off-three-digits",
           "latex": "1.02 + 0.0234 = 1.04",
-          "condition": "a computer keeping three decimal digits, for 1.023 + 0.023421 = 1.046421"
+          "condition": "a computer keeping three decimal digits, for 1.023 + 0.023421 = 1.046421",
+          "anchor": "5.1-three-digit-computer"
         },
         {
           "id": "eq-one-tenth-in-base-two",
           "latex": "0.1 = 0.000110011001100110011001100110011001100110011\\ldots",
-          "condition": "the right-hand side in base 2"
+          "condition": "the right-hand side in base 2",
+          "anchor": "5.1-base-two"
         }
       ]
     },
@@ -3766,12 +3768,14 @@
         {
           "id": "eq-partial-pivot-exact-solution",
           "latex": "x = 1.00010001\\ldots, \\qquad y = 0.99989998\\ldots",
-          "condition": "the exact solution of 0.0001x + y = 1, x + y = 2"
+          "condition": "the exact solution of 0.0001x + y = 1, x + y = 2",
+          "anchor": "5.1-exact-solution"
         },
         {
           "id": "eq-partial-pivot-computed-solutions",
           "latex": "x \\approx 0.00,\\ y \\approx 1.00 \\quad\\text{against}\\quad x \\approx 1.00,\\ y \\approx 1.00",
-          "condition": "a three-digit computer, the equations in their original order and interchanged"
+          "condition": "a three-digit computer, the equations in their original order and interchanged",
+          "anchor": "5.1-opposite-order-result"
         }
       ]
     },
@@ -3788,7 +3792,8 @@
         {
           "id": "eq-partial-pivoting-interchange",
           "latex": "\\left[\\begin{array}{rrrr} 2 & 1 & 2 & 3 \\\\ 1 & -3 & -2 & 1 \\\\ -3 & 2 & 3 & -2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} -3 & 2 & 3 & -2 \\\\ 1 & -3 & -2 & 1 \\\\ 2 & 1 & 2 & 3 \\end{array}\\right]",
-          "condition": "the first step, interchanging rows so that the pivot has the largest absolute value"
+          "condition": "the first step, interchanging rows so that the pivot has the largest absolute value",
+          "anchor": "5.1-largest-absolute-value"
         }
       ]
     },
@@ -3801,17 +3806,20 @@
       "forms": [
         {
           "id": "eq-lu-from-elementary-matrices",
-          "latex": "A = (E_3E_2E_1)^{-1}U = E_1^{-1}E_2^{-1}E_3^{-1}U = LU"
+          "latex": "A = (E_3E_2E_1)^{-1}U = E_1^{-1}E_2^{-1}E_3^{-1}U = LU",
+          "anchor": "5.1-example-LU"
         },
         {
           "id": "eq-elimination-by-elementary-matrices",
           "latex": "E_3E_2E_1A = U",
-          "condition": "the row replacements of Gaussian elimination, without partial pivoting"
+          "condition": "the row replacements of Gaussian elimination, without partial pivoting",
+          "anchor": "5.1-example-LU"
         },
         {
           "id": "eq-lu-example-5-1-1",
           "latex": "A = LU = \\begin{bmatrix} 1 & 0 & 0 \\\\ -2 & 1 & 0 \\\\ 1 & -1 & 1 \\end{bmatrix} \\begin{bmatrix} 2 & -3 & 1 \\\\ 0 & -1 & 2 \\\\ 0 & 0 & 3 \\end{bmatrix}",
-          "condition": "Example 5.1.1"
+          "condition": "Example 5.1.1",
+          "anchor": "5.1-example-LU"
         }
       ]
     },
@@ -3825,7 +3833,8 @@
         {
           "id": "eq-forward-substitution-example",
           "latex": "c_1 = 8, \\qquad -2c_1 + c_2 = -13, \\qquad c_1 - c_2 + c_3 = 8",
-          "condition": "Lc = b for L = [1 0 0; −2 1 0; 1 −1 1] and b = [8, −13, 8]"
+          "condition": "Lc = b for L = [1 0 0; −2 1 0; 1 −1 1] and b = [8, −13, 8]",
+          "anchor": "5.1-forward-substitution"
         }
       ]
     },
@@ -3838,11 +3847,13 @@
       "forms": [
         {
           "id": "eq-lu-two-triangular-systems",
-          "latex": "L\\mathbf{c} = \\mathbf{b}, \\qquad U\\mathbf{x} = \\mathbf{c}"
+          "latex": "L\\mathbf{c} = \\mathbf{b}, \\qquad U\\mathbf{x} = \\mathbf{c}",
+          "anchor": "5.1-two-simpler-equations"
         },
         {
           "id": "eq-lu-solve-split",
-          "latex": "A\\mathbf{x} = LU\\mathbf{x} = L(U\\mathbf{x}) = \\mathbf{b}"
+          "latex": "A\\mathbf{x} = LU\\mathbf{x} = L(U\\mathbf{x}) = \\mathbf{b}",
+          "anchor": "5.1-example-LU"
         }
       ]
     },
@@ -3856,12 +3867,14 @@
         {
           "id": "eq-lu-solve-operations",
           "latex": "n^2",
-          "condition": "operations to solve Ax = b once A = LU is known, against ⅔n³ for Gaussian elimination"
+          "condition": "operations to solve Ax = b once A = LU is known, against ⅔n³ for Gaussian elimination",
+          "anchor": "5.1-triangular-solve-cost"
         },
         {
           "id": "eq-triangular-solve-operations",
           "latex": "\\tfrac{1}{2}n^2",
-          "condition": "operations to solve one equation with an n × n triangular matrix"
+          "condition": "operations to solve one equation with an n × n triangular matrix",
+          "anchor": "5.1-triangular-solve-cost"
         }
       ]
     },
@@ -3875,15 +3888,18 @@
         {
           "id": "eq-plu-factorization",
           "latex": "PA = LU",
-          "condition": "P a permutation matrix, L lower triangular, U upper triangular"
+          "condition": "P a permutation matrix, L lower triangular, U upper triangular",
+          "anchor": "5.1-row-interchanges-issue"
         },
         {
           "id": "eq-plu-two-triangular-systems",
-          "latex": "L\\mathbf{c} = P\\mathbf{b}, \\qquad U\\mathbf{x} = \\mathbf{c}"
+          "latex": "L\\mathbf{c} = P\\mathbf{b}, \\qquad U\\mathbf{x} = \\mathbf{c}",
+          "anchor": "5.1-solve-with-p"
         },
         {
           "id": "eq-plu-solve",
-          "latex": "PA\\mathbf{x} = LU\\mathbf{x} = P\\mathbf{b}"
+          "latex": "PA\\mathbf{x} = LU\\mathbf{x} = P\\mathbf{b}",
+          "anchor": "5.1-solve-with-p"
         }
       ]
     },
@@ -3917,22 +3933,26 @@
         {
           "id": "eq-power-method-sequence",
           "latex": "\\mathbf{x}_{k+1} = A\\mathbf{x}_k",
-          "condition": "x₀ chosen"
+          "condition": "x₀ chosen",
+          "anchor": "5.2-stochastic-eigenvectors"
         },
         {
           "id": "eq-power-method-iterate",
           "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = c_1\\lambda_1^k\\mathbf{v}_1 + c_2\\lambda_2^k\\mathbf{v}_2",
-          "condition": "x₀ = c₁v₁ + c₂v₂, λ₁ dominant"
+          "condition": "x₀ = c₁v₁ + c₂v₂, λ₁ dominant",
+          "anchor": "5.2-initial-vector"
         },
         {
           "id": "eq-power-method-stochastic-example",
           "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = \\tfrac13\\mathbf{v}_1 - \\tfrac13(0.1)^k\\mathbf{v}_2",
-          "condition": "Example 5.2.1, A = [0.7 0.6; 0.3 0.4], x₀ = [1, 0]"
+          "condition": "Example 5.2.1, A = [0.7 0.6; 0.3 0.4], x₀ = [1, 0]",
+          "anchor": "5.2-stochastic-eigenvectors"
         },
         {
           "id": "eq-power-method-growing-example",
           "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = 3^k\\tfrac12\\mathbf{v}_1 - \\tfrac12\\mathbf{v}_2",
-          "condition": "Example 5.2.2, A = [2 1; 1 2], x₀ = [1, 0]"
+          "condition": "Example 5.2.2, A = [2 1; 1 2], x₀ = [1, 0]",
+          "anchor": "5.2-growing-matrix"
         }
       ]
     },
@@ -3949,11 +3969,13 @@
         {
           "id": "eq-power-method-normalization",
           "latex": "\\overline{\\mathbf{x}}_k = \\frac{1}{m_k}\\mathbf{x}_k",
-          "condition": "m_k the component of x_k having the largest absolute value"
+          "condition": "m_k the component of x_k having the largest absolute value",
+          "anchor": "5.2-normalize"
         },
         {
           "id": "eq-power-method-next-step",
-          "latex": "\\mathbf{x}_{k+1} = A\\overline{\\mathbf{x}}_k"
+          "latex": "\\mathbf{x}_{k+1} = A\\overline{\\mathbf{x}}_k",
+          "anchor": "5.2-normalize-example"
         }
       ]
     },
@@ -3967,12 +3989,14 @@
         {
           "id": "eq-multipliers-limit",
           "latex": "m_k \\to \\lambda_1",
-          "condition": "λ₁ the dominant eigenvalue, as k grows"
+          "condition": "λ₁ the dominant eigenvalue, as k grows",
+          "anchor": "5.2-multipliers"
         },
         {
           "id": "eq-multiplier-example",
           "latex": "A\\overline{\\mathbf{v}} = \\left[\\begin{array}{r} -1.30 \\\\ -0.86 \\end{array}\\right] = -1.3\\left[\\begin{array}{r} 1 \\\\ \\frac23 \\end{array}\\right]",
-          "condition": "A = [−5.1 5.7; −3.8 4.4], v̄ = [1, 2/3]"
+          "condition": "A = [−5.1 5.7; −3.8 4.4], v̄ = [1, 2/3]",
+          "anchor": "5.2-multipliers"
         }
       ]
     },
@@ -3986,7 +4010,8 @@
         {
           "id": "eq-unlucky-initial-vector",
           "latex": "\\mathbf{x}_k = A^k\\mathbf{x}_0 = \\lambda_2^k\\mathbf{v}_2",
-          "condition": "x₀ = v₂"
+          "condition": "x₀ = v₂",
+          "anchor": "5.2-initial-vector"
         }
       ]
     },
@@ -4000,12 +4025,14 @@
         {
           "id": "eq-eigenvalue-of-an-inverse",
           "latex": "A^{-1}\\mathbf{v} = \\lambda^{-1}\\mathbf{v}",
-          "condition": "Av = λv, A invertible"
+          "condition": "Av = λv, A invertible",
+          "anchor": "5.2-largest-and-smallest"
         },
         {
           "id": "eq-inverse-power-step",
           "latex": "A\\mathbf{x}_{k+1} = \\mathbf{x}_k",
-          "condition": "solved in place of x_{k+1} = A⁻¹x_k"
+          "condition": "solved in place of x_{k+1} = A⁻¹x_k",
+          "anchor": "5.2-largest-and-smallest"
         }
       ]
     },
@@ -4019,12 +4046,14 @@
         {
           "id": "eq-eigenvalue-of-a-shifted-matrix",
           "latex": "(A - sI)\\mathbf{v} = (\\lambda - s)\\mathbf{v}",
-          "condition": "Av = λv"
+          "condition": "Av = λv",
+          "anchor": "5.2-largest-and-smallest"
         },
         {
           "id": "eq-shifted-inverse-power-estimate",
           "latex": "\\lambda \\approx \\frac{1}{m_k} + s",
-          "condition": "m_k the multipliers of the inverse power method applied to A − sI"
+          "condition": "m_k the multipliers of the inverse power method applied to A − sI",
+          "anchor": "5.2-sim-eigenvalue-line"
         }
       ]
     },

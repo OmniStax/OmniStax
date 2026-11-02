@@ -59,4 +59,6 @@ Five, the book's words kept as printed with a marker and an AI-marked note: Exam
 - No concept, edge, form or glossary change; the prep's statements and terms stand.
 - Nothing wrong found in the rules. App: see the report.
 
+Chapter pass (2026-11-02): every anchor above applied through `ost set`, 31 of the 34 variables rows (`E_3`, `q_vec`, `w_vec` written only in cards, unanchored as asked) and all 13 forms; the `ref`s on `v_1_vec` and `v_2_vec` confirmed; `type: "vector"` was already on the nine vector rows that name no concept. The variables row `5.2/B` added (`type: "matrix"`, no concept, `redefines: true` since 5.1 gives B another meaning, unanchored since it is written only in Exercise 5.2.6), and that card now writes `\kB` in its prompt and solution. No concept, edge, form or glossary change. In the text: the two `v₂` of `p#initial-vector` (`x₀ = v₂`, `λ₂ᵏv₂`) now carry `data-ref="v-2"`, as the paragraph's `v₁` did; the caption of Figure 5.2.3 links Exercise 5.2.4 to its card. The six corrections stand as marked.
+
 Conventions followed: `ch01/1.2/plan.md`'s list (ids, boxes, cards, terms, symbols, figures, section fields, coverage); a Sim that replaces an unnumbered drawing lists the drawing in `originals` with `data-original` and `data-original-caption` and no `data-figure`, as 3.4's did.
