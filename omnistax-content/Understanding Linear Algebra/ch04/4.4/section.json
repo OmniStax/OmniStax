@@ -1,0 +1,1305 @@
+{
+ "id": "4.4",
+ "module": "sec-dynamical",
+ "chapter": "4",
+ "title": "Dynamical systems",
+ "lead": "A <span data-concept=\"state-vector\">state vector</span> that a <span data-concept=\"matrix\">matrix</span> carries from one year to the next traces a path through the plane. This section follows those paths for two interacting species and for the six kinds of $2\\times2$ system, reading each off the <span data-concept=\"eigenvalue\">eigenvalues</span> and <span data-concept=\"eigenvector\">eigenvectors</span> of the matrix, and then does the same for a $3\\times3$ system.",
+ "objectives": [],
+ "summary_html": "<p>We have been exploring discrete dynamical systems in which an initial state vector $\\mathbf{x}_0$ evolves over time according to the rule $\\mathbf{x}_{k+1}=A\\mathbf{x}_k$. The eigenvalues and eigenvectors of $A$ help us understand the behavior of the state vectors. In the $2\\times2$ case, we saw that</p><ul><li>$|\\lambda_1|, |\\lambda_2| < 1$ produces an attractor so that trajectories are pulled in toward the origin.</li><li>$|\\lambda_1| > 1$ and $|\\lambda_2| < 1$ produces a saddle in which most trajectories are pushed away from the origin and in the direction of $E_{\\lambda_1}$.</li><li>$|\\lambda_1|, |\\lambda_2| > 1$ produces a repellor in which trajectories are pushed away from the origin.</li></ul><p>The same kind of reasoning allows us to analyze $n\\times n$ systems as well.</p>",
+ "notes": "The four Sage cells (in Activity 4.4.5 and Exercises 4.4.5 and 4.4.10), all empty, are not live and are left out, each part keeping the book’s words; the empty worksheet grids of Activity 4.4.3 and Exercises 4.4.2 and 4.4.3 are left out and the author’s answer drawings stay in the solutions.",
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the four activities stand in the text as cards, and Activity 4.4.5’s card shows the book’s bison diagram. Five printed slips are kept as printed and corrected in notes under their cards (Exercise 4.4.1 a’s v for v₂, Exercise 4.4.3 c’s constant term and 4.4.3 d’s empty symbol for S, Exercise 4.4.6 c’s attractor for repellor, Exercise 4.4.9 e’s v_n for v₂).",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "figures": [
+  {
+   "id": "sim-phase-portrait",
+   "kind": "sim",
+   "number": "4.4.1",
+   "folds": [],
+   "originals": [
+    "/media/ch04/eigen-dynamical-intro.svg",
+    "/media/ch04/eigen-dynamical-intro-1.svg",
+    "/media/ch04/eigen-dynam-saddle-a.svg",
+    "/media/ch04/eigen-dynam-saddle-b.svg"
+   ],
+   "original_caption": "The trajectories of the dynamical system formed by the matrix A in the coordinate system defined by B, on the left, and in the standard coordinate system, on the right.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region",
+    "eigenvalue",
+    "point",
+    "curve"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-six-types",
+   "kind": "sim",
+   "number": "4.4.2",
+   "folds": [
+    "4.4.3",
+    "4.4.4",
+    "4.4.5",
+    "4.4.6",
+    "4.4.7"
+   ],
+   "originals": [
+    "/media/ch04/eigen-phase-repellor-a.svg",
+    "/media/ch04/eigen-phase-repellor-b.svg",
+    "/media/ch04/eigen-phase-saddle-a.svg",
+    "/media/ch04/eigen-phase-saddle-b.svg",
+    "/media/ch04/eigen-phase-attractor-a.svg",
+    "/media/ch04/eigen-phase-attractor-b.svg",
+    "/media/ch04/eigen-phase-spiralr-a.svg",
+    "/media/ch04/eigen-phase-spiralr-b.svg",
+    "/media/ch04/eigen-phase-center-a.svg",
+    "/media/ch04/eigen-phase-center-b.svg",
+    "/media/ch04/eigen-phase-spirala-a.svg",
+    "/media/ch04/eigen-phase-spirala-b.svg"
+   ],
+   "original_caption": "(Figure 4.4.2) The origin is a repellor when |λ1|, |λ2| > 1. (Figure 4.4.3) The origin is a saddle when |λ1| > 1 > |λ2|. (Figure 4.4.4) The origin is an attractor when |λ1|, |λ2| < 1. (Figure 4.4.5) The origin is a spiral repellor when A has an eigenvalue λ = a + bi with a² + b² > 1. (Figure 4.4.6) The origin is a center when A has an eigenvalue λ = a + bi with a² + b² = 1. (Figure 4.4.7) The origin is a spiral attractor when A has an eigenvalue λ = a + bi with a² + b² < 1.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region",
+    "eigenvalue",
+    "point",
+    "curve"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-phase-portrait-3d",
+   "kind": "sim",
+   "number": "4.4.8",
+   "folds": [
+    "4.4.9"
+   ],
+   "originals": [
+    "/media/ch04/eigen-3d-saddle-d.svg",
+    "/media/ch04/eigen-3d-saddle-e.svg",
+    "/media/ch04/eigen-3d-saddle-a.svg",
+    "/media/ch04/eigen-3d-saddle-c.svg"
+   ],
+   "original_caption": "(Figure 4.4.8) In a 3 × 3 system with λ1 = 0.6, λ2 = 0.8, and λ3 = 1.1, the trajectories {x_k}_B move along the curves shown above. (Figure 4.4.9) In a 3 × 3 system with complex eigenvalues λ = a ± bi with |λ| < 1 and λ3 = 1.1, the trajectories {x_k}_B move along the curves shown above.",
+   "widths": [],
+   "draws": [
+    "matrix",
+    "region",
+    "eigenvalue",
+    "point",
+    "curve"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [
+  {
+   "id": "v-1",
+   "label": "v₁",
+   "figures": [
+    "sim-phase-portrait"
+   ]
+  },
+  {
+   "id": "v-2",
+   "label": "v₂",
+   "figures": [
+    "sim-phase-portrait"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "species-interactions",
+   "concept": "two-species-population-model",
+   "verb": "introduces"
+  },
+  {
+   "span": "shift-perspective",
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "verb": "introduces"
+  },
+  {
+   "span": "other-initial-populations",
+   "concept": "trajectory",
+   "verb": "introduces"
+  },
+  {
+   "span": "phase-portraits",
+   "concept": "phase-portrait",
+   "verb": "introduces"
+  },
+  {
+   "span": "six-types",
+   "concept": "classification-of-discrete-dynamical-systems",
+   "verb": "introduces"
+  },
+  {
+   "span": "repellor",
+   "concept": "source",
+   "verb": "introduces"
+  },
+  {
+   "span": "saddle",
+   "concept": "saddle-point",
+   "verb": "introduces"
+  },
+  {
+   "span": "attractor",
+   "concept": "sink",
+   "verb": "introduces"
+  },
+  {
+   "span": "spiral-repellor",
+   "concept": "spiral-source",
+   "verb": "introduces"
+  },
+  {
+   "span": "center",
+   "concept": "center",
+   "verb": "introduces"
+  },
+  {
+   "span": "spiral-attractor",
+   "concept": "spiral-sink",
+   "verb": "introduces"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "higher-dimensional-dynamical-systems",
+   "verb": "introduces"
+  },
+  {
+   "span": "last-section",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "last-section",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "last-section",
+   "concept": "basis-of-eigenvectors",
+   "verb": "uses"
+  },
+  {
+   "span": "last-section",
+   "concept": "similarity",
+   "verb": "uses"
+  },
+  {
+   "span": "last-section",
+   "concept": "diagonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "last-section",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "discrete-dynamical-system",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "state-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "transition-function",
+   "verb": "uses"
+  },
+  {
+   "span": "this-section",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "goal",
+   "concept": "discrete-dynamical-system",
+   "verb": "uses"
+  },
+  {
+   "span": "species-interactions",
+   "concept": "discrete-dynamical-system",
+   "verb": "uses"
+  },
+  {
+   "span": "systems-considered",
+   "concept": "state-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "systems-considered",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "systems-considered",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "systems-considered",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "systems-considered",
+   "concept": "long-term-behavior-from-eigenvectors",
+   "verb": "uses"
+  },
+  {
+   "span": "specific-example",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "specific-example",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "specific-example",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "initial-populations",
+   "concept": "matrix-times-eigenvector-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "initial-populations",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "shift-perspective",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "shift-perspective",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "shift-perspective",
+   "concept": "diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "shift-perspective",
+   "concept": "diagonalization",
+   "verb": "uses"
+  },
+  {
+   "span": "coordinate-system",
+   "concept": "coordinate-system",
+   "verb": "uses"
+  },
+  {
+   "span": "coordinate-system",
+   "concept": "state-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "coordinate-system",
+   "concept": "coordinates-in-a-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "more-generally",
+   "concept": "similarity",
+   "verb": "uses"
+  },
+  {
+   "span": "geometrically",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "two-species-population-model",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "phase-portrait",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "state-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait",
+   "concept": "eigenspace",
+   "verb": "uses"
+  },
+  {
+   "span": "recover-behavior",
+   "concept": "coordinate-system",
+   "verb": "uses"
+  },
+  {
+   "span": "recover-behavior",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "eventually",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "other-initial-populations",
+   "concept": "eigenspace",
+   "verb": "uses"
+  },
+  {
+   "span": "conclude",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "conclude",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "conclude",
+   "concept": "coordinate-system",
+   "verb": "uses"
+  },
+  {
+   "span": "conclude",
+   "concept": "long-term-behavior-from-eigenvectors",
+   "verb": "uses"
+  },
+  {
+   "span": "phase-portraits",
+   "concept": "diagonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "phase-portraits",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "phase-portraits",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "phase-portraits",
+   "concept": "standard-unit-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "classifying-intro",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "classifying-intro",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "classifying-intro",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "classifying-intro",
+   "concept": "discrete-dynamical-system",
+   "verb": "uses"
+  },
+  {
+   "span": "six-types",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "classification-of-discrete-dynamical-systems",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "source",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "saddle-point",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "sink",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "spiral-source",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "center",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "spiral-sink",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "phase-portrait",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-six-types",
+   "concept": "discrete-dynamical-system",
+   "verb": "uses"
+  },
+  {
+   "span": "repellor",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "repellor",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "saddle",
+   "concept": "eigenspace",
+   "verb": "uses"
+  },
+  {
+   "span": "saddle",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "attractor",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "attractor",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "spiral-repellor",
+   "concept": "complex-eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "spiral-repellor",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "center",
+   "concept": "complex-eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "center",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "spiral-attractor",
+   "concept": "complex-eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "spiral-attractor",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "other-possibilities",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "basis-from-distinct-eigenvalues",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "coordinate-system",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "phase-portrait",
+   "verb": "uses"
+  },
+  {
+   "span": "three-by-three",
+   "concept": "eigenspace",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "higher-dimensional-dynamical-systems",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "eigenspace",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "complex-eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-phase-portrait-3d",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "complex-3x3",
+   "concept": "complex-eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "complex-3x3",
+   "concept": "subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "complex-3x3",
+   "concept": "trajectory",
+   "verb": "uses"
+  },
+  {
+   "span": "complex-3x3",
+   "concept": "phase-portrait",
+   "verb": "uses"
+  },
+  {
+   "span": "complex-3x3",
+   "concept": "eigenspace",
+   "verb": "uses"
+  },
+  {
+   "span": "specific-example",
+   "concept": "two-species-population-model",
+   "verb": "reinforces"
+  },
+  {
+   "span": "in-the-same-way",
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "verb": "reinforces"
+  },
+  {
+   "span": "more-generally",
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "verb": "reinforces"
+  },
+  {
+   "span": "geometrically",
+   "concept": "dynamics-in-eigenvector-coordinates",
+   "verb": "reinforces"
+  },
+  {
+   "span": "eventually",
+   "concept": "two-species-population-model",
+   "verb": "reinforces"
+  },
+  {
+   "span": "ratio",
+   "concept": "two-species-population-model",
+   "verb": "reinforces"
+  },
+  {
+   "span": "growth-rate",
+   "concept": "two-species-population-model",
+   "verb": "reinforces"
+  },
+  {
+   "span": "conclude",
+   "concept": "two-species-population-model",
+   "verb": "reinforces"
+  },
+  {
+   "span": "classifying-intro",
+   "concept": "trajectory",
+   "verb": "reinforces"
+  },
+  {
+   "span": "other-possibilities",
+   "concept": "classification-of-discrete-dynamical-systems",
+   "verb": "reinforces"
+  },
+  {
+   "span": "complex-3x3",
+   "concept": "higher-dimensional-dynamical-systems",
+   "verb": "reinforces"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "4.4.1",
+   "source_number": "4.4.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "goal"
+   },
+   "cite": "goal",
+   "prompt": "<p>Suppose that we have a diagonalizable matrix $A=PDP^{-1}$ where</p>$$ P = \\left[\\begin{array}{rr} 1 & -1 \\\\ 1 & 2 \\\\ \\end{array}\\right],\\qquad D = \\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & -3 \\\\ \\end{array}\\right]. $$<ol type=\"a\"><li><p>Find the eigenvalues of $A$ and find a basis for the associated eigenspaces.</p></li><li><p>Form a basis of ${\\mathbb R}^2$ consisting of eigenvectors of $A$ and write the vector ${\\mathbf x} = \\left[\\begin{array}{r}1 \\\\ 4 \\end{array}\\right]$ as a linear combination of basis vectors.</p></li><li><p>Write $A{\\mathbf x}$ as a linear combination of basis vectors.</p></li><li><p>For some power $k$, write $A^k{\\mathbf x}$ as a linear combination of basis vectors.</p></li><li><p>Find the vector $A^5{\\mathbf x}$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Since $A$ has been diagonalized as $A=PDP^{-1}$, the eigenvalues of $A$ are the diagonal entries of $D$ and the eigenvectors are the columns of $P$. Therefore, we know the eigenvalues are $\\lambda_1=2$ with associated eigenvector ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and $\\lambda_2=-3$ with associated eigenvector ${\\mathbf v}_2=\\left[\\begin{array}{r}-1 \\\\ 2 \\end{array}\\right]$.</p></li><li><p>The columns of $P$, ${\\mathbf v}_1$ and ${\\mathbf v}_2$, form a basis for ${\\mathbb R}^2$. We find that ${\\mathbf x}=\\left[\\begin{array}{r}1 \\\\ 4 \\end{array}\\right] = 2{\\mathbf v}_1+{\\mathbf v}_2$.</p></li><li><p>Then $A{\\mathbf x}=2\\lambda_1{\\mathbf v}_1+\\lambda_2{\\mathbf v}_2= 4{\\mathbf v}_1-3{\\mathbf v}_2$.</p></li><li><p>We have $A^k{\\mathbf x} = 2\\cdot2^k{\\mathbf v}_1 +(-3)^k{\\mathbf v}_2$.</p></li><li><p>$A^5{\\mathbf x} = 2\\cdot2^5{\\mathbf v}_1 + (-3)^5{\\mathbf v}_2 = \\left[\\begin{array}{r}307 \\\\ -422 \\end{array}\\right]$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "4.4.2",
+   "source_number": "4.4.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "species-interactions"
+   },
+   "cite": "species-interactions",
+   "prompt": "<p>Suppose we have two species $R$ and $S$ that interact with each another and that we record the change in their populations from year to year. When we begin our study, the populations, measured in thousands, are $R_0$ and $S_0$; after $k$ years, the populations are $R_k$ and $S_k$. If we know the populations in one year, suppose that the populations in the following year are determined by the expressions</p>$$ \\begin{aligned} R_{k+1} & {}={} 0.9 R_k + 0.8 S_k \\\\ S_{k+1} & {}={} 0.2 R_k + 0.9 S_k\\text{.} \\\\ \\end{aligned} $$<p>This is an example of a mutually beneficial relationship between two species. If species $S$ is not present, then $R_{k+1} = 0.9R_k$, which means that the population of species $R$ decreases every year. However, species $R$ benefits from the presence of species $S$, which helps $R$ to grow by 80% of the population of species $S$. In the same way, $S$ benefits from the presence of $R$. We will record the populations in a vector ${\\mathbf x}_k = \\left[\\begin{array}{r}R_k \\\\ S_k \\end{array}\\right]$ and note that ${\\mathbf x}_{k+1} = A{\\mathbf x}_k$ where $A = \\left[\\begin{array}{rr} 0.9 & 0.8 \\\\ 0.2 & 0.9 \\\\ \\end{array}\\right]$.</p><ol type=\"a\"><li><p>Verify that</p>$$ {\\mathbf v}_1=\\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right],\\qquad {\\mathbf v}_2=\\left[\\begin{array}{r}-2 \\\\ 1 \\end{array}\\right] $$<p>are eigenvectors of $A$ and find their respective eigenvalues.</p></li><li><p>Suppose that initially ${\\mathbf x}_0 = \\left[\\begin{array}{r}2 \\\\ 3 \\end{array}\\right]$. Write ${\\mathbf x}_0$ as a linear combination of the eigenvectors ${\\mathbf v}_1$ and ${\\mathbf v}_2$.</p></li><li><p>Write the vectors ${\\mathbf x}_1$, ${\\mathbf x}_2$, and ${\\mathbf x}_3$ as linear combinations of the eigenvectors ${\\mathbf v}_1$ and ${\\mathbf v}_2$.</p></li><li><p>What happens to ${\\mathbf x}_k$ after a very long time?</p></li><li><p>When $k$ becomes very large, what happens to the ratio of the populations $R_k/S_k$?</p></li><li><p>After a very long time, by approximately what factor does the population of $R$ grow every year? By approximately what factor does the population of $S$ grow every year?</p></li><li><p>If we begin instead with ${\\mathbf x}_0 = \\left[\\begin{array}{r}4 \\\\ 4 \\end{array}\\right]$, what eventually happens to the ratio $R_k/S_k$ as $k$ becomes very large?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find that $A{\\mathbf v}_1=\\left[\\begin{array}{r}2.6 \\\\ 1.3 \\end{array}\\right] = 1.3{\\mathbf v}_1$ and $A{\\mathbf v}_2=\\left[\\begin{array}{r}-1 \\\\ 0.5 \\end{array}\\right]=0.5{\\mathbf v}_2$. This shows that ${\\mathbf v}_1$ and ${\\mathbf v}_2$ are eigenvectors with associated eigenvalues $\\lambda_1=1.3$ and $\\lambda_2=0.5$.</p></li><li><p>Solving for the weights of the linear combination of ${\\mathbf v}_1$ and ${\\mathbf v}_2$ that produces ${\\mathbf x}_0$, we find that ${\\mathbf x}_0=2{\\mathbf v}_1+{\\mathbf v}_2$.</p></li><li><p>Each time we multiply by $A$, the eigenvectors are multiplied by their associated eigenvalues. This gives</p>$$ \\begin{aligned} {\\mathbf x}_1 = A{\\mathbf x}_0 & = 2(1.3){\\mathbf v}_1 + 0.5{\\mathbf v}_2 \\\\ {\\mathbf x}_2 = A{\\mathbf x}_1 & = 2(1.3)^2{\\mathbf v}_1 + 0.5^2{\\mathbf v}_2 \\\\ {\\mathbf x}_3 = A{\\mathbf x}_2 & = 2(1.3)^3{\\mathbf v}_1 + 0.5^3{\\mathbf v}_2\\text{.} \\\\ \\end{aligned} $$</li><li><p>After a long time $0.5^k\\approx 0$ so we have ${\\mathbf x}_k \\approx 2(1.3)^k{\\mathbf v}_1$.</p></li><li><p>More generally, we have ${\\mathbf x}_k=2(1.3)^k{\\mathbf v}_1 + 0.5^k{\\mathbf v}_2$. As $k$ grows large, $0.5^k$ becomes insignificantly small so that ${\\mathbf x}_k\\approx 2(1.3)^k{\\mathbf v}_1$. This means that $R_k\\approx 4(1.3)^k$ and $S_k\\approx2(1.3)^k$ so that the ratio $R_k/S_k \\approx 2$.</p></li><li><p>We see that ${\\mathbf x}_{k+1}\\approx 1.3{\\mathbf x}_k$ so that the populations both grow by a factor of approximately 1.3, which is a 30% growth rate.</p></li><li><p>Now we have ${\\mathbf x}_0 = 3{\\mathbf v}_1 + {\\mathbf v}_2$. In the same way, when $k$ is very large, we have ${\\mathbf x}_k\\approx 3(1.3)^k{\\mathbf v}_1$ so that $R_k\\approx6(1.3)^k$ and $S_k\\approx3(1.3)^k$. This gives the same ratio: $R_k/S_k\\approx 2$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "4.4.3",
+   "source_number": "4.4.3",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "classifying-intro"
+   },
+   "cite": "classifying-intro",
+   "prompt": "<p>We will now look at several more examples of dynamical systems. If $P = \\left[\\begin{array}{rr} 1 & -1 \\\\ 1 & 1 \\\\ \\end{array}\\right]$, we note that the columns of $P$ form a basis ${\\cal B}$ of ${\\mathbb R}^2$. Given below are several matrices $A$ written in the form $A=PEP^{-1}$ for some matrix $E$. For each matrix, state the eigenvalues of $A$ and sketch a phase portrait for the matrix $E$ on the left and a phase portrait for $A$ on the right. Describe the behavior of $A^k{\\mathbf x}_0$ as $k$ becomes very large for a typical initial vector ${\\mathbf x}_0$.</p><ol type=\"a\"><li><p>$A=PEP^{-1}$ where $E = \\left[\\begin{array}{rr} 1.3 & 0 \\\\ 0 & 1.5 \\\\ \\end{array}\\right]$.</p></li><li><p>$A=PEP^{-1}$ where $E = \\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$.</p></li><li><p>$A=PEP^{-1}$ where $E = \\left[\\begin{array}{rr} 0.7 & 0 \\\\ 0 & 1.5 \\\\ \\end{array}\\right]$.</p></li><li><p>$A=PEP^{-1}$ where $E = \\left[\\begin{array}{rr} 0.3 & 0 \\\\ 0 & 0.7 \\\\ \\end{array}\\right]$.</p></li><li><p>$A=PEP^{-1}$ where $E = \\left[\\begin{array}{rr} 1 & -0.9 \\\\ 0.9 & 1 \\\\ \\end{array}\\right]$.</p></li><li><p>$A=PEP^{-1}$ where $E = \\left[\\begin{array}{rr} 0.6 & -0.2 \\\\ 0.2 & 0.6 \\\\ \\end{array}\\right]$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p><img src=\"/media/ch04/ex-phase-repellor-a.svg\" alt=\"The phase portrait of E for a repellor, in the eigenvector coordinates.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-repellor-b.svg\" alt=\"The phase portrait of A for a repellor, in the standard coordinates.\" width=\"230\"></p></li><li><p><img src=\"/media/ch04/ex-phase-center-a.svg\" alt=\"The phase portrait of E for a center: circles about the origin.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-center-b.svg\" alt=\"The phase portrait of A for a center: ellipses about the origin.\" width=\"230\"></p></li><li><p><img src=\"/media/ch04/ex-phase-saddle-a.svg\" alt=\"The phase portrait of E for a saddle.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-saddle-b.svg\" alt=\"The phase portrait of A for a saddle, trajectories approaching the line of v2.\" width=\"230\"></p></li><li><p><img src=\"/media/ch04/ex-phase-attractor-a.svg\" alt=\"The phase portrait of E for an attractor.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-attractor-b.svg\" alt=\"The phase portrait of A for an attractor.\" width=\"230\"></p></li><li><p><img src=\"/media/ch04/ex-phase-spiralr-a.svg\" alt=\"The phase portrait of E for a spiral repellor.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-spiralr-b.svg\" alt=\"The phase portrait of A for a spiral repellor.\" width=\"230\"></p></li><li><p><img src=\"/media/ch04/ex-phase-spirala-a.svg\" alt=\"The phase portrait of E for a spiral attractor.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-spirala-b.svg\" alt=\"The phase portrait of A for a spiral attractor.\" width=\"230\"></p></li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "4.4.4",
+   "source_number": "4.4.4",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "other-possibilities"
+   },
+   "cite": "other-possibilities",
+   "prompt": "<p>In this activity, we will consider several ways in which two species might interact with one another. Throughout, we will consider two species $R$ and $S$ whose populations in year $k$ form a vector ${\\mathbf x}_k=\\left[\\begin{array}{r}R_k \\\\ S_k \\end{array}\\right]$ and which evolve according to the rule</p>$$ {\\mathbf x}_{k+1}=A{\\mathbf x}_k. $$<ol type=\"a\"><li><p>Suppose that $A = \\left[\\begin{array}{rr} 0.7 & 0 \\\\ 0 & 1.6 \\\\ \\end{array}\\right]$.</p><p>Explain why the species do not interact with one another. Which of the six types of dynamical systems do we have? What happens to both species after a long time?</p></li><li><p>Suppose now that $A = \\left[\\begin{array}{rr} 0.7 & 0.3 \\\\ 0 & 1.6 \\\\ \\end{array}\\right]$.</p><p>Explain why $S$ is a beneficial species for $R$. Which of the six types of dynamical systems do we have? What happens to both species after a long time?</p></li><li><p>If $A = \\left[\\begin{array}{rr} 0.7 & 0.5 \\\\ -0.4 & 1.6 \\\\ \\end{array}\\right]$, explain why this describes a predator-prey system. Which of the species is the predator and which is the prey? Which of the six types of dynamical systems do we have? What happens to both species after a long time?</p></li><li><p>Suppose that $A = \\left[\\begin{array}{rr} 0.5 & 0.2 \\\\ -0.4 & 1.1 \\\\ \\end{array}\\right]$. Compare this predator-prey system to the one in the previous part. Which of the six types of dynamical systems do we have? What happens to both species after a long time?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>With this matrix $A$, we have</p>$$ \\begin{aligned} R_{k+1} & = 0.7R_k \\\\ S_{k+1} & = 1.6S_k\\text{.} \\\\ \\end{aligned} $$<p>This shows that the population of one species does not depend on the other. This dynamical system is a saddle because we have the eigenvalues $\\lambda_1=0.7$ and $\\lambda_2=1.6$. Eventually, species $R$ will become extinct while species $S$ grows by a factor of 1.6.</p></li><li><p>Now we have</p>$$ \\begin{alignedat}{3} R_{k+1} & {}={} & 0.7R_k &{}+{} & 0.3S_k\\\\ S_{k+1} & {}={} & & & 1.6S_k\\text{.} \\\\ \\end{alignedat} $$<p>The population of species $S$ is not influenced by species $R$. However, we see that the population of species $R$ grows in the presence of species $S$. In other words, species $S$ helps species $R$ to grow so we say that $S$ is beneficial for $R$.</p><p>Because the eigenvalues are $\\lambda_1=0.7$ and $\\lambda_2=1.6$, this dynamical system is again a saddle. The associated eigenvectors are ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}1 \\\\ 3 \\end{array}\\right]$. After a long time, the population vector ${\\mathbf x}_k\\approx c_1(1.6)^k{\\mathbf v}_2$ so both populations grow by a factor of 1.6 and with a ratio $R_k/S_k=1/3.$</p></li><li><p>Here we have</p>$$ \\begin{alignedat}{3} R_{k+1} & {}={} & 0.7R_k &{}+{} & 0.5S_k\\\\ S_{k+1} & {}={} & -0.4R_k & {}+{}& 1.6S_k\\text{.} \\\\ \\end{alignedat} $$<p>Species $S$ helps species $R$ to grow, while species $R$ inhibits the growth of species $S$. One explanation for this is that species $R$ preys on species $S$ as a food source.</p><p>We have eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ with associated eigenvalue $\\lambda_1=1.2$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}5 \\\\ 4 \\end{array}\\right]$ with $\\lambda_2=1.1$. This dynamical system is a repellor so both species will grow arbitrarily large.</p></li><li><p>This example is similar to the previous one, but the coefficients are slightly different. We see that the growth rate of both species is smaller. For instance, in the previous problem, we had $R_{k+1}=0.7R_k+\\ldots$ while we now have $R_{k+1}=0.5R_k+\\ldots$. This says that the reproduction rate of species $R$ has decreased from $0.7$ to $0.5$. In the same way, that of species $S$ has decreased from $1.6$ to $1.1$. Also, $R_{k+1}=\\ldots + 0.2S_k$ so the presence of species $S$ is less beneficial to species $R$.</p><p>We now have the eigenvalues $\\lambda_1=0.9$ and $\\lambda_2=0.7$, which means that this dynamical system is an attractor and that both species will become extinct.</p></li></ol>"
+   }
+  },
+  {
+   "id": "a5",
+   "source_id": "4.4.5",
+   "source_number": "4.4.5",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "complex-3x3"
+   },
+   "cite": "complex-3x3",
+   "prompt": "<p>The following type of analysis has been used to study the population of a bison herd. We will divide the population of female bison into three groups: juveniles who are less than one year old; yearlings between one and two years old; and adults who are older than two years. Each year,</p><ul><li>80% of the juveniles survive to become yearlings.</li><li>90% of the yearlings survive to become adults.</li><li>80% of the adults survive.</li><li>40% of the adults give birth to a juvenile.</li></ul><p>By $J_k$, $Y_k$, and $A_k$, we denote the number of juveniles, yearlings, and adults in year $k$. We have</p>$$ J_{k+1} = 0.4 A_k. $$<ol type=\"a\"><li><p>Find similar expressions for $Y_{k+1}$ and $A_{k+1}$ in terms of $J_k$, $Y_k$, and $A_k$.</p></li><li><p>As is usual, we write the matrix ${\\mathbf x}_k=\\left[\\begin{array}{r}J_k \\\\ Y_k \\\\ A_k \\end{array}\\right]$. Write the matrix $A$ such that ${\\mathbf x}_{k+1} = A{\\mathbf x}_k$ and find its eigenvalues.</p></li><li><p>We can write $A = PEP^{-1}$ where the matrices $E$ and $P$ are approximately:</p>$$ \\begin{aligned} E & {}={} \\left[\\begin{array}{rrr} 1.058 & 0 & 0 \\\\ 0 & -0.128 & -0.506 \\\\ 0 & 0.506 & -0.128 \\\\ \\end{array}\\right], \\\\ \\\\ P & {}={} \\left[\\begin{array}{rrr} 1 & 1 & 0 \\\\ 0.756 & -0.378 & 1.486 \\\\ 2.644 & -0.322 & -1.264 \\\\ \\end{array}\\right]\\text{.} \\end{aligned} $$<p>Make a prediction about the long-term behavior of ${\\mathbf x}_k$. For instance, at what rate does it grow? For every 100 adults, how many juveniles, and yearlings are there?</p></li><li><p>Suppose that the birth rate decreases so that only 30% of adults give birth to a juvenile. How does this affect the long-term growth rate of the herd?</p></li><li><p>Suppose that the birth rate decreases further so that only 20% of adults give birth to a juvenile. How does this affect the long-term growth rate of the herd?</p></li><li><p>Find the smallest birth rate that supports a stable population.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have the relationships</p>$$ \\begin{alignedat}{4} J_{k+1} & {}={} & & & & & 0.4 A_k \\\\ Y_{k+1} & {}={} & 0.8 J_k \\\\ A_{k+1} & {}={} & & & 0.9Y_k & {}+{} & 0.8A_k\\text{.} \\\\ \\end{alignedat} $$</li><li><p>The matrix $A=\\left[\\begin{array}{rrr} 0 & 0 & 0.4 \\\\ 0.8 & 0 & 0 \\\\ 0 & 0.9 & 0.8 \\\\ \\end{array}\\right]$.</p></li><li><p>There is a real eigenvalue $\\lambda_1=1.058$, which is larger than $1$. The other eigenvalues are complex $\\lambda_{2,3} = -0.128\\pm 0.506i$ and satisfy $|\\lambda_{2,3}| < 1$. Therefore, the complex eigenvalues will pull vectors in toward the line defined by the eigenvector ${\\mathbf v}_1$. After a long time, the population is ${\\mathbf x}_k\\approx c_1(1.058)^k{\\mathbf v}_1$. All the populations grow annually by a factor of $1.058$ or 5.8%, and there are approximately 38 juveniles and 29 yearlings for every 100 adults.</p></li><li><p>We now have eigenvalues $\\lambda_1=1.011$ and $\\lambda_{2,3} = -0.106\\pm 0.450i$. This shows that the growth rate is lowered to $1.011$ or $1.1$% annually.</p></li><li><p>The first eigenvalue is $\\lambda_1=0.957$ so the growth rate is about $96$%. In other words, the population decreases every year.</p></li><li><p>To be stable, we need the first eigenvalue $\\lambda_1=1$. If we experiment with different birth rates, we see that a birth rate of about 0.278 gives this eigenvalue.</p></li></ol>"
+   },
+   "figure": {
+    "src": "/media/ch04/eigen-3d-species.svg",
+    "alt": "The bison life cycle: juveniles become yearlings, yearlings become adults, adults survive and give birth to juveniles, with 80%, 90%, 80% and 40% on the arrows.",
+    "caption": "How bison move between juveniles, yearlings and adults each year."
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "4.4.1",
+   "source_number": "4.4.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "six-types",
+   "prompt": "<p>For each of the $2\\times2$ matrices below, find the eigenvalues and, when appropriate, the eigenvectors to classify the dynamical system ${\\mathbf x}_{k+1}=A{\\mathbf x}_k$. Use this information to sketch the phase portraits.</p><ol type=\"a\"><li><p>$A = \\left[\\begin{array}{rr} 3& 1 \\\\ 1 & 3 \\\\ \\end{array}\\right]$.</p></li><li><p>$A = \\left[\\begin{array}{rr} 3& -2 \\\\ 4 & -1 \\\\ \\end{array}\\right]$.</p></li><li><p>$A = \\left[\\begin{array}{rr} 1.9 & 1.4 \\\\ -0.7 & -0.2 \\\\ \\end{array}\\right]$.</p></li><li><p>$A = \\left[\\begin{array}{rr} 1.1 & -0.2 \\\\ 0.4 & 0.5 \\\\ \\end{array}\\right]$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>Repellor</p></li><li><p>Spiral repellor</p></li><li><p>Saddle</p></li><li><p>Attractor</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>There are two real eigenvalues $\\lambda_1=4$ and $\\lambda_2=2$ with associated eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}=\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$<sup class=\"fn\" data-note=\"fn-ex-4-4-1-a\"></sup>. This dynamical system is a repellor so trajectories are pushed away from the origin.</p><p><img src=\"/media/ch04/ex-dynam-sol-a-a.svg\" alt=\"The phase portrait of the diagonal matrix with eigenvalues 4 and 2, a repellor.\" width=\"230\"> <img src=\"/media/ch04/ex-dynam-sol-a-b.svg\" alt=\"The phase portrait of A, a repellor, in the standard coordinates.\" width=\"230\"></p></li><li><p>This is a spiral repellor because there are complex eigenvalues $1\\pm 2i$ whose length is greater than one. Trajectories will spiral away from the origin.</p><p><img src=\"/media/ch04/4-4-eigen-phase-spiralr-a.svg\" alt=\"The phase portrait of the rotation and scaling matrix, a spiral repellor.\" width=\"230\"> <img src=\"/media/ch04/4-4-eigen-phase-spiralr-b.svg\" alt=\"The phase portrait of A, a spiral repellor.\" width=\"230\"></p></li><li><p>This is a saddle because there are two real eigenvalues $\\lambda_1=1.2$ and $\\lambda_2=0.5$ with associated eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}-2 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}-1 \\\\ 1 \\end{array}\\right]$. Most trajectories will move away from the origin along the line defined by the eigenvector ${\\mathbf v}_1$.</p><p><img src=\"/media/ch04/ex-dynam-sol-c-a.svg\" alt=\"The phase portrait of the diagonal matrix with eigenvalues 1.2 and 0.5, a saddle.\" width=\"230\"> <img src=\"/media/ch04/ex-dynam-sol-c-b.svg\" alt=\"The phase portrait of A, a saddle, in the standard coordinates.\" width=\"230\"></p></li><li><p>This is an attractor because there are two real eigenvalues $0.9$ and $0.7$ with associated eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right]$. Trajectories will be pulled in toward the origin.</p><p><img src=\"/media/ch04/ex-dynam-sol-d-a.svg\" alt=\"The phase portrait of the diagonal matrix with eigenvalues 0.9 and 0.7, an attractor.\" width=\"230\"> <img src=\"/media/ch04/ex-dynam-sol-d-b.svg\" alt=\"The phase portrait of A, an attractor, in the standard coordinates.\" width=\"230\"></p></li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "4.4.2",
+   "source_number": "4.4.2",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-six-types",
+   "prompt": "<p>We will consider matrices that have the form $A=PDP^{-1}$ where</p>$$ D = \\left[\\begin{array}{rr}p & 0 \\\\ 0 & \\frac12 \\\\ \\end{array}\\right], P = \\left[\\begin{array}{rr}2 & -2 \\\\ 1 & 1 \\\\ \\end{array}\\right] $$<p>where $p$ is a parameter that we will vary. Sketch phase portraits for $D$ and $A$ below when</p><ol type=\"a\"><li><p>$p=\\frac12$.</p></li><li><p>$p=1$.</p></li><li><p>$p=2$.</p></li><li><p>For the different values of $p$, determine which types of dynamical system results. For what range of $p$ values do we have an attractor? For what range of $p$ values do we have a saddle? For what value does the transition between the two types occur?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><p>The phase portraits are as shown.</p><ol type=\"a\"><li><p>When $p=\\frac12$.</p><p><img src=\"/media/ch04/ex-phase-param-a-a.svg\" alt=\"The phase portrait of D when p = 1/2, an attractor.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-param-a-b.svg\" alt=\"The phase portrait of A when p = 1/2.\" width=\"230\"></p></li><li><p>When $p=1$.</p><p><img src=\"/media/ch04/ex-phase-param-b-a.svg\" alt=\"The phase portrait of D when p = 1.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-param-b-b.svg\" alt=\"The phase portrait of A when p = 1.\" width=\"230\"></p></li><li><p>When $p=2$.</p><p><img src=\"/media/ch04/ex-phase-param-c-a.svg\" alt=\"The phase portrait of D when p = 2, a saddle.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-param-c-b.svg\" alt=\"The phase portrait of A when p = 2.\" width=\"230\"></p></li><li><p>If $p<1$, we have an attractor. If $p>1$, we have a saddle. The transition between the two types occurs at $p=1$.</p></li></ol><p><strong>Solution.</strong></p><p>The phase portraits are as shown.</p><ol type=\"a\"><li><p>When $p=\\frac12$.</p><p><img src=\"/media/ch04/ex-phase-param-a-a.svg\" alt=\"The phase portrait of D when p = 1/2, an attractor.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-param-a-b.svg\" alt=\"The phase portrait of A when p = 1/2.\" width=\"230\"></p></li><li><p>When $p=1$.</p><p><img src=\"/media/ch04/ex-phase-param-b-a.svg\" alt=\"The phase portrait of D when p = 1.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-param-b-b.svg\" alt=\"The phase portrait of A when p = 1.\" width=\"230\"></p></li><li><p>When $p=2$.</p><p><img src=\"/media/ch04/ex-phase-param-c-a.svg\" alt=\"The phase portrait of D when p = 2, a saddle.\" width=\"230\"> <img src=\"/media/ch04/ex-phase-param-c-b.svg\" alt=\"The phase portrait of A when p = 2.\" width=\"230\"></p></li><li><p>If $p<1$, we have an attractor. If $p>1$, we have a saddle. The transition between the two types occurs at $p=1$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "4.4.3",
+   "source_number": "4.4.3",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "sim-six-types",
+   "prompt": "<p>Suppose that the populations of two species interact according to the relationships</p>$$ \\begin{aligned} R_{k+1} & {}={} \\frac12 R_k + \\frac12S_k \\\\ S_{k+1} & {}={} -pR_k + 2S_k \\\\ \\end{aligned} $$<p>where $p$ is a parameter. As we saw in the text, this dynamical system represents a typical predator-prey relationship, and the parameter $p$ represents the rate at which species $R$ preys on $S$. We will denote the matrix $A=\\left[\\begin{array}{rr}\\frac12 & \\frac12 \\\\ -p & 2 \\\\ \\end{array}\\right]$.</p><ol type=\"a\"><li><p>If $p = 0$, determine the eigenvectors and eigenvalues of the system and classify it as one of the six types. Sketch the phase portraits for the diagonal matrix $D$ to which $A$ is similar as well as the phase portrait for $A$.</p></li><li><p>If $p=1$, determine the eigenvectors and eigenvalues of the system. Sketch the phase portraits for the diagonal matrix $D$ to which $A$ is similar as well as the phase portrait for $A$.</p></li><li><p>For what values of $p$ is the origin a saddle? What can you say about the populations when this happens?</p></li><li><p>Describe the evolution of the dynamical system as $p$ begins at $0$ and increases to $p=1$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$\\lambda_1=\\frac12$ and $\\lambda_2=2$</p><p><img src=\"/media/ch04/ex-predator-sol-a.svg\" alt=\"The phase portraits of D and A when p = 0.\" width=\"300\"></p></li><li><p>$\\lambda_1=1$ and $\\lambda_2=1.5$</p><p><img src=\"/media/ch04/ex-predator-sol-b.svg\" alt=\"The phase portraits of D and A when p = 1.\" width=\"300\"></p></li><li><p>$p< 1$</p></li><li><p>As $p$ grows, there needs to be a sufficient $S$ population to ensure the survival of both species.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>If $p = 0$, the eigenvectors are ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ with associated eigenvalue $\\lambda_1=\\frac12$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}1 \\\\ 3 \\end{array}\\right]$ with eigenvalue $\\lambda_2=2$. The phase portraits are as</p><p><img src=\"/media/ch04/ex-predator-sol-a-a.svg\" alt=\"The phase portrait of D when p = 0.\" width=\"230\"> <img src=\"/media/ch04/ex-predator-sol-a-b.svg\" alt=\"The phase portrait of A when p = 0, in the R, S plane.\" width=\"230\"></p></li><li><p>With $p=1$, we have eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ with eigenvalue $\\lambda_1=1$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right]$ with eigenvalue $\\lambda_2=1.5$. The phase portraits appear as</p><p><img src=\"/media/ch04/ex-predator-sol-b-a.svg\" alt=\"The phase portrait of D when p = 1.\" width=\"230\"> <img src=\"/media/ch04/ex-predator-sol-b-b.svg\" alt=\"The phase portrait of A when p = 1, in the R, S plane.\" width=\"230\"></p></li><li><p>We find the characteristic polynomial of $A$ to be<sup class=\"fn\" data-note=\"fn-ex-4-4-3-c\"></sup></p>$$ \\det(A-\\lambda I) = \\lambda^2-\\frac52\\lambda+\\frac12 p\\text{,} $$<p>which has roots</p>$$ \\lambda=\\frac 54 \\pm \\frac12\\sqrt{\\frac94-2p}\\text{.} $$<p>So long as $\\frac94 - 2p\\geq 0$, one root will be real and larger than $1$. We have a saddle when</p>$$ \\begin{aligned} \\frac 54 - \\frac12\\sqrt{\\frac94-2p} & < 1 \\\\ \\sqrt{\\frac94-2p} & > \\frac12 \\\\ p & < 1\\text{.} \\\\ \\end{aligned} $$<p>This shows that we have a saddle whenever $p<1$.</p></li><li><p>When $p=0$, we have a saddle. Notice that $R$ will go extinct if the initial population of $S$ is zero. As we increase $p$, we still have a saddle, but it is now possible for $R$ to go extinct even when the initial $S$ population is positive. Only when the initial ratio of<sup class=\"fn\" data-note=\"fn-ex-4-4-3-d\"></sup> to $R$ is greater than a minimum value, which depends on $p$, will $R$ not go extinct. Eventually, when $p=1$, we see that $R$ will go extinct as long as $R_0> S_0$.</p><p>As we increase the predation rate, the population of $S$ is lowered by $R$. However, $S$ is necessary to $R$'s survival. When the predation rate grows too large, there needs to be a sufficiently large initial $S$ population to support both species.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "4.4.4",
+   "source_number": "4.4.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "center",
+   "prompt": "<p>Consider the matrices</p>$$ A = \\left[\\begin{array}{cc} 3 & 2 \\\\ -5 & -3 \\\\ \\end{array}\\right], \\qquad B = \\left[\\begin{array}{cc} 5 & 7 \\\\ -3 & -4 \\\\ \\end{array}\\right]\\text{.} $$<ol type=\"a\"><li><p>Find the eigenvalues of $A$. To which of the six types does the system ${\\mathbf x}_{k+1}=A{\\mathbf x}_{k}$ belong?</p></li><li><p>Using the eigenvalues of $A$, we can write $A=PEP^{-1}$ for some matrices $E$ and $P$. What is the matrix $E$ and what geometric effect does multiplication by $E$ have on vectors in the plane?</p></li><li><p>If we remember that $A^k = PE^kP^{-1}$, determine the smallest positive value of $k$ for which $A^k=I$.</p></li><li><p>Find the eigenvalues of $B$.</p></li><li><p>Find a matrix $E$ such that $B = PEP^{-1}$ for some matrix $P$. What geometric effect does multiplication by $E$ have on vectors in the plane?</p></li><li><p>Determine the smallest positive value of $k$ for which $B^k=I$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>This dynamical system is a center.</p></li><li><p>$E=\\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$.</p></li><li><p>$A^4=I$.</p></li><li><p>$\\lambda=\\frac12\\pm \\frac{\\sqrt{3}}2 i$.</p></li><li><p>$E=\\left[\\begin{array}{rr} \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\frac{\\sqrt{3}}2 & \\frac 12 \\\\ \\end{array}\\right]$</p></li><li><p>$B^6=I$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The eigenvalues are $\\lambda=\\pm i$ so this dynamical system is a center.</p></li><li><p>The matrix is $E=\\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$, which is a $90^\\circ$ rotation.</p></li><li><p>If we rotate by $90^\\circ$ four times, we obtain the identity. Therefore, $A^4=I$.</p></li><li><p>Here, we find the eigenvalues $\\lambda=\\frac12\\pm \\frac{\\sqrt{3}}2 i$.</p></li><li><p>The matrix is $E=\\left[\\begin{array}{rr} \\frac 12 & -\\frac{\\sqrt{3}}2 \\\\ \\frac{\\sqrt{3}}2 & \\frac 12\\end{array}\\right]$, which is a $60^\\circ$ rotation.</p></li><li><p>If we rotate by $60^\\circ$ six times, we obtain the identity. Therefore, $B^6=I$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "4.4.5",
+   "source_number": "4.4.5",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "three-by-three",
+   "prompt": "<p>Suppose we have the female population of a species is divided into juveniles, yearlings, and adults and that each year</p><ul><li>90% of the juveniles live to be yearlings.</li><li>80% of the yearlings live to be adults.</li><li>60% of the adults survive to the next year.</li><li>50% of the adults give birth to a juvenile.</li></ul><ol type=\"a\"><li><p>Set up a system of the form ${\\mathbf x}_{k+1}=A{\\mathbf x}_k$ that describes this situation.</p></li><li><p>Find the eigenvalues of the matrix $A$.</p></li><li><p>What prediction can you make about these populations after a very long time?</p></li><li><p>If the birth rate goes up to 80%, what prediction can you make about these populations after a very long time? For every 100 adults, how many juveniles, and yearlings are there?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>If we write ${\\mathbf x}_k=\\left[\\begin{array}{r}J_k \\\\ Y_k \\\\ A_k \\end{array}\\right]$, we have</p>$$ {\\mathbf x}_{k+1} = \\left[\\begin{array}{rrr} 0 & 0 & 0.5 \\\\ 0.9 & 0 & 0 \\\\ 0.6 & 0.8 & 0 \\\\ \\end{array}\\right] {\\mathbf x}_k\\text{.} $$</li><li><p>$\\lambda_1 = 0.85$ and $\\lambda_{2,3} = -0.43\\pm 0.49i$.</p></li><li><p>The populations will eventually become extinct.</p></li><li><p>All the populations grow by $2$%, and there are about $78$ juveniles and $69$ yearlings for every $100$ adults.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>If we write ${\\mathbf x}_k=\\left[\\begin{array}{r}J_k \\\\ Y_k \\\\ A_k \\end{array}\\right]$, we have</p>$$ {\\mathbf x}_{k+1} = \\left[\\begin{array}{rrr} 0 & 0 & 0.5 \\\\ 0.9 & 0 & 0 \\\\ 0.6 & 0.8 & 0 \\\\ \\end{array}\\right] {\\mathbf x}_k\\text{.} $$</li><li><p>We find the eigenvalues $\\lambda_1 = 0.85$ and $\\lambda_{2,3} = -0.43\\pm 0.49i$.</p></li><li><p>All three eigenvalues have a length less than one. Therefore, the populations will eventually become extinct.</p></li><li><p>With a birth rate of $80$%, the first eigenvalue goes up to $\\lambda_1=1.02$, which means that, eventually, all the populations grow by $2$%. An eigenvector is approximately ${\\mathbf v}_1 = \\left[\\begin{array}{r}78 \\\\ 69 \\\\ 100 \\end{array}\\right]$ so there are about $78$ juveniles and $69$ yearlings for every $100$ adults.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "4.4.6",
+   "source_number": "4.4.6",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "six-types",
+   "prompt": "<p>Determine whether the following statements are true or false and provide a justification for your response. In each case, we are considering a dynamical system of the form ${\\mathbf x}_{k+1} = A{\\mathbf x}_k$.</p><ol type=\"a\"><li><p>If the $2\\times2$ matrix $A$ has a complex eigenvalue, we cannot make a prediction about the behavior of the trajectories.</p></li><li><p>If $A$ has eigenvalues whose absolute value is smaller than 1, then all the trajectories are pulled in toward the origin.</p></li><li><p>If the origin is a repellor, then it is an attractor for the system ${\\mathbf x}_{k+1} = A^{-1}{\\mathbf x}_k$.</p></li><li><p>If a $4\\times4$ matrix has complex eigenvalues $\\lambda_1$, $\\lambda_2$, $\\lambda_3$, and $\\lambda_4$, all of which satisfy $|\\lambda_j| > 1$, then all the trajectories are pushed away from the origin.</p></li><li><p>If the origin is a saddle, then all the trajectories are pushed away from the origin.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>False</p></li><li><p>True</p></li><li><p>True</p></li><li><p>True</p></li><li><p>False</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>False. We know that the dynamical system is either a spiral repellor, center, or spiral attractor.</p></li><li><p>True. In this case, we have either an attractor or spiral attractor.</p></li><li><p>True. If $A$ is an attractor, then all the eigenvalues $|\\lambda_j| > 1$<sup class=\"fn\" data-note=\"fn-ex-4-4-6-c\"></sup>. The eigenvalues for $A^{-1}$ are $\\frac1{\\lambda_j}$, which satisfy $\\left|\\frac1{\\lambda_j}\\right| < 1$.</p></li><li><p>True. We can decompose ${\\mathbb R}^4$ into two two-dimensional subspaces on which $A$ acts as a spiral repellor.</p></li><li><p>False. There are trajectories along the line defined by the eigenvector associated to the smaller eigenvalue that are pulled in toward the origin.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "4.4.7",
+   "source_number": "4.4.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "saddle",
+   "prompt": "<p>The Fibonacci numbers form the sequence of numbers that begins $0, 1, 1, 2, 3, 5, 8, 13, \\ldots$. If we let $F_n$ denote the $n^{th}$ Fibonacci number, then</p>$$ F_0 =0, F_1 =1, F_2 =1, F_3 =2, F_4 =3,\\ldots. $$<p>In general, a Fibonacci number is the sum of the previous two Fibonacci numbers; that is, $F_{n+2} = F_{n}+F_{n+1}$ so that we have</p>$$ \\begin{aligned} F_{n+2} & {}={} F_{n} + F_{n+1} \\\\ F_{n+1} & {}={} F_{n+1}\\text{.} \\\\ \\end{aligned} $$<ol type=\"a\"><li><p>If we write ${\\mathbf x}_n = \\left[\\begin{array}{r}F_{n+1} \\\\ F_n \\end{array}\\right]$, find the matrix $A$ such that ${\\mathbf x}_{n+1} = A{\\mathbf x}_n$.</p></li><li><p>Show that $A$ has eigenvalues</p>$$ \\begin{aligned} \\lambda_1 & {}={} \\frac{1+\\sqrt{5}}{2}\\approx 1.61803\\ldots \\\\ \\lambda_2 & {}={} \\frac{1-\\sqrt{5}}{2}\\approx -0.61803\\ldots \\\\ \\end{aligned} $$<p>with associated eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}\\lambda_1 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}\\lambda_2 \\\\ 1 \\end{array}\\right]$.</p></li><li><p>Classify this dynamical system as one of the six types that we have seen in this section. What happens to ${\\mathbf x}_n$ as $n$ becomes very large?</p></li><li><p>Write the initial vector ${\\mathbf x}_0 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ as a linear combination of eigenvectors ${\\mathbf v}_1$ and ${\\mathbf v}_2$.</p></li><li><p>Write the vector ${\\mathbf x}_n$ as a linear combinations of ${\\mathbf v}_1$ and ${\\mathbf v}_2$.</p></li><li><p>Explain why the $n^{th}$ Fibonacci number</p>$$ F_{n} = \\frac{1}{\\sqrt{5}}\\left[ \\left(\\frac{1+\\sqrt{5}}{2}\\right)^n - \\left(\\frac{1-\\sqrt{5}}{2}\\right)^n\\right]\\text{.} $$</li><li><p>Use this relationship to compute $F_{20}$.</p></li><li><p>Explain why $F_{n+1}/F_{n}\\approx \\lambda_1$ when $n$ is very large.</p></li></ol><p>The number $\\lambda_1=\\frac{1+\\sqrt{5}}{2} = \\phi$ is called the <em>golden ratio</em> and is one of mathematics' special numbers.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$A = \\left[\\begin{array}{rr} 1 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$</p></li><li><p>Find the roots of the characteristic polynomial.</p></li><li><p>$A$ defines a saddle.</p></li><li><p>${\\mathbf x}_0 = \\frac1{\\sqrt{5}}{\\mathbf v}_1 -\\frac1{\\sqrt{5}}{\\mathbf v}_2$.</p></li><li><p>We have ${\\mathbf x}_n = \\frac1{\\sqrt5}\\left(\\frac{1+\\sqrt5}{2}\\right)^n \\left[\\begin{array}{r}\\lambda_1 \\\\ 1 \\end{array}\\right] - \\frac1{\\sqrt5}\\left(\\frac{1-\\sqrt5}{2}\\right)^n \\left[\\begin{array}{r}\\lambda_2 \\\\ 1 \\end{array}\\right]$.</p></li><li><p>From the second component, we see that</p>$$ F_{n} = \\frac{1}{\\sqrt{5}}\\left[ \\left(\\frac{1+\\sqrt{5}}{2}\\right)^n - \\left(\\frac{1-\\sqrt{5}}{2}\\right)^n\\right]\\text{.} $$</li><li><p>$F_{20} = 6765$</p></li><li><p>For large values of $n$, we have ${\\mathbf x}_n\\approx\\frac1{\\sqrt5}\\lambda_1^n\\left[\\begin{array}{r}\\lambda_1 \\\\ 1 \\end{array}\\right]$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have</p>$$ {\\mathbf x}_{n+1}=\\left[\\begin{array}{r}F_{n+2} \\\\ F_{n+1} \\end{array}\\right] = \\left[\\begin{array}{r}F_{n+1}+F_n \\\\ F_{n+1} \\end{array}\\right] = \\left[\\begin{array}{rr} 1 & 1 \\\\ 1 & 0 \\\\ \\end{array}\\right] {\\mathbf x}_n\\text{.} $$</li><li><p>The characteristic equation is</p>$$ \\det(A-\\lambda I) = (1-\\lambda)(-\\lambda)-1 = \\lambda^2-\\lambda-1 = 0\\text{.} $$<p>Applying the quadratic formula, we see that the two eigenvalues are $\\lambda_1=\\frac{1+\\sqrt5}{2}$ and $\\lambda_2=\\frac{1-\\sqrt{5}}2$.</p><p>We find the eigenvectors by row reducing the matrices $A-\\lambda_jI$.</p></li><li><p>Because $|\\lambda_1| > 1$ and $|\\lambda_2| < 1$, this is a saddle.</p></li><li><p>We find ${\\mathbf x}_0=\\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right] = \\frac1{\\sqrt{5}}{\\mathbf v}_1 -\\frac1{\\sqrt{5}}{\\mathbf v}_2$.</p></li><li><p>We have</p>$$ \\begin{aligned} {\\mathbf x}_n & =\\frac1{\\sqrt5}\\lambda_1^n{\\mathbf v}_1 - \\frac1{\\sqrt5}\\lambda_2^n{\\mathbf v}_2 \\\\ \\left[\\begin{array}{r}F_{n+1} \\\\ F_n \\end{array}\\right] & = \\frac1{\\sqrt5}\\left(\\frac{1+\\sqrt5}{2}\\right)^n \\left[\\begin{array}{r}\\lambda_1 \\\\ 1 \\end{array}\\right] - \\frac1{\\sqrt5}\\left(\\frac{1-\\sqrt5}{2}\\right)^n \\left[\\begin{array}{r}\\lambda_2 \\\\ 1 \\end{array}\\right]\\text{.} \\\\ \\end{aligned} $$</li><li><p>From the second component, we see that</p>$$ F_{n} = \\frac{1}{\\sqrt{5}}\\left[ \\left(\\frac{1+\\sqrt{5}}{2}\\right)^n - \\left(\\frac{1-\\sqrt{5}}{2}\\right)^n\\right]\\text{.} $$</li><li><p>Using this relationship, we compute that $F_{20} = 6765$.</p></li><li><p>For large values of $n$, we have ${\\mathbf x}_n\\approx\\frac1{\\sqrt5}\\lambda_1^n\\left[\\begin{array}{r}\\lambda_1 \\\\ 1 \\end{array}\\right]$, which says that $F_{n+1} \\approx \\frac1{\\sqrt5}\\lambda_1^{n+1}$ and $F_{n} \\approx \\frac1{\\sqrt5}\\lambda_1^{n}$. This gives the ratio $F_{n+1}/F_n\\approx \\lambda_1$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "4.4.8",
+   "source_number": "4.4.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "saddle",
+   "prompt": "<p>This exercise is a continuation of the previous one. The Lucas numbers $L_n$ are defined by the same relationship as the Fibonacci numbers: $L_{n+2}=L_{n+1}+L_n$. However, we begin with $L_0=2$ and $L_1=1$, which leads to the sequence $2,1,3,4,7,11,\\ldots$.</p><ol type=\"a\"><li><p>As before, form the vector ${\\mathbf x}_n=\\left[\\begin{array}{r}L_{n+1} \\\\ L_n \\end{array}\\right]$ so that ${\\mathbf x}_{n+1}=A{\\mathbf x}_n$. Express ${\\mathbf x}_0$ as a linear combination of ${\\mathbf v}_1$ and ${\\mathbf v}_2$, eigenvectors of $A$.</p></li><li><p>Explain why</p>$$ L_n = \\left(\\frac{1+\\sqrt{5}}{2}\\right)^n + \\left(\\frac{1-\\sqrt{5}}{2}\\right)^n\\text{.} $$</li><li><p>Explain why $L_n$ is the closest integer to $\\phi^n$ when $n$ is large, where $\\phi = \\lambda_1$ is the golden ratio.</p></li><li><p>Use this observation to find $L_{20}$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>${\\mathbf x}_0 = {\\mathbf v}_1+{\\mathbf v}_2$.</p></li><li><p>${\\mathbf x}_n = A^n{\\mathbf x}_0 = \\lambda_1^n{\\mathbf v}_1 + \\lambda_2^n{\\mathbf v}_2$</p></li><li><p>Because $|\\lambda_2| < 1$, larger powers $\\lambda_2^n$ are very close to zero.</p></li><li><p>$L_{20} = 15127$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Constructing the augmented matrix and row reducing shows that ${\\mathbf x}_0 = {\\mathbf v}_1+{\\mathbf v}_2$.</p></li><li><p>Then we have ${\\mathbf x}_n = A^n{\\mathbf x}_0 = \\lambda_1^n{\\mathbf v}_1 + \\lambda_2^n{\\mathbf v}_2$. Since $L_n$ is the second component of ${\\mathbf x}_n$, we have $L_n = \\lambda_1^n + \\lambda_2^n$.</p></li><li><p>Because $|\\lambda_2| < 1$, larger powers $\\lambda_2^n$ are very close to zero. Therefore, $L_n\\approx \\lambda_1^n = \\left(\\frac{1+\\sqrt5}{2}\\right)^n$.</p></li><li><p>We compute that $\\lambda_1^{20}= 15126.9999$ so that $L_{20} = 15127$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "4.4.9",
+   "source_number": "4.4.9",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "other-possibilities",
+   "prompt": "<p>Gil Strang defines the <em>Gibonacci numbers</em> $G_n$ as follows. We begin with $G_0 = 0$ and $G_1=1$. A subsequent Gibonacci number is the average of the two previous; that is, $G_{n+2} = \\frac12(G_{n}+G_{n+1})$. We then have</p>$$ \\begin{aligned} G_{n+2} & {}={} \\frac12 G_{n} + \\frac 12 G_{n+1} \\\\ G_{n+1} & {}={} G_{n+1}\\text{.} \\\\ \\end{aligned} $$<ol type=\"a\"><li><p>If ${\\mathbf x}_n=\\left[\\begin{array}{r}G_{n+1} \\\\ G_n \\end{array}\\right]$, find the matrix $A$ such that ${\\mathbf x}_{n+1} = A{\\mathbf x}_n$.</p></li><li><p>Find the eigenvalues and associated eigenvectors of $A$.</p></li><li><p>Explain why this dynamical system does not neatly fit into one of the six types that we saw in this section.</p></li><li><p>Write ${\\mathbf x}_{0}$ as a linear combination of eigenvectors of $A$.</p></li><li><p>Write ${\\mathbf x}_n$ as a linear combination of eigenvectors of $A$.</p></li><li><p>What happens to $G_n$ as $n$ becomes very large?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$A=\\left[\\begin{array}{rr}\\frac12 & \\frac12 \\\\ 1 & 0 \\\\ \\end{array}\\right]$</p></li><li><p>The eigenvalues are $\\lambda_1=1$ and $\\lambda_2=-\\frac12$ with associated eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]$.</p></li><li><p>We have one eigenvalue $|\\lambda_1| = 1$, which means this system does not fall into any of our cases.</p></li><li><p>${\\mathbf x}_0 = \\frac23{\\mathbf v}_1 + \\frac13{\\mathbf v}_2$</p></li><li><p>${\\mathbf x}_n=\\frac23{\\mathbf v}_1+ \\frac13\\left(-\\frac12\\right)^n{\\mathbf v}_n$</p></li><li><p>$G_n$ stabilizes at $\\frac23$.</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>If $A=\\left[\\begin{array}{rr}\\frac12 & \\frac12 \\\\ 1 & 0 \\\\ \\end{array}\\right]$, then we have ${\\mathbf x}_{n+1} = A{\\mathbf x}_n$.</p></li><li><p>The eigenvalues are $\\lambda_1=1$ and $\\lambda_2=-\\frac12$ with associated eigenvectors ${\\mathbf v}_1=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}_2=\\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right]$.</p></li><li><p>We have one eigenvalue $|\\lambda_1| = 1$, which means this system does not fall into any of our cases.</p></li><li><p>After constructing an augmented matrix and row reducing, we find ${\\mathbf x}_0 = \\frac23{\\mathbf v}_1 + \\frac13{\\mathbf v}_2$.</p></li><li><p>We have ${\\mathbf x}_n=\\frac23{\\mathbf v}_1+ \\frac13\\left(-\\frac12\\right)^n{\\mathbf v}_n$<sup class=\"fn\" data-note=\"fn-ex-4-4-9-e\"></sup>.</p></li><li><p>As $n$ becomes large, the coefficient $\\left(-\\frac12\\right)^n$ becomes very small. Therefore, ${\\mathbf x}_n\\approx \\frac23{\\mathbf v}_1 = \\left[\\begin{array}{r}\\frac23 \\\\ \\frac23 \\end{array}\\right]$. This shows that $G_n$ stabilizes at $\\frac23$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "4.4.10",
+   "source_number": "4.4.10",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "complex-3x3",
+   "prompt": "<p>Consider a small rodent that lives for three years. Once again, we can separate a population of females into juveniles, yearlings, and adults. Suppose that, each year,</p><ul><li>Half of the juveniles live to be yearlings.</li><li>One quarter of the yearlings live to be adults.</li><li>Adult females produce eight female offspring.</li><li>None of the adults survive to the next year.</li></ul><ol type=\"a\"><li><p>Writing the populations of juveniles, yearlings, and adults in year $k$ using the vector ${\\mathbf x}_k=\\left[\\begin{array}{r}J_k \\\\ Y_k \\\\ A_k \\end{array}\\right]$, find the matrix $A$ such that ${\\mathbf x}_{k+1} = A{\\mathbf x}_k$.</p></li><li><p>Show that $A^3=I$.</p></li><li><p>What are the eigenvalues of $A^3$? What does this say about the eigenvalues of $A$?</p></li><li><p>Verify your observation by finding the eigenvalues of $A$.</p></li><li><p>What can you say about the trajectories of this dynamical system?</p></li><li><p>What does this mean about the population of rodents?</p></li><li><p>Find a population vector ${\\mathbf x}_0$ that is unchanged from year to year.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$A= \\left[\\begin{array}{rrr} 0 & 0 & 8 \\\\ \\frac 12 & 0 & 0 \\\\ 0 & \\frac 14 & 0 \\\\ \\end{array}\\right]$.</p></li><li><p>We can use Sage to compute that $A^3=I$.</p></li><li><p>Any eigenvalue $\\lambda$ of $A$ must satisfy $\\lambda^3=1$.</p></li><li><p>$\\lambda_1=1$ and $\\lambda_{2,3} = -\\frac12\\pm\\frac{\\sqrt3}{2}i$</p></li><li><p>The trajectories lie on circles about the line defined by $\\left[\\begin{array}{r}8 \\\\ 4 \\\\ 1 \\end{array}\\right]$.</p></li><li><p>After every three years, the populations return to their initial values.</p></li><li><p>${\\mathbf x}_0={\\mathbf v}_1 = \\left[\\begin{array}{r}8 \\\\ 4 \\\\ 1 \\end{array}\\right]$</p></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We have ${\\mathbf x}_{k+1} = A{\\mathbf x}_k$ where $A = \\left[\\begin{array}{rrr} 0 & 0 & 8 \\\\ \\frac 12 & 0 & 0 \\\\ 0 & \\frac 14 & 0 \\\\ \\end{array}\\right]$.</p></li><li><p>We can use Sage to compute that $A^3=I$.</p></li><li><p>The only eigenvalues of $I$ are $1$ so any eigenvalue $\\lambda$ of $A$ must satisfy $\\lambda^3=1$.</p></li><li><p>Sage tells us that the eigenvalues are $\\lambda_1=1$ and $\\lambda_{2,3} = -\\frac12\\pm\\frac{\\sqrt3}{2}i$.</p></li><li><p>The eigenvector ${\\mathbf v}_1=\\left[\\begin{array}{r}8 \\\\ 4 \\\\ 1 \\end{array}\\right]$ satisfies $A{\\mathbf v}_1 = {\\mathbf v}_1$ so it is unchanged. The complex eigenvalues cause a $120^\\circ$ rotation about the axis defined by ${\\mathbf v}_1$. Therefore, the trajectories lie on circles about this line.</p></li><li><p>After every three years, the populations return to their initial values.</p></li><li><p>If ${\\mathbf x}_0={\\mathbf v}_1 = \\left[\\begin{array}{r}8 \\\\ 4 \\\\ 1 \\end{array}\\right]$, we know that $A{\\mathbf x}_0 = {\\mathbf x}_0$ so this population vector is unchanged.</p></li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "diagonalization"
+  },
+  {
+   "exercise": "a1",
+   "concept": "powers-of-a-diagonalizable-matrix"
+  },
+  {
+   "exercise": "a1",
+   "concept": "matrix-times-eigenvector-combination"
+  },
+  {
+   "exercise": "a2",
+   "concept": "two-species-population-model"
+  },
+  {
+   "exercise": "a2",
+   "concept": "long-term-behavior-from-eigenvectors"
+  },
+  {
+   "exercise": "a2",
+   "concept": "eigenvector"
+  },
+  {
+   "exercise": "a2",
+   "concept": "matrix-times-eigenvector-combination"
+  },
+  {
+   "exercise": "a3",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "a3",
+   "concept": "phase-portrait"
+  },
+  {
+   "exercise": "a3",
+   "concept": "source"
+  },
+  {
+   "exercise": "a3",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "a3",
+   "concept": "sink"
+  },
+  {
+   "exercise": "a3",
+   "concept": "spiral-source"
+  },
+  {
+   "exercise": "a3",
+   "concept": "center"
+  },
+  {
+   "exercise": "a3",
+   "concept": "spiral-sink"
+  },
+  {
+   "exercise": "a4",
+   "concept": "two-species-population-model"
+  },
+  {
+   "exercise": "a4",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "a4",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "a4",
+   "concept": "source"
+  },
+  {
+   "exercise": "a4",
+   "concept": "sink"
+  },
+  {
+   "exercise": "a5",
+   "concept": "higher-dimensional-dynamical-systems"
+  },
+  {
+   "exercise": "a5",
+   "concept": "eigenvalue"
+  },
+  {
+   "exercise": "a5",
+   "concept": "long-term-behavior-from-eigenvectors"
+  },
+  {
+   "exercise": "e1",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "e1",
+   "concept": "phase-portrait"
+  },
+  {
+   "exercise": "e1",
+   "concept": "source"
+  },
+  {
+   "exercise": "e1",
+   "concept": "spiral-source"
+  },
+  {
+   "exercise": "e1",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "e1",
+   "concept": "sink"
+  },
+  {
+   "exercise": "e2",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "e2",
+   "concept": "sink"
+  },
+  {
+   "exercise": "e2",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "e2",
+   "concept": "phase-portrait"
+  },
+  {
+   "exercise": "e2",
+   "concept": "dynamics-in-eigenvector-coordinates"
+  },
+  {
+   "exercise": "e3",
+   "concept": "two-species-population-model"
+  },
+  {
+   "exercise": "e3",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "e3",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "e3",
+   "concept": "phase-portrait"
+  },
+  {
+   "exercise": "e4",
+   "concept": "center"
+  },
+  {
+   "exercise": "e4",
+   "concept": "complex-eigenvalue-similarity"
+  },
+  {
+   "exercise": "e4",
+   "concept": "rotation-scaling-matrix"
+  },
+  {
+   "exercise": "e4",
+   "concept": "powers-of-a-diagonalizable-matrix"
+  },
+  {
+   "exercise": "e5",
+   "concept": "higher-dimensional-dynamical-systems"
+  },
+  {
+   "exercise": "e5",
+   "concept": "eigenvalue"
+  },
+  {
+   "exercise": "e5",
+   "concept": "long-term-behavior-from-eigenvectors"
+  },
+  {
+   "exercise": "e6",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "e6",
+   "concept": "source"
+  },
+  {
+   "exercise": "e6",
+   "concept": "sink"
+  },
+  {
+   "exercise": "e6",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "e6",
+   "concept": "spiral-sink"
+  },
+  {
+   "exercise": "e7",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "e7",
+   "concept": "trajectory"
+  },
+  {
+   "exercise": "e7",
+   "concept": "long-term-behavior-from-eigenvectors"
+  },
+  {
+   "exercise": "e8",
+   "concept": "saddle-point"
+  },
+  {
+   "exercise": "e8",
+   "concept": "long-term-behavior-from-eigenvectors"
+  },
+  {
+   "exercise": "e9",
+   "concept": "classification-of-discrete-dynamical-systems"
+  },
+  {
+   "exercise": "e9",
+   "concept": "long-term-behavior-from-eigenvectors"
+  },
+  {
+   "exercise": "e10",
+   "concept": "higher-dimensional-dynamical-systems"
+  },
+  {
+   "exercise": "e10",
+   "concept": "complex-eigenvalue"
+  },
+  {
+   "exercise": "e10",
+   "concept": "center"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "fn-ex-4-4-1-a",
+   "kind": "correction",
+   "html": "The book prints $\\mathbf{v}$ for the second eigenvector; it is $\\mathbf{v}_2 = [-1, 1]$, the eigenvector of $\\lambda_2 = 2$."
+  },
+  {
+   "id": "fn-ex-4-4-3-d",
+   "kind": "correction",
+   "html": "The book prints an empty symbol here; the sentence is about the initial ratio of $S$ to $R$, the prey to the predator."
+  },
+  {
+   "id": "fn-ex-4-4-3-c",
+   "kind": "correction",
+   "html": "The book prints the constant term as $\\frac12 p$; expanding $(\\frac12 - \\lambda)(2 - \\lambda) + \\frac12 p$ gives $\\det(A - \\lambda I) = \\lambda^2 - \\frac52\\lambda + 1 + \\frac12 p$, and the roots $\\lambda = \\frac54 \\pm \\frac12\\sqrt{\\frac94 - 2p}$ printed next are those of this polynomial."
+  },
+  {
+   "id": "fn-ex-4-4-6-c",
+   "kind": "correction",
+   "html": "The book prints “If $A$ is an attractor”; the hypothesis is that the origin is a repellor, so that every $|\\lambda_j| > 1$ and every eigenvalue $1/\\lambda_j$ of $A^{-1}$ has $|1/\\lambda_j| < 1$."
+  },
+  {
+   "id": "fn-ex-4-4-9-e",
+   "kind": "correction",
+   "html": "The answer and the solution print $\\mathbf{v}_n$ in the last term; it is $\\mathbf{v}_2 = [1, -2]$, the eigenvector of $\\lambda_2 = -\\frac12$, so $\\mathbf{x}_n = \\frac23\\mathbf{v}_1 + \\frac13\\left(-\\frac12\\right)^n\\mathbf{v}_2$."
+  }
+ ]
+}
