@@ -19,7 +19,8 @@
     "underlines": true
   },
   "chapters": [
-    "ch01"
+    "ch01",
+    "ch02"
   ],
   "intro": {
     "module": "preface"
@@ -92,6 +93,178 @@
     {
       "sym": "n",
       "latex": "n"
+    },
+    {
+      "sym": "v_vec",
+      "latex": "\\mathbf{v}",
+      "macro": "\\kvecv"
+    },
+    {
+      "sym": "w_vec",
+      "latex": "\\mathbf{w}",
+      "macro": "\\kvecw"
+    },
+    {
+      "sym": "u_vec",
+      "latex": "\\mathbf{u}",
+      "macro": "\\kvecu"
+    },
+    {
+      "sym": "b_vec",
+      "latex": "\\mathbf{b}",
+      "macro": "\\kvecb"
+    },
+    {
+      "sym": "x_vec",
+      "latex": "\\mathbf{x}",
+      "macro": "\\kvecx"
+    },
+    {
+      "sym": "zero_vec",
+      "latex": "\\mathbf{0}",
+      "macro": "\\kveczero"
+    },
+    {
+      "sym": "v_i_vec",
+      "latex": "\\mathbf{v}_i",
+      "macro": "\\kvecvi"
+    },
+    {
+      "sym": "v_1_vec",
+      "latex": "\\mathbf{v}_1",
+      "macro": "\\kvecvone"
+    },
+    {
+      "sym": "v_2_vec",
+      "latex": "\\mathbf{v}_2",
+      "macro": "\\kvecvtwo"
+    },
+    {
+      "sym": "v_3_vec",
+      "latex": "\\mathbf{v}_3",
+      "macro": "\\kvecvthree"
+    },
+    {
+      "sym": "w_i_vec",
+      "latex": "\\mathbf{w}_i",
+      "macro": "\\kvecwi"
+    },
+    {
+      "sym": "w_1_vec",
+      "latex": "\\mathbf{w}_1",
+      "macro": "\\kvecwone"
+    },
+    {
+      "sym": "w_2_vec",
+      "latex": "\\mathbf{w}_2",
+      "macro": "\\kvecwtwo"
+    },
+    {
+      "sym": "w_3_vec",
+      "latex": "\\mathbf{w}_3",
+      "macro": "\\kvecwthree"
+    },
+    {
+      "sym": "e_j_vec",
+      "latex": "\\mathbf{e}_j",
+      "macro": "\\kvecej"
+    },
+    {
+      "sym": "e_1_vec",
+      "latex": "\\mathbf{e}_1",
+      "macro": "\\kveceone"
+    },
+    {
+      "sym": "e_2_vec",
+      "latex": "\\mathbf{e}_2",
+      "macro": "\\kvecetwo"
+    },
+    {
+      "sym": "e_3_vec",
+      "latex": "\\mathbf{e}_3",
+      "macro": "\\kvecethree"
+    },
+    {
+      "sym": "x_k_vec",
+      "latex": "\\mathbf{x}_k",
+      "macro": "\\kvecxk"
+    },
+    {
+      "sym": "x_0_vec",
+      "latex": "\\mathbf{x}_0",
+      "macro": "\\kvecxzero"
+    },
+    {
+      "sym": "C",
+      "latex": "C",
+      "macro": "\\kC"
+    },
+    {
+      "sym": "I",
+      "latex": "I",
+      "macro": "\\kI"
+    },
+    {
+      "sym": "I_n",
+      "latex": "I_n",
+      "macro": "\\kIn"
+    },
+    {
+      "sym": "T",
+      "latex": "T",
+      "macro": "\\kT"
+    },
+    {
+      "sym": "S",
+      "latex": "S",
+      "macro": "\\kS"
+    },
+    {
+      "sym": "R",
+      "latex": "R",
+      "macro": "\\kR"
+    },
+    {
+      "sym": "A_k",
+      "latex": "A^k",
+      "macro": "\\kAk"
+    },
+    {
+      "sym": "Span",
+      "latex": "\\text{Span}",
+      "macro": "\\kSpan"
+    },
+    {
+      "sym": "R_m",
+      "latex": "{\\mathbb R}^m"
+    },
+    {
+      "sym": "c",
+      "latex": "c"
+    },
+    {
+      "sym": "d",
+      "latex": "d"
+    },
+    {
+      "sym": "c_i",
+      "latex": "c_i"
+    },
+    {
+      "sym": "m",
+      "latex": "m"
+    },
+    {
+      "sym": "p",
+      "latex": "p"
+    },
+    {
+      "sym": "k",
+      "latex": "k"
+    },
+    {
+      "sym": "theta",
+      "latex": "\\theta"
     }
   ],
   "exercise_kinds": [
@@ -515,6 +688,812 @@
       "section": "1.4",
       "name": "Reading existence and uniqueness from the pivots",
       "statement": "Determining whether a linear system is consistent, and whether its solution is unique, from the pivot positions of its reduced row echelon augmented matrix: a pivot in the rightmost column means the system is inconsistent; otherwise a pivot in every column of the coefficient matrix means a unique solution and a column without one means infinitely many, the pivot columns naming the basic variables and the others the free variables, from which a parametric description is written."
+    },
+    {
+      "id": "vector",
+      "kind": "definition",
+      "section": "2.1",
+      "name": "Vector",
+      "terms": [
+        "vector"
+      ],
+      "symbol": "v_vec",
+      "type": "vector",
+      "statement": "A vector is most simply thought of as a matrix with a single column, such as v = [2, 1] or w = [−3, 1, 0, 2]. The entries in a vector are called its components; since v has two components, it is a two-dimensional vector, and w is a four-dimensional vector. A two-dimensional vector can be drawn as an arrow describing a walk in the plane, two units horizontally and one unit vertically for v, most frequently begun at the origin."
+    },
+    {
+      "id": "euclidean-space",
+      "kind": "definition",
+      "section": "2.1",
+      "name": "Space of m-dimensional vectors",
+      "symbol": "R_m",
+      "statement": "We denote the set of all m-dimensional vectors by ℝᵐ. Consequently, if u is a 3-dimensional vector, we say that u is in ℝ³."
+    },
+    {
+      "id": "scalar",
+      "kind": "definition",
+      "section": "2.1",
+      "name": "Scalar",
+      "terms": [
+        "scalars"
+      ],
+      "statement": "We will frequently refer to real numbers, such as −3 in the scalar multiple −3v, as scalars to distinguish them from vectors."
+    },
+    {
+      "id": "scalar-multiplication",
+      "kind": "definition",
+      "section": "2.1",
+      "name": "Scalar multiplication",
+      "terms": [
+        "scalar multiplication"
+      ],
+      "statement": "We multiply a vector v by a real number c by multiplying each of the components of v by c; for instance, −3[2, −4, 1] = [−6, 12, −3]."
+    },
+    {
+      "id": "vector-addition",
+      "kind": "definition",
+      "section": "2.1",
+      "name": "Vector addition",
+      "terms": [
+        "vector addition"
+      ],
+      "statement": "We add two vectors of the same dimension by adding their components; for instance, [2, −4, 3] + [−5, 6, −3] = [−3, 2, 0]."
+    },
+    {
+      "id": "geometry-of-vector-operations",
+      "kind": "idea",
+      "section": "2.1",
+      "name": "Geometry of scalar multiplication and vector addition",
+      "statement": "Scalar multiplication has the effect of stretching or compressing a vector, and multiplying by a negative scalar changes its direction; in either case a scalar multiple of v lies on the same line defined by v. To represent the sum v + w, we walk from the origin with the horizontal and vertical changes given by v and continue with those prescribed by w, placing the tail of w on the tip of v; alternatively, the sum is the diagonal of the parallelogram with v and w as two sides."
+    },
+    {
+      "id": "vectors-as-points",
+      "kind": "idea",
+      "section": "2.1",
+      "name": "Vectors and points interchangeably",
+      "statement": "At times it is useful to think of vectors and points interchangeably: the vector [2, 1] describes the point (2, 1) and vice-versa. When we say that the vectors of the form cv + w form a line, we really mean that the tips of the vectors all lie on the line passing through w and parallel to v."
+    },
+    {
+      "id": "vector-equation-of-a-line",
+      "kind": "result",
+      "section": "2.1",
+      "name": "Line described by vectors",
+      "statement": "The set of vectors having the form cv is a line. To form the set of vectors cv + w, we begin with the vector w and add multiples of v, moving from the tip of w in a direction parallel to v; the effect is to translate the line cv by the vector w, so the set of vectors cv + w forms a line through w parallel to v.",
+      "forms": [
+        {
+          "id": "eq-line-of-vectors",
+          "latex": "c\\mathbf{v} + \\mathbf{w}",
+          "condition": "c any scalar"
+        }
+      ]
+    },
+    {
+      "id": "properties-of-vector-operations",
+      "kind": "result",
+      "section": "2.1",
+      "name": "Properties of vector operations",
+      "statement": "Even though these vector operations are new, it is straightforward to check that some familiar properties hold: commutativity, v + w = w + v, and distributivity, a(v + w) = av + aw.",
+      "forms": [
+        {
+          "id": "eq-vector-addition-commutative",
+          "latex": "\\mathbf{v} + \\mathbf{w} = \\mathbf{w} + \\mathbf{v}"
+        },
+        {
+          "id": "eq-scalar-multiplication-distributive",
+          "latex": "a(\\mathbf{v} + \\mathbf{w}) = a\\mathbf{v} + a\\mathbf{w}"
+        }
+      ]
+    },
+    {
+      "id": "vector-in-sage",
+      "kind": "skill",
+      "section": "2.1",
+      "name": "Working with vectors in Sage",
+      "statement": "Defining a vector in Sage with the vector command, such as v = vector([3,1]), and performing scalar multiplication and vector addition with * and +, as in print(2*v) and print(v + w)."
+    },
+    {
+      "id": "linear-combination",
+      "kind": "definition",
+      "section": "2.1",
+      "name": "Linear combination",
+      "terms": [
+        "linear combination",
+        "weights"
+      ],
+      "statement": "The linear combination of the vectors v₁, v₂, …, vₙ with scalars c₁, c₂, …, cₙ is the vector c₁v₁ + c₂v₂ + … + cₙvₙ. The scalars c₁, c₂, …, cₙ are called the weights of the linear combination. Geometrically, cv + dw is found by walking along v a total of c times followed by walking along w a total of d times; when one weight is held constant while the other varies, the vector moves along a line.",
+      "forms": [
+        {
+          "id": "eq-linear-combination",
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n"
+        }
+      ]
+    },
+    {
+      "id": "linear-combinations-and-linear-systems",
+      "kind": "result",
+      "section": "2.1",
+      "name": "Linear combinations and linear systems",
+      "statement": "The vector b is a linear combination of the vectors v₁, v₂, …, vₙ if and only if the linear system corresponding to the augmented matrix [v₁ v₂ … vₙ | b] is consistent. A solution to this linear system gives weights c₁, c₂, …, cₙ such that c₁v₁ + c₂v₂ + … + cₙvₙ = b. Asking whether b is a linear combination of v₁, …, vₙ is therefore equivalent to asking whether an associated linear system is consistent.",
+      "forms": [
+        {
+          "id": "eq-linear-combination-augmented-matrix",
+          "latex": "\\left[ \\begin{array}{rrrr|r} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n & \\mathbf{b} \\end{array} \\right]"
+        },
+        {
+          "id": "eq-linear-combination-equals-b",
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{b}"
+        }
+      ]
+    },
+    {
+      "id": "writing-a-vector-as-a-linear-combination",
+      "kind": "skill",
+      "section": "2.1",
+      "name": "Writing a vector as a linear combination",
+      "statement": "Deciding whether b is a linear combination of v₁, v₂, …, vₙ, and finding the weights: write the equation c₁v₁ + … + cₙvₙ = b component by component as a linear system, construct its augmented matrix [v₁ v₂ … vₙ | b], and find the reduced row echelon form. The weights are read from the solution; they are the only possible weights when there is a pivot position in every column, there are infinitely many choices when a column lacks one, and there are none when the system is inconsistent. When the coefficient matrix [v₁ v₂ … vₙ] has a pivot position in every row, every vector b is a linear combination; when some row lacks a pivot, as for two vectors on the same line, a pivot can appear in the rightmost column of the augmented matrix for some choice of b."
+    },
+    {
+      "id": "matrix-as-columns",
+      "kind": "idea",
+      "section": "2.2",
+      "name": "Columns of a matrix as vectors",
+      "statement": "We may think of the columns of a matrix as a set of vectors: a 3 × 4 matrix may be represented as [v₁ v₂ v₃ v₄] where v₁, …, v₄ are its columns, so the 3 × 4 matrix is equivalent to an ordered set of 4 vectors in ℝ³. If we say that the shape of a matrix is m × n, we mean that it has m rows and n columns."
+    },
+    {
+      "id": "scalar-multiplication-of-a-matrix",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Scalar multiplication of a matrix",
+      "statement": "We define scalar multiplication of a matrix using the column-wise vector operation: c[v₁ v₂ … vₙ] = [cv₁ cv₂ … cvₙ], a natural extension of its vector counterpart.",
+      "forms": [
+        {
+          "id": "eq-matrix-scalar-multiple",
+          "latex": "c\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} c\\mathbf{v}_1 & c\\mathbf{v}_2 & \\cdots & c\\mathbf{v}_n \\end{array} \\right]"
+        }
+      ]
+    },
+    {
+      "id": "matrix-addition",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Matrix addition",
+      "statement": "We define matrix addition using the column-wise vector operation: [v₁ v₂ … vₙ] + [w₁ w₂ … wₙ] = [v₁ + w₁ v₂ + w₂ … vₙ + wₙ]. Some care is required: since we need the same number of vectors to add and those vectors must be of the same dimension, two matrices must have the same shape if we wish to form their sum.",
+      "forms": [
+        {
+          "id": "eq-matrix-sum",
+          "latex": "\\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\cdots & \\mathbf{v}_n \\end{array} \\right] + \\left[\\begin{array}{rrrr} \\mathbf{w}_1 & \\mathbf{w}_2 & \\cdots & \\mathbf{w}_n \\end{array} \\right] = \\left[\\begin{array}{rrrr} \\mathbf{v}_1+\\mathbf{w}_1 & \\mathbf{v}_2+\\mathbf{w}_2 & \\cdots & \\mathbf{v}_n+\\mathbf{w}_n \\end{array} \\right]"
+        }
+      ]
+    },
+    {
+      "id": "identity-matrix",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Identity matrix",
+      "terms": [
+        "identity"
+      ],
+      "symbol": "I",
+      "type": "matrix",
+      "statement": "The matrix Iₙ, which we call the identity matrix, is the n × n matrix whose entries are zero except for the diagonal entries, all of which are 1; for instance, I₃ has rows [1 0 0], [0 1 0], [0 0 1]. The sum A + Iₙ can be formed only when A is n × n. Multiplying a vector by I produces the same vector, Ix = x, which is why I is called the identity matrix.",
+      "forms": [
+        {
+          "id": "eq-identity-matrix-3",
+          "latex": "I_3 = \\left[ \\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array} \\right]"
+        },
+        {
+          "id": "eq-identity-times-vector",
+          "latex": "I\\mathbf{x} = \\mathbf{x}"
+        }
+      ]
+    },
+    {
+      "id": "matrix-product-as-linear-combination",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Matrix-vector multiplication",
+      "terms": [
+        "matrix-vector multiplication"
+      ],
+      "statement": "The product of a matrix A by a vector x is the linear combination of the columns of A using the components of x as weights: if A = [v₁ v₂ … vₙ] and x has components c₁, c₂, …, cₙ, then Ax = c₁v₁ + c₂v₂ + … + cₙvₙ. If A is an m × n matrix, then x must be an n-dimensional vector, and the product Ax will be an m-dimensional vector.",
+      "forms": [
+        {
+          "id": "eq-matrix-vector-product",
+          "latex": "A\\mathbf{x} = c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n",
+          "condition": "A = [v₁ v₂ … vₙ], x the vector of weights c₁, …, cₙ"
+        }
+      ]
+    },
+    {
+      "id": "matrix-vector-product",
+      "kind": "result",
+      "section": "2.2",
+      "name": "Row shortcut for a matrix-vector product",
+      "statement": "There is a shortcut for computing the product Ax. To find the first component of the product, we consider the first row of the matrix, multiply the first entry in that row by the first component of the vector, the second entry by the second component, and so on, and add the results; the third component comes in the same way from the third row, as 2(3) + 3(1) = 9 in the example."
+    },
+    {
+      "id": "zero-vector",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Zero vector",
+      "symbol": "zero_vec",
+      "type": "vector",
+      "statement": "A vector whose entries are all zero is denoted by 0. For any matrix A, the product A0 = 0."
+    },
+    {
+      "id": "matrix-products-in-sage",
+      "kind": "skill",
+      "section": "2.2",
+      "name": "Multiplying matrices and vectors in Sage",
+      "statement": "Finding the product of a matrix and a vector, or of two matrices, in Sage with the * operator, after defining them with matrix(2,2,[1,2,2,1]) and vector([3,-1]): A*v and A*B."
+    },
+    {
+      "id": "linearity-of-matrix-multiplication",
+      "kind": "result",
+      "section": "2.2",
+      "name": "Linearity of matrix multiplication",
+      "statement": "If A is a matrix, v and w vectors of the appropriate dimensions, and c a scalar, then A0 = 0, A(cv) = cAv, and A(v + w) = Av + Aw.",
+      "forms": [
+        {
+          "id": "eq-matrix-times-zero-vector",
+          "latex": "A\\mathbf{0} = \\mathbf{0}"
+        },
+        {
+          "id": "eq-matrix-scalar-linearity",
+          "latex": "A(c\\mathbf{v}) = cA\\mathbf{v}"
+        },
+        {
+          "id": "eq-matrix-sum-linearity",
+          "latex": "A(\\mathbf{v}+\\mathbf{w}) = A\\mathbf{v} + A\\mathbf{w}"
+        }
+      ]
+    },
+    {
+      "id": "matrix-equation",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Matrix equation",
+      "statement": "Beginning with a matrix A and a vector b, we ask whether we can find a vector x such that Ax = b. The equation Ax = b gives a notationally compact way to write a linear system: writing A = [v₁ v₂ … vₙ], we frequently write the augmented matrix [v₁ v₂ … vₙ | b] = [A | b] and say that the matrix A is augmented by the vector b.",
+      "forms": [
+        {
+          "id": "eq-matrix-equation",
+          "latex": "A\\mathbf{x} = \\mathbf{b}"
+        },
+        {
+          "id": "eq-matrix-augmented-by-a-vector",
+          "latex": "\\left[\\begin{array}{rrrr|r} \\mathbf{v}_1&\\mathbf{v}_2&\\cdots&\\mathbf{v}_n&\\mathbf{b}\\end{array}\\right] = \\left[ \\begin{array}{r|r} A & \\mathbf{b} \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "matrix-equation-as-a-linear-system",
+      "kind": "result",
+      "section": "2.2",
+      "name": "Three views of a matrix equation",
+      "statement": "If A = [v₁ v₂ … vₙ] and x has components x₁, x₂, …, xₙ, then the following statements are equivalent: the vector x satisfies the equation Ax = b; the vector b is a linear combination of the columns of A with weights xⱼ, x₁v₁ + x₂v₂ + … + xₙvₙ = b; and the components of x form a solution to the linear system corresponding to the augmented matrix [v₁ v₂ … vₙ | b]. These are three different ways of looking at the same solution space.",
+      "forms": [
+        {
+          "id": "eq-matrix-equation-as-a-linear-combination",
+          "latex": "x_1\\mathbf{v}_1 + x_2\\mathbf{v}_2 + \\ldots + x_n\\mathbf{v}_n = \\mathbf{b}"
+        }
+      ]
+    },
+    {
+      "id": "vector-form-of-the-solution-space",
+      "kind": "idea",
+      "section": "2.2",
+      "name": "Solution space written in vector form",
+      "statement": "Since we asked to describe the solutions to Ax = b, we express the parametric description in terms of the vector x: with x₃ free, x = [−x₃, 5 + 2x₃, x₃] = [0, 5, 0] + x₃[−1, 2, 1], so the solutions may be written in the form v + x₃w for appropriate vectors v and w. Geometrically, the solution space is a line in ℝ³ through v moving parallel to w.",
+      "forms": [
+        {
+          "id": "eq-solution-space-in-vector-form",
+          "latex": "\\mathbf{x} = \\mathbf{v} + x_3\\mathbf{w}",
+          "condition": "one free variable x₃"
+        }
+      ]
+    },
+    {
+      "id": "matrix-product",
+      "kind": "definition",
+      "section": "2.2",
+      "name": "Matrix-matrix multiplication",
+      "terms": [
+        "matrix multiplication",
+        "product of matrices"
+      ],
+      "type": "matrix",
+      "statement": "Given matrices A and B, we form their product AB by first writing B in terms of its columns, B = [v₁ v₂ … vₚ], and then defining AB = [Av₁ Av₂ … Avₚ].",
+      "forms": [
+        {
+          "id": "eq-matrix-product-columns",
+          "latex": "AB = \\left[\\begin{array}{rrrr} A\\mathbf{v}_1 & A\\mathbf{v}_2 & \\cdots & A\\mathbf{v}_p \\end{array}\\right]",
+          "condition": "B = [v₁ v₂ … vₚ]"
+        }
+      ]
+    },
+    {
+      "id": "shape-of-a-matrix-product",
+      "kind": "result",
+      "section": "2.2",
+      "name": "Shape of a matrix product",
+      "statement": "We can only multiply matrices if their shapes are compatible: when constructing AB, the matrix A multiplies the columns of B, so the number of columns of A must equal the number of rows of B. When this condition is met, the number of rows of AB is the number of rows of A and the number of columns of AB is the number of columns of B; if A is m × n and B is n × p, then AB is m × p."
+    },
+    {
+      "id": "rules-of-matrix-algebra",
+      "kind": "result",
+      "section": "2.2",
+      "name": "Properties of matrix-matrix multiplication",
+      "statement": "If A, B, and C are matrices such that the following operations are defined, it follows that multiplication is associative, A(BC) = (AB)C, and distributive, A(B + C) = AB + AC and (A + B)C = AC + BC.",
+      "forms": [
+        {
+          "id": "eq-matrix-associativity",
+          "latex": "A(BC) = (AB)C"
+        },
+        {
+          "id": "eq-matrix-left-distributivity",
+          "latex": "A(B+C) = AB+AC"
+        },
+        {
+          "id": "eq-matrix-right-distributivity",
+          "latex": "(A+B)C = AC+BC"
+        }
+      ]
+    },
+    {
+      "id": "noncommutativity-of-matrix-multiplication",
+      "kind": "result",
+      "section": "2.2",
+      "name": "Properties of real numbers that fail for matrices",
+      "statement": "A few properties that hold for real numbers do not hold for matrices. Commutativity: it is not generally true that AB = BA. Cancellation: it is not generally true that AB = AC implies that B = C. Zero divisors: it is not generally true that AB = 0 implies that either A = 0 or B = 0.",
+      "forms": [
+        {
+          "id": "eq-matrix-noncommutativity",
+          "latex": "AB \\neq BA",
+          "condition": "in general"
+        }
+      ]
+    },
+    {
+      "id": "span",
+      "kind": "definition",
+      "section": "2.3",
+      "name": "Span",
+      "terms": [
+        "span"
+      ],
+      "symbol": "Span",
+      "type": "region",
+      "statement": "The span of a set of vectors v₁, v₂, …, vₙ is the set of all linear combinations that can be formed from the vectors. Alternatively, if A = [v₁ v₂ … vₙ], then the span of the vectors consists of all vectors b for which the equation Ax = b is consistent."
+    },
+    {
+      "id": "span-notation",
+      "kind": "definition",
+      "section": "2.3",
+      "name": "Notation for the span",
+      "statement": "We will denote the span of the set of vectors v₁, v₂, …, vₙ by Span{v₁, v₂, …, vₙ}. Because span is a concept that is connected to a set of vectors, we say “The span of the set of vectors v₁, v₂, …, vₙ is …”; rather than “The span of the matrix A is …,” we say “The span of the columns of the matrix A is ….”",
+      "forms": [
+        {
+          "id": "eq-span-notation",
+          "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\}"
+        }
+      ]
+    },
+    {
+      "id": "span-as-reachable-points",
+      "kind": "idea",
+      "section": "2.3",
+      "name": "Span as the points reached by walking",
+      "statement": "We can think of a linear combination of two vectors v and w as a recipe for walking in the plane: we first move a prescribed amount in the direction of v and then a prescribed amount in the direction of w. The span consists of all the places we can walk to. For v = [2, 0] and w = [−1, 1] we can walk to any point in the plane, so Span{v, w} = ℝ²; for w = −2v every linear combination cv + dw = (c − 2d)v is a scalar multiple of v, so the span is the line defined by v and we can only walk to points on this line."
+    },
+    {
+      "id": "deciding-membership-in-a-span",
+      "kind": "skill",
+      "section": "2.3",
+      "name": "Deciding whether a vector is in a span",
+      "statement": "To determine whether b is in the span of v₁, …, vₙ, we form the matrix A = [v₁ v₂ … vₙ] and consider the equation Ax = b: reducing the augmented matrix [A | b] shows the system consistent, and b in the span, or inconsistent, and b not in it. When the coefficient matrix has a pivot position in every row, the augmented matrix cannot have a pivot in its rightmost column, so every vector is in the span."
+    },
+    {
+      "id": "spans-in-three-dimensions",
+      "kind": "result",
+      "section": "2.3",
+      "name": "Spans of vectors in three dimensions",
+      "statement": "The types of sets that appear as the span of a set of vectors in ℝ³ are relatively simple. With a single nonzero vector, all linear combinations are scalar multiples of that vector, so the span is a line; the matrix formed by this vector has one pivot position. The span of two vectors that do not lie on the same line is a plane, and their matrix has two pivot positions. A set of three vectors whose matrix has three pivot positions, one in every row, has span ℝ³, since no augmentation of that matrix can have a pivot in the rightmost column. With one, two, or three pivot positions, the span is a line, a plane, or ℝ³."
+    },
+    {
+      "id": "pivot-rows-and-span",
+      "kind": "result",
+      "section": "2.3",
+      "name": "Pivot positions and span",
+      "statement": "Suppose we have vectors v₁, v₂, …, vₙ in ℝᵐ. Then Span{v₁, v₂, …, vₙ} = ℝᵐ if and only if the matrix [v₁ v₂ … vₙ] has a pivot position in every row.",
+      "forms": [
+        {
+          "id": "eq-span-is-whole-space",
+          "latex": "\\text{Span}\\left\\{\\mathbf{v}_1,\\mathbf{v}_2,\\ldots,\\mathbf{v}_n\\right\\} = {\\mathbb R}^m",
+          "condition": "the matrix [v₁ v₂ … vₙ] has a pivot position in every row"
+        }
+      ]
+    },
+    {
+      "id": "vectors-needed-to-span",
+      "kind": "result",
+      "section": "2.3",
+      "name": "Vectors needed to span a space",
+      "statement": "A set of vectors whose span is ℝᵐ contains at least m vectors. If n vectors span ℝᵐ, their matrix has a pivot position in every row, and since a matrix can have at most one pivot position in a column, there must be at least as many columns as rows, n ≥ m; a set of vectors that spans ℝ⁶³² has at least 632 vectors. Intuitively, we need at least m directions to have the flexibility needed to reach every point in ℝᵐ.",
+      "forms": [
+        {
+          "id": "eq-span-bound",
+          "latex": "n \\geq m",
+          "condition": "n vectors spanning ℝᵐ"
+        }
+      ]
+    },
+    {
+      "id": "describing-a-span-geometrically",
+      "kind": "skill",
+      "section": "2.3",
+      "name": "Describing a span geometrically",
+      "statement": "Giving a geometric description of the span of a set of vectors from the pivot positions of their matrix: in ℝ³ a span with one, two, or three pivot positions is a line, a plane, or ℝ³, and in ℝᵐ the columns span ℝᵐ exactly when every row has a pivot position; and constructing matrices whose columns span a given line, plane, or space."
+    },
+    {
+      "id": "linear-independence-of-vectors",
+      "kind": "definition",
+      "section": "2.4",
+      "name": "Linear independence",
+      "terms": [
+        "linearly dependent",
+        "linearly independent"
+      ],
+      "statement": "A set of vectors is called linearly dependent if one of the vectors is a linear combination of the others. Otherwise, the set of vectors is called linearly independent. For the sake of completeness, we say that a set of vectors containing only one nonzero vector is linearly independent."
+    },
+    {
+      "id": "dependent-vector-does-not-change-span",
+      "kind": "result",
+      "section": "2.4",
+      "name": "A dependent vector adds nothing to the span",
+      "statement": "When w₃ = −2w₁ − w₂, any linear combination c₁w₁ + c₂w₂ + c₃w₃ = (c₁ − 2c₃)w₁ + (c₂ − c₃)w₂ may be written using only w₁ and w₂, so Span{w₁, w₂, w₃} = Span{w₁, w₂}: adding the vector w₃ does not change the span. Geometrically, a third vector that is a linear combination of two others already lies in the plane they form, so the span remains a plane, while a vector that is not a linear combination of the others provides an independent direction to move and the span of the three vectors is ℝ³.",
+      "forms": [
+        {
+          "id": "eq-span-unchanged-by-a-dependent-vector",
+          "latex": "\\text{Span}\\left\\{\\mathbf{w}_1,\\mathbf{w}_2,\\mathbf{w}_3\\right\\} = \\text{Span}\\left\\{\\mathbf{w}_1,\\mathbf{w}_2\\right\\}",
+          "condition": "w₃ a linear combination of w₁ and w₂"
+        }
+      ]
+    },
+    {
+      "id": "pivot-columns-and-linear-independence",
+      "kind": "result",
+      "section": "2.4",
+      "name": "Pivot positions and linear independence",
+      "statement": "The columns of a matrix are linearly independent if and only if every column contains a pivot position. A vector corresponding to a column without a pivot position can be expressed as a linear combination of the vectors whose columns do contain pivot positions, as viewing the first three columns as an augmented matrix shows; when every column has a pivot, viewing the columns as an augmented matrix gives an inconsistent system, so none of the vectors is a linear combination of the others."
+    },
+    {
+      "id": "size-of-a-linearly-independent-set",
+      "kind": "result",
+      "section": "2.4",
+      "name": "Size of a linearly independent set",
+      "statement": "A linearly independent set of vectors in ℝᵐ contains at most m vectors: the associated matrix must have a pivot position in every column, and since every row contains at most one pivot position, the number of columns can be no greater than the number of rows. Any linearly independent set in ℝ³ can contain no more than three vectors, the three independent directions up/down, front/back, left/right of our three-dimensional world."
+    },
+    {
+      "id": "homogeneous-matrix-equation",
+      "kind": "definition",
+      "section": "2.4",
+      "name": "Homogeneous equation",
+      "terms": [
+        "homogeneous"
+      ],
+      "statement": "If A is a matrix, we call the equation Ax = 0 a homogeneous equation. It always has at least one solution, the vector x = 0; any other solution is a nonzero solution. The uniqueness of solutions to this equation reflects on the linear independence of the columns of A.",
+      "forms": [
+        {
+          "id": "eq-homogeneous-equation",
+          "latex": "A\\mathbf{x} = \\mathbf{0}"
+        }
+      ]
+    },
+    {
+      "id": "characterizations-of-linear-dependence",
+      "kind": "result",
+      "section": "2.4",
+      "name": "Equivalent conditions for linear dependence",
+      "statement": "For a matrix A = [v₁ v₂ … vₙ], the following statements are equivalent: the columns of A are linearly dependent; one of the vectors v₁, v₂, …, vₙ is a linear combination of the others; the matrix A has a column without a pivot position; the homogeneous equation Ax = 0 has infinitely many solutions and hence a nonzero solution; there are weights c₁, c₂, …, cₙ, not all of which are zero, such that c₁v₁ + c₂v₂ + … + cₙvₙ = 0.",
+      "forms": [
+        {
+          "id": "eq-linear-dependence-relation",
+          "latex": "c_1\\mathbf{v}_1 + c_2\\mathbf{v}_2 + \\ldots + c_n\\mathbf{v}_n = \\mathbf{0}",
+          "condition": "weights not all zero"
+        }
+      ]
+    },
+    {
+      "id": "testing-linear-independence",
+      "kind": "skill",
+      "section": "2.4",
+      "name": "Testing a set of vectors for linear independence",
+      "statement": "Deciding whether vectors are linearly dependent or independent by viewing them as the columns of a matrix and finding its reduced row echelon form: a pivot position in every column means independence; a column without one means dependence, and a nonzero solution of the homogeneous equation Ax = 0, read from the free variable, gives weights with c₁v₁ + … + cₙvₙ = 0, which can be rearranged to write one vector as a linear combination of the others."
+    },
+    {
+      "id": "span-and-linear-independence-compared",
+      "kind": "idea",
+      "section": "2.4",
+      "name": "Span and linear independence compared",
+      "statement": "Span addresses the existence of solutions and linear independence their uniqueness, and the results of the two sections run in parallel. A vector b is in the span of a set of vectors if it is a linear combination of them, while a set is linearly dependent if one vector is a linear combination of the others; b is in Span{v₁, …, vₙ} if there exists a solution to Ax = b, while v₁, …, vₙ are linearly independent if x = 0 is the unique solution to Ax = 0; the columns of an m × n matrix span ℝᵐ if the matrix has a pivot position in every row, while they are linearly independent if it has a pivot position in every column; a set that spans ℝᵐ has at least m vectors, while a linearly independent set in ℝᵐ has at most m."
+    },
+    {
+      "id": "linear-mapping",
+      "kind": "definition",
+      "section": "2.5",
+      "name": "Matrix transformation",
+      "terms": [
+        "matrix transformation"
+      ],
+      "symbol": "T",
+      "type": "matrix",
+      "statement": "The matrix transformation associated to the matrix A is the function that assigns to the vector x the vector Ax; that is, T(x) = Ax. If A is an m × n matrix, x needs to be an n-dimensional vector and the product Ax will be m-dimensional, so we write T: ℝⁿ → ℝᵐ to indicate that T takes vectors in ℝⁿ as inputs and produces vectors in ℝᵐ as outputs.",
+      "forms": [
+        {
+          "id": "eq-matrix-transformation",
+          "latex": "T(\\mathbf{x}) = A\\mathbf{x}"
+        },
+        {
+          "id": "eq-matrix-transformation-domain",
+          "latex": "T:{\\mathbb R}^n\\to{\\mathbb R}^m",
+          "condition": "A an m × n matrix"
+        }
+      ]
+    },
+    {
+      "id": "standard-unit-vectors",
+      "kind": "definition",
+      "section": "2.5",
+      "name": "Standard basis vectors",
+      "symbol": "e_j_vec",
+      "type": "vector",
+      "statement": "We write the columns of the n × n identity matrix as e₁ = [1, 0, …, 0], e₂ = [0, 1, …, 0], …, eₙ = [0, 0, …, 1], each with a single entry 1 and zeros elsewhere, so that any vector x = x₁e₁ + x₂e₂ + … + xₙeₙ.",
+      "forms": [
+        {
+          "id": "eq-standard-basis-vectors",
+          "latex": "\\mathbf{e}_1 = \\left[\\begin{array}{c} 1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\mathbf{e}_2 = \\left[\\begin{array}{c} 0 \\\\ 1 \\\\ \\vdots \\\\ 0 \\end{array}\\right],~~~ \\ldots,~~~ \\mathbf{e}_n = \\left[\\begin{array}{c} 0 \\\\ 0 \\\\ \\vdots \\\\ 1 \\end{array}\\right]"
+        }
+      ]
+    },
+    {
+      "id": "matrix-of-a-linear-mapping",
+      "kind": "result",
+      "section": "2.5",
+      "name": "Matrix of a matrix transformation",
+      "statement": "If T: ℝⁿ → ℝᵐ is a matrix transformation given by T(x) = Ax, then the matrix A has columns T(eⱼ); that is, A = [T(e₁) T(e₂) … T(eₙ)]. Since T(eⱼ) = [v₁ v₂ … vₙ]eⱼ = vⱼ, the jth column of A is found by evaluating T(eⱼ), so we can reconstruct A from some output values of T.",
+      "forms": [
+        {
+          "id": "eq-matrix-columns-from-a-transformation",
+          "latex": "A = \\left[\\begin{array}{rrrr} T(\\mathbf{e}_1) & T(\\mathbf{e}_2) & \\cdots & T(\\mathbf{e}_n) \\end{array}\\right]"
+        },
+        {
+          "id": "eq-transformation-of-a-standard-vector",
+          "latex": "T(\\mathbf{e}_j) = \\left[\\begin{array}{rrrr} \\mathbf{v}_1 & \\mathbf{v}_2 & \\ldots & \\mathbf{v}_n \\end{array}\\right] ~\\mathbf{e}_j = \\mathbf{v}_j"
+        }
+      ]
+    },
+    {
+      "id": "finding-the-matrix-of-a-transformation",
+      "kind": "skill",
+      "section": "2.5",
+      "name": "Finding the matrix of a matrix transformation",
+      "statement": "Identifying the matrix A of a matrix transformation T: from a formula for T(x) in terms of the components of x, by rewriting the output as x₁ times a column plus x₂ times a column and so on; or from the outputs T(e₁), T(e₂), …, which are the columns of A, as for a 90° rotation or a bakery whose hourly production gives each column. Reading the shape of A from T: ℝⁿ → ℝᵐ, where A is m × n."
+    },
+    {
+      "id": "matrix-product-as-composition",
+      "kind": "result",
+      "section": "2.5",
+      "name": "Composition of matrix transformations",
+      "terms": [
+        "composition"
+      ],
+      "statement": "If T: ℝⁿ → ℝᵐ and S: ℝᵐ → ℝᵖ are matrix transformations with associated matrices A and B respectively, then the composition S ∘ T, obtained by first performing T and then S, is also a matrix transformation whose associated matrix is the product BA: (S ∘ T)(x) = S(T(x)) = S(Ax) = BAx = (BA)x. The transformations must be compatible: the inputs to S must be m-dimensional, the same condition needed to form the product BA.",
+      "forms": [
+        {
+          "id": "eq-composition-of-matrix-transformations",
+          "latex": "(S\\circ T)(\\mathbf{x}) = S(T(\\mathbf{x})) = S(A\\mathbf{x}) = BA\\mathbf{x} = (BA)\\mathbf{x}"
+        },
+        {
+          "id": "eq-function-composition",
+          "latex": "(h\\circ g)(x) = h(g(x))",
+          "condition": "functions of one variable"
+        }
+      ]
+    },
+    {
+      "id": "state-vector",
+      "kind": "definition",
+      "section": "2.5",
+      "name": "State vector",
+      "terms": [
+        "state vector"
+      ],
+      "symbol": "x_vec",
+      "type": "vector",
+      "statement": "We have a vector x that describes the state of some system; in the example, x describes the distribution of trucks between the two locations at a particular time. We call x the state vector."
+    },
+    {
+      "id": "transition-function",
+      "kind": "definition",
+      "section": "2.5",
+      "name": "Transition function",
+      "terms": [
+        "transition function"
+      ],
+      "statement": "There is a matrix transformation T(x) = Ax that describes the state at some later time. We call T the transition function, as it describes the transition of the state vector from one time to the next."
+    },
+    {
+      "id": "discrete-dynamical-system",
+      "kind": "definition",
+      "section": "2.5",
+      "name": "Discrete dynamical system",
+      "terms": [
+        "discrete dynamical system"
+      ],
+      "statement": "Beginning with an initial state x₀, the state evolves over time: x₁ = T(x₀) = Ax₀, x₂ = T(x₁) = (T ∘ T)(x₀) = A²x₀, x₃ = T(x₂) = A³x₀, and so on. We call this situation, where the state of a system evolves from one time to the next according to the rule xₖ₊₁ = Axₖ, a discrete dynamical system. Powers of the matrix A determine the long-term behavior of the state vector.",
+      "forms": [
+        {
+          "id": "eq-discrete-dynamical-system",
+          "latex": "\\mathbf{x}_{k+1}=A\\mathbf{x}_k"
+        },
+        {
+          "id": "eq-state-after-two-steps",
+          "latex": "\\mathbf{x}_2 = T(\\mathbf{x}_1) = (T\\circ T)(\\mathbf{x}_0)= A^2\\mathbf{x}_0"
+        }
+      ]
+    },
+    {
+      "id": "geometric-matrix-transformations",
+      "kind": "idea",
+      "section": "2.6",
+      "name": "Geometric operations as matrix transformations",
+      "terms": [
+        "shear",
+        "projection"
+      ],
+      "statement": "Matrix transformations provide a convenient way to describe geometric operations. Reflection across the horizontal axis takes [x, y] to [x, −y], with matrix [1 0; 0 −1]; [2 0; 0 1] stretches by a factor of 2 in the horizontal direction and [2 0; 0 2] uniformly in all directions; [0 1; −1 0] is a 90° clockwise rotation and [0 −1; 1 0] a 90° counterclockwise rotation; [1 1; 0 1] is a shear, which pushes vectors horizontally an amount equal to the vertical component; [−1 0; 0 1] reflects vectors in the vertical axis and [0 1; 1 0] across the line y = x; [1 0; 0 0] is a projection, which produces the shadow of the vector on the horizontal axis; [1 0; 0 1] is the identity, which causes no change; and [1 −1; −2 2] pushes vectors onto the line defined by [1, −2]. The matrix of each is found from the columns T(e₁) and T(e₂).",
+      "forms": [
+        {
+          "id": "eq-reflection-across-the-horizontal-axis",
+          "latex": "\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & -1 \\end{array}\\right]",
+          "condition": "reflection across the horizontal axis"
+        },
+        {
+          "id": "eq-horizontal-stretch",
+          "latex": "\\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & 1 \\end{array}\\right]",
+          "condition": "stretch by a factor of 2 in the horizontal direction"
+        },
+        {
+          "id": "eq-uniform-scaling",
+          "latex": "\\left[\\begin{array}{rr} 2 & 0 \\\\ 0 & 2 \\end{array}\\right]",
+          "condition": "stretch by a factor of 2 uniformly in all directions"
+        },
+        {
+          "id": "eq-rotation-90-clockwise",
+          "latex": "\\left[\\begin{array}{rr} 0 & 1 \\\\ -1 & 0 \\end{array}\\right]",
+          "condition": "90° clockwise rotation"
+        },
+        {
+          "id": "eq-rotation-90-counterclockwise",
+          "latex": "\\left[\\begin{array}{rr} 0 & -1 \\\\ 1 & 0 \\end{array}\\right]",
+          "condition": "90° counterclockwise rotation"
+        },
+        {
+          "id": "eq-shear",
+          "latex": "\\left[\\begin{array}{rr} 1 & 1 \\\\ 0 & 1 \\end{array}\\right]",
+          "condition": "shear"
+        },
+        {
+          "id": "eq-reflection-across-the-vertical-axis",
+          "latex": "\\left[\\begin{array}{rr} -1 & 0 \\\\ 0 & 1 \\end{array}\\right]",
+          "condition": "reflection in the vertical axis"
+        },
+        {
+          "id": "eq-reflection-across-the-diagonal",
+          "latex": "\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\end{array}\\right]",
+          "condition": "reflection across the line y = x"
+        },
+        {
+          "id": "eq-projection-onto-the-horizontal-axis",
+          "latex": "\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 0 \\end{array}\\right]",
+          "condition": "projection onto the horizontal axis"
+        },
+        {
+          "id": "eq-identity-transformation",
+          "latex": "\\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\end{array}\\right]",
+          "condition": "the identity"
+        }
+      ]
+    },
+    {
+      "id": "rotation-matrix",
+      "kind": "result",
+      "section": "2.6",
+      "name": "Rotation matrix",
+      "type": "matrix",
+      "statement": "The matrix that rotates vectors counterclockwise by an angle θ is [cos θ −sin θ; sin θ cos θ], since rotating the vector [1, 0] by θ gives [cos θ, sin θ]. For the rotation by 45°, T(e₁) has length 1 and is the hypotenuse of a right isosceles triangle, so by Pythagoras' theorem its legs are 1/√2, T(e₁) = [1/√2, 1/√2], T(e₂) = [−1/√2, 1/√2], and A = [1/√2 −1/√2; 1/√2 1/√2].",
+      "forms": [
+        {
+          "id": "eq-rotation-matrix",
+          "latex": "\\left[\\begin{array}{rr} \\cos\\theta & -\\sin\\theta \\\\ \\sin\\theta & \\cos\\theta \\end{array}\\right]",
+          "condition": "counterclockwise rotation by θ"
+        },
+        {
+          "id": "eq-rotation-by-45-degrees",
+          "latex": "A = \\left[\\begin{array}{rr} \\frac{1}{\\sqrt{2}} & -\\frac{1}{\\sqrt{2}} \\\\ \\frac{1}{\\sqrt{2}} & \\frac{1}{\\sqrt{2}} \\end{array}\\right]",
+          "condition": "rotation by 45°"
+        }
+      ]
+    },
+    {
+      "id": "linearity-of-matrix-transformations",
+      "kind": "result",
+      "section": "2.6",
+      "name": "Linearity of matrix transformations",
+      "statement": "The function T: ℝⁿ → ℝᵐ is a matrix transformation, T(x) = Ax for some m × n matrix A, if and only if T(cv) = cT(v) and T(v + w) = T(v) + T(w). A matrix transformation satisfies these linearity properties because A(cv) = cAv and A(v + w) = Av + Aw; conversely, if T satisfies them, then A = [T(e₁) T(e₂) … T(eₙ)] works, since T(x) = T(x₁e₁ + … + xₙeₙ) = x₁T(e₁) + … + xₙT(eₙ) = x₁Ae₁ + … + xₙAeₙ = A(x₁e₁ + … + xₙeₙ) = Ax. If we can verify the two linearity properties for a function, as for a rotation, where scaling then rotating is the same as rotating then scaling and a rotation carries the parallelogram of v and w to that of T(v) and T(w), then we know that it is a matrix transformation.",
+      "forms": [
+        {
+          "id": "eq-transformation-scalar-linearity",
+          "latex": "T(c\\mathbf{v}) = cT(\\mathbf{v})"
+        },
+        {
+          "id": "eq-transformation-sum-linearity",
+          "latex": "T(\\mathbf{v} + \\mathbf{w}) = T(\\mathbf{v}) + T(\\mathbf{w})"
+        }
+      ]
+    },
+    {
+      "id": "composing-geometric-transformations",
+      "kind": "skill",
+      "section": "2.6",
+      "name": "Composing geometric transformations",
+      "statement": "Finding the transformation that results from performing one geometric operation and then another by multiplying their matrices, read right to left: reflecting across the line y = x twice gives the identity, rotating by 90° then reflecting in y = x gives [1 0; 0 −1], reflecting then rotating gives [−1 0; 0 1], composing a 90° rotation with itself four times gives the identity, and a composition of two reflections is a rotation through twice the angle between their lines. The order matters, since matrix multiplication is not commutative."
+    },
+    {
+      "id": "matrix-transformations-in-animation",
+      "kind": "idea",
+      "section": "2.6",
+      "name": "Matrix transformations in computer animation",
+      "statement": "Linear algebra plays a significant role in computer animation. Animators define a character and create the illusion of motion by drawing it in a sequence of frames in which the character's pose is modified slightly from one frame to the next, often using matrix transformations: a two-dimensional character is reflected to wave with the other hand, rotated by 45° at a time through a cartwheel, zoomed by translating and then scaling, and given a shadow by a shear followed by a vertical compression, each pose a composition of matrix transformations."
+    },
+    {
+      "id": "translation",
+      "kind": "definition",
+      "section": "2.6",
+      "name": "Translation",
+      "terms": [
+        "translations"
+      ],
+      "statement": "Motions that simply move a character to a different position in the plane are called translations. This presents a problem because a matrix transformation T: ℝ² → ℝ² has the property that T(0) = A0 = 0, which means that a matrix transformation cannot move the origin of the coordinate plane."
+    },
+    {
+      "id": "homogeneous-coordinates",
+      "kind": "definition",
+      "section": "2.6",
+      "name": "Homogeneous coordinates",
+      "terms": [
+        "homogeneous coordinates"
+      ],
+      "statement": "To translate a character, animators use homogeneous coordinates, formed by placing the two-dimensional coordinate plane inside ℝ³ as the plane z = 1: rather than describing points in the plane as vectors [x, y], we describe them as three-dimensional vectors [x, y, 1]. A matrix of the form [a b c; d e f; 0 0 1] transforms points in the plane z = 1 into points in the same plane, x′ = ax + by + c and y′ = dx + ey + f, and the entries c and f are responsible for the translation: [1 0 2; 0 1 1; 0 0 1] moves the character two units horizontally and one unit vertically.",
+      "forms": [
+        {
+          "id": "eq-homogeneous-coordinates",
+          "latex": "\\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right]"
+        },
+        {
+          "id": "eq-homogeneous-coordinate-matrix",
+          "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right]"
+        },
+        {
+          "id": "eq-homogeneous-coordinate-transformation",
+          "latex": "\\left[\\begin{array}{rrr} a & b & c \\\\ d & e & f \\\\ 0 & 0 & 1 \\end{array}\\right] \\left[\\begin{array}{r}x \\\\ y \\\\ 1 \\end{array}\\right] = \\left[\\begin{array}{c}ax+by+c \\\\ dx+ey+f \\\\ 1 \\end{array}\\right]"
+        },
+        {
+          "id": "eq-translation-matrix",
+          "latex": "\\left[\\begin{array}{rrr} 1 & 0 & 2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{array}\\right]",
+          "condition": "translation by two units horizontally and one unit vertically"
+        }
+      ]
     }
   ],
   "concept_prereqs": [
@@ -761,6 +1740,446 @@
     {
       "concept": "existence-and-uniqueness-from-pivots",
       "prereq": "pivot-columns-and-uniqueness"
+    },
+    {
+      "concept": "vector",
+      "prereq": "matrix"
+    },
+    {
+      "concept": "euclidean-space",
+      "prereq": "vector"
+    },
+    {
+      "concept": "scalar-multiplication",
+      "prereq": "vector"
+    },
+    {
+      "concept": "scalar-multiplication",
+      "prereq": "scalar"
+    },
+    {
+      "concept": "vector-addition",
+      "prereq": "vector"
+    },
+    {
+      "concept": "geometry-of-vector-operations",
+      "prereq": "scalar-multiplication"
+    },
+    {
+      "concept": "geometry-of-vector-operations",
+      "prereq": "vector-addition"
+    },
+    {
+      "concept": "vectors-as-points",
+      "prereq": "vector"
+    },
+    {
+      "concept": "vector-equation-of-a-line",
+      "prereq": "geometry-of-vector-operations"
+    },
+    {
+      "concept": "vector-equation-of-a-line",
+      "prereq": "vectors-as-points"
+    },
+    {
+      "concept": "properties-of-vector-operations",
+      "prereq": "scalar-multiplication"
+    },
+    {
+      "concept": "properties-of-vector-operations",
+      "prereq": "vector-addition"
+    },
+    {
+      "concept": "vector-in-sage",
+      "prereq": "sage-arithmetic"
+    },
+    {
+      "concept": "vector-in-sage",
+      "prereq": "scalar-multiplication"
+    },
+    {
+      "concept": "vector-in-sage",
+      "prereq": "vector-addition"
+    },
+    {
+      "concept": "linear-combination",
+      "prereq": "scalar-multiplication"
+    },
+    {
+      "concept": "linear-combination",
+      "prereq": "vector-addition"
+    },
+    {
+      "concept": "linear-combinations-and-linear-systems",
+      "prereq": "linear-combination"
+    },
+    {
+      "concept": "linear-combinations-and-linear-systems",
+      "prereq": "augmented-matrix"
+    },
+    {
+      "concept": "linear-combinations-and-linear-systems",
+      "prereq": "consistent-system"
+    },
+    {
+      "concept": "writing-a-vector-as-a-linear-combination",
+      "prereq": "linear-combinations-and-linear-systems"
+    },
+    {
+      "concept": "writing-a-vector-as-a-linear-combination",
+      "prereq": "existence-and-uniqueness-from-pivots"
+    },
+    {
+      "concept": "writing-a-vector-as-a-linear-combination",
+      "prereq": "pivot-in-every-row-gives-consistency"
+    },
+    {
+      "concept": "writing-a-vector-as-a-linear-combination",
+      "prereq": "solution-space-from-reduced-row-echelon-form"
+    },
+    {
+      "concept": "matrix-as-columns",
+      "prereq": "matrix-shape"
+    },
+    {
+      "concept": "matrix-as-columns",
+      "prereq": "vector"
+    },
+    {
+      "concept": "scalar-multiplication-of-a-matrix",
+      "prereq": "matrix-as-columns"
+    },
+    {
+      "concept": "scalar-multiplication-of-a-matrix",
+      "prereq": "scalar-multiplication"
+    },
+    {
+      "concept": "matrix-addition",
+      "prereq": "matrix-as-columns"
+    },
+    {
+      "concept": "matrix-addition",
+      "prereq": "vector-addition"
+    },
+    {
+      "concept": "identity-matrix",
+      "prereq": "matrix-shape"
+    },
+    {
+      "concept": "matrix-product-as-linear-combination",
+      "prereq": "matrix-as-columns"
+    },
+    {
+      "concept": "matrix-product-as-linear-combination",
+      "prereq": "linear-combination"
+    },
+    {
+      "concept": "matrix-vector-product",
+      "prereq": "matrix-product-as-linear-combination"
+    },
+    {
+      "concept": "zero-vector",
+      "prereq": "vector"
+    },
+    {
+      "concept": "matrix-products-in-sage",
+      "prereq": "matrix-in-sage"
+    },
+    {
+      "concept": "matrix-products-in-sage",
+      "prereq": "vector-in-sage"
+    },
+    {
+      "concept": "matrix-products-in-sage",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "linearity-of-matrix-multiplication",
+      "prereq": "matrix-product-as-linear-combination"
+    },
+    {
+      "concept": "linearity-of-matrix-multiplication",
+      "prereq": "zero-vector"
+    },
+    {
+      "concept": "matrix-equation",
+      "prereq": "matrix-product-as-linear-combination"
+    },
+    {
+      "concept": "matrix-equation",
+      "prereq": "augmented-matrix"
+    },
+    {
+      "concept": "matrix-equation",
+      "prereq": "augmentation"
+    },
+    {
+      "concept": "matrix-equation-as-a-linear-system",
+      "prereq": "matrix-equation"
+    },
+    {
+      "concept": "matrix-equation-as-a-linear-system",
+      "prereq": "linear-combinations-and-linear-systems"
+    },
+    {
+      "concept": "vector-form-of-the-solution-space",
+      "prereq": "matrix-equation-as-a-linear-system"
+    },
+    {
+      "concept": "vector-form-of-the-solution-space",
+      "prereq": "parametric-description"
+    },
+    {
+      "concept": "vector-form-of-the-solution-space",
+      "prereq": "vector-equation-of-a-line"
+    },
+    {
+      "concept": "matrix-product",
+      "prereq": "matrix-product-as-linear-combination"
+    },
+    {
+      "concept": "shape-of-a-matrix-product",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "rules-of-matrix-algebra",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "rules-of-matrix-algebra",
+      "prereq": "matrix-addition"
+    },
+    {
+      "concept": "noncommutativity-of-matrix-multiplication",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "span",
+      "prereq": "matrix-equation-as-a-linear-system"
+    },
+    {
+      "concept": "span-notation",
+      "prereq": "span"
+    },
+    {
+      "concept": "span-as-reachable-points",
+      "prereq": "span"
+    },
+    {
+      "concept": "span-as-reachable-points",
+      "prereq": "geometry-of-vector-operations"
+    },
+    {
+      "concept": "deciding-membership-in-a-span",
+      "prereq": "span-notation"
+    },
+    {
+      "concept": "deciding-membership-in-a-span",
+      "prereq": "writing-a-vector-as-a-linear-combination"
+    },
+    {
+      "concept": "spans-in-three-dimensions",
+      "prereq": "span-notation"
+    },
+    {
+      "concept": "spans-in-three-dimensions",
+      "prereq": "pivot"
+    },
+    {
+      "concept": "pivot-rows-and-span",
+      "prereq": "span-notation"
+    },
+    {
+      "concept": "pivot-rows-and-span",
+      "prereq": "pivot-in-every-row-gives-consistency"
+    },
+    {
+      "concept": "vectors-needed-to-span",
+      "prereq": "pivot-rows-and-span"
+    },
+    {
+      "concept": "vectors-needed-to-span",
+      "prereq": "pivots-per-row-and-column"
+    },
+    {
+      "concept": "describing-a-span-geometrically",
+      "prereq": "spans-in-three-dimensions"
+    },
+    {
+      "concept": "describing-a-span-geometrically",
+      "prereq": "pivot-rows-and-span"
+    },
+    {
+      "concept": "linear-independence-of-vectors",
+      "prereq": "linear-combination"
+    },
+    {
+      "concept": "dependent-vector-does-not-change-span",
+      "prereq": "span-notation"
+    },
+    {
+      "concept": "dependent-vector-does-not-change-span",
+      "prereq": "linear-independence-of-vectors"
+    },
+    {
+      "concept": "pivot-columns-and-linear-independence",
+      "prereq": "linear-independence-of-vectors"
+    },
+    {
+      "concept": "pivot-columns-and-linear-independence",
+      "prereq": "linear-combinations-and-linear-systems"
+    },
+    {
+      "concept": "pivot-columns-and-linear-independence",
+      "prereq": "pivot"
+    },
+    {
+      "concept": "size-of-a-linearly-independent-set",
+      "prereq": "pivot-columns-and-linear-independence"
+    },
+    {
+      "concept": "size-of-a-linearly-independent-set",
+      "prereq": "pivots-per-row-and-column"
+    },
+    {
+      "concept": "homogeneous-matrix-equation",
+      "prereq": "matrix-equation"
+    },
+    {
+      "concept": "homogeneous-matrix-equation",
+      "prereq": "zero-vector"
+    },
+    {
+      "concept": "characterizations-of-linear-dependence",
+      "prereq": "pivot-columns-and-linear-independence"
+    },
+    {
+      "concept": "characterizations-of-linear-dependence",
+      "prereq": "homogeneous-matrix-equation"
+    },
+    {
+      "concept": "characterizations-of-linear-dependence",
+      "prereq": "pivot-columns-and-uniqueness"
+    },
+    {
+      "concept": "testing-linear-independence",
+      "prereq": "characterizations-of-linear-dependence"
+    },
+    {
+      "concept": "testing-linear-independence",
+      "prereq": "solution-space-from-reduced-row-echelon-form"
+    },
+    {
+      "concept": "span-and-linear-independence-compared",
+      "prereq": "vectors-needed-to-span"
+    },
+    {
+      "concept": "span-and-linear-independence-compared",
+      "prereq": "size-of-a-linearly-independent-set"
+    },
+    {
+      "concept": "span-and-linear-independence-compared",
+      "prereq": "characterizations-of-linear-dependence"
+    },
+    {
+      "concept": "linear-mapping",
+      "prereq": "matrix-product-as-linear-combination"
+    },
+    {
+      "concept": "linear-mapping",
+      "prereq": "euclidean-space"
+    },
+    {
+      "concept": "standard-unit-vectors",
+      "prereq": "identity-matrix"
+    },
+    {
+      "concept": "standard-unit-vectors",
+      "prereq": "matrix-as-columns"
+    },
+    {
+      "concept": "matrix-of-a-linear-mapping",
+      "prereq": "linear-mapping"
+    },
+    {
+      "concept": "matrix-of-a-linear-mapping",
+      "prereq": "standard-unit-vectors"
+    },
+    {
+      "concept": "finding-the-matrix-of-a-transformation",
+      "prereq": "matrix-of-a-linear-mapping"
+    },
+    {
+      "concept": "finding-the-matrix-of-a-transformation",
+      "prereq": "writing-a-vector-as-a-linear-combination"
+    },
+    {
+      "concept": "matrix-product-as-composition",
+      "prereq": "linear-mapping"
+    },
+    {
+      "concept": "matrix-product-as-composition",
+      "prereq": "matrix-product"
+    },
+    {
+      "concept": "state-vector",
+      "prereq": "vector"
+    },
+    {
+      "concept": "transition-function",
+      "prereq": "linear-mapping"
+    },
+    {
+      "concept": "transition-function",
+      "prereq": "state-vector"
+    },
+    {
+      "concept": "discrete-dynamical-system",
+      "prereq": "transition-function"
+    },
+    {
+      "concept": "discrete-dynamical-system",
+      "prereq": "matrix-product-as-composition"
+    },
+    {
+      "concept": "geometric-matrix-transformations",
+      "prereq": "matrix-of-a-linear-mapping"
+    },
+    {
+      "concept": "rotation-matrix",
+      "prereq": "geometric-matrix-transformations"
+    },
+    {
+      "concept": "linearity-of-matrix-transformations",
+      "prereq": "linearity-of-matrix-multiplication"
+    },
+    {
+      "concept": "linearity-of-matrix-transformations",
+      "prereq": "matrix-of-a-linear-mapping"
+    },
+    {
+      "concept": "composing-geometric-transformations",
+      "prereq": "geometric-matrix-transformations"
+    },
+    {
+      "concept": "composing-geometric-transformations",
+      "prereq": "matrix-product-as-composition"
+    },
+    {
+      "concept": "matrix-transformations-in-animation",
+      "prereq": "composing-geometric-transformations"
+    },
+    {
+      "concept": "translation",
+      "prereq": "matrix-transformations-in-animation"
+    },
+    {
+      "concept": "translation",
+      "prereq": "linearity-of-matrix-multiplication"
+    },
+    {
+      "concept": "homogeneous-coordinates",
+      "prereq": "translation"
     }
   ],
   "sheets": []

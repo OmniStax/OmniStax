@@ -13,5 +13,46 @@
       "n"
     ],
     "types": []
+  },
+  "ch02": {
+    "symbols": [
+      "v_vec",
+      "w_vec",
+      "u_vec",
+      "b_vec",
+      "x_vec",
+      "zero_vec",
+      "v_i_vec",
+      "v_1_vec",
+      "v_2_vec",
+      "v_3_vec",
+      "w_i_vec",
+      "w_1_vec",
+      "w_2_vec",
+      "w_3_vec",
+      "e_j_vec",
+      "e_1_vec",
+      "e_2_vec",
+      "e_3_vec",
+      "x_k_vec",
+      "x_0_vec",
+      "C",
+      "I",
+      "I_n",
+      "T",
+      "S",
+      "R",
+      "A_k",
+      "Span",
+      "R_m",
+      "c",
+      "d",
+      "c_i",
+      "m",
+      "p",
+      "k",
+      "theta"
+    ],
+    "types": []
   }
 }
