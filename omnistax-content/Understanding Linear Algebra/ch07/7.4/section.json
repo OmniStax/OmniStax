@@ -1,0 +1,1527 @@
+{
+ "id": "7.4",
+ "module": "sec-svd-intro",
+ "chapter": "7",
+ "title": "Singular Value Decompositions",
+ "lead": "This section studies a <span data-concept=\"matrix\">matrix</span> that need not be <span data-concept=\"symmetric-matrix\">symmetric</span>, or even square, through the length $|A{\\mathbf x}|$ of its outputs on <span data-concept=\"unit-vector\">unit vectors</span>. That length leads to the <span data-concept=\"singular-value\">singular values</span> and <span data-concept=\"singular-vectors\">singular vectors</span> of the matrix, to a factorization built from them, and to <span data-concept=\"orthonormal-basis\">orthonormal bases</span> for the <span data-concept=\"four-fundamental-subspaces\">subspaces</span> the matrix carries with it.",
+ "objectives": [],
+ "summary_html": "<p>This section has explored singular value decompositions, how to find them, and how they organize important information about a matrix.</p><ul><li>A singular value decomposition of a matrix $A$ is a factorization where $A=U\\Sigma V^T$. The matrix $\\Sigma$ has the same shape as $A$, and its only nonzero entries are the singular values of $A$, which appear in decreasing order on the diagonal. The matrices $U$ and $V$ are orthogonal and contain the left and right singular vectors, respectively, as their columns.</li><li>To find a singular value decomposition of a matrix, we construct the Gram matrix $G=A^TA$, which is symmetric. The singular values of $A$ are the square roots of the eigenvalues of $G$, and the right singular vectors ${\\mathbf v}_j$ are the associated eigenvectors of $G$. The left singular vectors ${\\mathbf u}_j$ are determined from the relationship $A{\\mathbf v}_j=\\sigma_j{\\mathbf u}_j$.</li><li>A singular value decomposition reveals fundamental information about a matrix. For instance, the number of nonzero singular values is the rank $r$ of the matrix. The first $r$ left singular vectors form an orthonormal basis for $\\text{Col}(A)$ with the remaining left singular vectors forming an orthonormal basis of $\\text{Nul}(A^T)$. The first $r$ right singular vectors form an orthonormal basis for $\\text{Col}(A^T)$ while the remaining right singular vectors form an orthonormal basis of $\\text{Nul}(A)$.</li><li>If $A$ is a rank $r$ matrix, we can write a reduced singular value decomposition as $A=U_r\\Sigma_rV_r^T$ where the columns of $U_r$ form an orthonormal basis for $\\text{Col}(A)$, the columns of $V_r$ form an orthonormal basis for $\\text{Col}(A^T)$, and $\\Sigma_r$ is an $r\\times r$ diagonal, invertible matrix.</li></ul>",
+ "notes": "The section’s eight Sage cells, all of them empty, are not live: they are dropped and the parts that held them keep the book’s words.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; Preview Activity 7.4.1 prints a solution only, which keys its card, and Figure 7.4.1 stands in the text before Activity 7.4.2’s card, which cites it. Eight printed slips are corrected, the book’s words kept: in Examples 7.4.2 (ΣU for UΣ) and 7.4.4 (3u₁ and u₁ for 3u₂ and u₂), and under the cards of Activity 7.4.2 b (v₁ for v₂), Activity 7.4.5 b (Nul(A) for Col(Aᵀ)), Exercise 7.4.2 a (the printed V = I gives the wrong product; V = [0 1; 1 0] is meant), Exercise 7.4.5 c (u₁ for u₂), Exercise 7.4.6 b (Col(A)⊥ for Col(B)⊥) and Exercise 7.4.7 a ((UΣ⁻¹Vᵀ)⁻¹ for (UΣVᵀ)⁻¹). Exercises 7.4.4 d and 7.4.6 d, a projection onto Col(A) and a least-squares solution, anticipate 7.5 and stay here.",
+ "figures": [
+  {
+   "id": "sim-singular-values",
+   "kind": "sim",
+   "number": "7.4.1",
+   "originals": [
+    "/media/ch07/singular-preview.png"
+   ],
+   "original_caption": "Singular values, right singular vectors and left singular vectors",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix",
+    "region",
+    "eigenvalue"
+   ],
+   "ai": [
+    {
+     "model": "claude-opus-5-5",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [],
+ "coverage": [
+  {
+   "span": "spectral-motivation",
+   "concept": "spectral-theorem",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "principal-component-analysis",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "dimensional-reduction",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "symmetric-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "square-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "spectral-motivation",
+   "concept": "diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-named",
+   "concept": "singular-value-decomposition",
+   "verb": "introduces"
+  },
+  {
+   "span": "svd-named",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-named",
+   "concept": "symmetric-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-named",
+   "concept": "orthogonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-named",
+   "concept": "diagonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "finding-intro",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "recall-orthogonal-diagonalization",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "recall-orthogonal-diagonalization",
+   "concept": "symmetric-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "recall-orthogonal-diagonalization",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "recall-orthogonal-diagonalization",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "recall-orthogonal-diagonalization",
+   "concept": "extreme-values-of-a-quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "singular-values-and-vectors",
+   "concept": "square-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "singular-values-and-vectors",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "singular-values-and-vectors",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "singular-values-and-vectors",
+   "concept": "singular-value",
+   "verb": "introduces"
+  },
+  {
+   "span": "singular-values-and-vectors",
+   "concept": "singular-vectors",
+   "verb": "introduces"
+  },
+  {
+   "span": "singular-values-and-vectors",
+   "concept": "quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "length-function",
+   "concept": "magnitude-of-a-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "length-function",
+   "concept": "diagonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "length-function",
+   "concept": "quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "length-function",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "length-function",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "length-function",
+   "concept": "unit-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "squared-length",
+   "concept": "quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "gram-matrix",
+   "concept": "gram-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "next-activity",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "next-activity",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-singular-values",
+   "concept": "unit-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-singular-values",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-singular-values",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-singular-values",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-singular-values",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-singular-values",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "as-this-activity-shows",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "as-this-activity-shows",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "as-this-activity-shows",
+   "concept": "gram-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "as-this-activity-shows",
+   "concept": "quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "symmetric-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "gram-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "extreme-values-of-a-quadratic-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "unit-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-2",
+   "concept": "orthogonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "to-summarize",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "gram-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "eigenvalue",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "finding-a-singular-value-decomposition",
+   "verb": "introduces"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "svd-recipe",
+   "concept": "unit-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "left-orthonormal",
+   "concept": "left-singular-vectors-are-orthonormal",
+   "verb": "introduces"
+  },
+  {
+   "span": "left-orthonormal",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "right-orthogonal",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "right-orthogonal",
+   "concept": "orthogonal-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-3",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-3",
+   "concept": "symmetric-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-3",
+   "concept": "gram-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-3",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-3",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-3",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-svd-nonsquare",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-svd-nonsquare",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-svd-nonsquare",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-svd-nonsquare",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-svd-nonsquare",
+   "concept": "orthogonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "record-theorem",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "record-theorem",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "theorem-svd",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "transpose-svd",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "transpose-svd",
+   "concept": "transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-svd-transpose",
+   "concept": "svd-of-the-transpose",
+   "verb": "introduces"
+  },
+  {
+   "span": "generalization",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "generalization",
+   "concept": "orthogonally-diagonalizable-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "generalization",
+   "concept": "spectral-theorem",
+   "verb": "uses"
+  },
+  {
+   "span": "generalization",
+   "concept": "symmetric-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "generalization",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "generalization",
+   "concept": "orthogonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "generalization",
+   "concept": "eigenvector",
+   "verb": "uses"
+  },
+  {
+   "span": "structure-intro",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "structure-intro",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "structure-intro",
+   "concept": "subspace",
+   "verb": "uses"
+  },
+  {
+   "span": "structure-intro",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "structure-intro",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "null-and-column",
+   "concept": "rank-from-singular-values",
+   "verb": "introduces"
+  },
+  {
+   "span": "null-and-column",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "null-and-column",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "null-and-column",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "null-and-column",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "null-and-column",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "orthogonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "rank-from-singular-values",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-7",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "general-sigma",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "general-sigma",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "u-columns",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "u-columns",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "v-columns",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "v-columns",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "rank-transpose",
+   "concept": "svd-of-the-transpose",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rank-transpose",
+   "concept": "rank-from-singular-values",
+   "verb": "reinforces"
+  },
+  {
+   "span": "rank-transpose",
+   "concept": "rank-of-the-transpose",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-rank-transpose",
+   "concept": "rank-of-the-transpose",
+   "verb": "reinforces"
+  },
+  {
+   "span": "nul-at",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "nul-at",
+   "concept": "svd-of-the-transpose",
+   "verb": "reinforces"
+  },
+  {
+   "span": "nul-at",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "nul-at",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "nul-at",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "complement",
+   "concept": "orthogonal-complement-of-the-column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "row-space",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "row-space",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "row-space",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "row-space",
+   "concept": "row-space",
+   "verb": "introduces"
+  },
+  {
+   "span": "row-space",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "row-space",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "four-fundamental",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "four-fundamental",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "four-fundamental",
+   "concept": "four-fundamental-subspaces",
+   "verb": "introduces"
+  },
+  {
+   "span": "four-fundamental",
+   "concept": "rank",
+   "verb": "uses"
+  },
+  {
+   "span": "four-fundamental",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "four-fundamental",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "thm-four-subspaces",
+   "concept": "svd-and-the-four-fundamental-subspaces",
+   "verb": "introduces"
+  },
+  {
+   "span": "thm-four-subspaces",
+   "concept": "rank-from-singular-values",
+   "verb": "reinforces"
+  },
+  {
+   "span": "thm-four-subspaces",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "thm-four-subspaces",
+   "concept": "kernel",
+   "verb": "uses"
+  },
+  {
+   "span": "thm-four-subspaces",
+   "concept": "row-space",
+   "verb": "reinforces"
+  },
+  {
+   "span": "remaining-left",
+   "concept": "finding-a-singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "remaining-left",
+   "concept": "singular-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "remaining-left",
+   "concept": "svd-and-the-four-fundamental-subspaces",
+   "verb": "reinforces"
+  },
+  {
+   "span": "remaining-left",
+   "concept": "basis",
+   "verb": "uses"
+  },
+  {
+   "span": "remaining-left",
+   "concept": "gram-schmidt-process",
+   "verb": "uses"
+  },
+  {
+   "span": "software",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "reduced-intro",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "reduced-named",
+   "concept": "reduced-svd",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-reduced-svd",
+   "concept": "reduced-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-reduced-svd",
+   "concept": "orthonormal-basis",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-reduced-svd",
+   "concept": "column-space",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-reduced-svd",
+   "concept": "diagonal-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-reduced-svd",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-reduced-svd",
+   "concept": "row-space",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-11",
+   "concept": "singular-value-decomposition",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-11",
+   "concept": "singular-value",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-11",
+   "concept": "rank-from-singular-values",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-7-4-11",
+   "concept": "reduced-svd",
+   "verb": "reinforces"
+  },
+  {
+   "span": "squared-length",
+   "concept": "transpose-across-the-dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-left-orthonormal",
+   "concept": "left-singular-vectors-are-orthonormal",
+   "verb": "reinforces"
+  },
+  {
+   "span": "drv-left-orthonormal",
+   "concept": "transpose-across-the-dot-product",
+   "verb": "uses"
+  },
+  {
+   "span": "drv-left-orthonormal",
+   "concept": "orthogonal-eigenvectors-of-a-symmetric-matrix",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "7.4.1",
+   "source_number": "7.4.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "introduction"
+   },
+   "cite": "svd-named",
+   "prompt": "<p>Let’s review orthogonal diagonalizations and quadratic forms as our understanding of singular value decompositions will rely on them.</p><ol type=\"a\"><li>Suppose that $A$ is any matrix. Explain why the matrix $G = A^TA$ is symmetric.</li><li>Suppose that $A = \\begin{bmatrix} 1 & 2 \\\\ -2 & -1 \\\\ \\end{bmatrix}$. Find the matrix $G=A^TA$ and write out the quadratic form $q_G\\left(\\left[\\begin{array}{r}x_1 \\\\ x_2 \\end{array}\\right]\\right)$ as a function of $x_1$ and $x_2$.</li><li>What is the maximum value of $q_G({\\mathbf x})$ over all unit vectors and in which direction does it occur?</li><li>What is the minimum value of $q_G({\\mathbf x})$ over all unit vectors and in which direction does it occur?</li><li>What is the geometric relationship between the directions in which the maximum and minimum values occur?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>$G^T=(A^TA)^T = A^T(A^T)^T = A^TA=G$.</li><li>$G=\\begin{bmatrix} 5 & 4 \\\\ 4 & 5 \\\\ \\end{bmatrix}$ leads to the quadratic form $q_G = 5x_1^2 + 8x_1x_2 + 5x_2^2$.</li><li>The maximum value of $q_G$ equals the largest eigenvalue of $G$, which is $\\lambda_1=9$. This maximum value occurs in the direction of the associated eigenvector ${\\mathbf u}_1 = \\left[\\begin{array}{r}\\frac{1}{\\sqrt{2}} \\\\ \\frac{1}{\\sqrt{2}} \\end{array}\\right]$.</li><li>The minimum value of $q_G$ equals the smallest eigenvalue of $G$, which is $\\lambda_2=1$. This minimum value occurs in the direction of the associated eigenvector ${\\mathbf u}_2 = \\left[\\begin{array}{r}\\frac{1}{\\sqrt{2}} \\\\ -\\frac{1}{\\sqrt{2}} \\end{array}\\right]$.</li><li>These two directions are orthogonal to each other.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "7.4.2",
+   "source_number": "7.4.2",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "sim-singular-values"
+   },
+   "cite": "sim-singular-values",
+   "prompt": "<p>The following interactive figure will help us explore singular values and vectors geometrically before we begin a more algebraic approach. Select the matrix $A=\\begin{bmatrix} 1 & 2 \\\\ -2 & - 1 \\\\ \\end{bmatrix}$. As we vary the vector ${\\mathbf x}$, we see the vector $A{\\mathbf x}$ on the right in gray while the height of the blue bar to the right tells us $l_A({\\mathbf x}) = |A{\\mathbf x}|$.</p><ol type=\"a\"><li><p>The first <em>singular value</em> $\\sigma_1$ is the maximum value of $l_A({\\mathbf x})$ over all unit vectors and an associated <em>right singular vector</em> ${\\mathbf v}_1$ is a unit vector describing a direction in which this maximum occurs.</p><p>Use the diagram to find the first singular value $\\sigma_1$ and an associated right singular vector ${\\mathbf v}_1$.</p></li><li><p>The second singular value $\\sigma_2$ is the minimum value of $l_A({\\mathbf x})$ over all unit vectors and an associated right singular vector ${\\mathbf v}_2$ is a unit vector describing a direction in which this minimum occurs.</p><p>Use the diagram to find the second singular value $\\sigma_2$ and an associated right singular vector ${\\mathbf v}_2$.</p></li><li><p>Here’s how we can find the right singular values and vectors without using the diagram. Remember that $l_A({\\mathbf x}) = \\sqrt{q_G({\\mathbf x})}$ where $G=A^TA$ is the Gram matrix associated to $A$. Since $G$ is symmetric, it is orthogonally diagonalizable. Find $G$ and an orthogonal diagonalization of it.</p><p>What is the maximum value of the quadratic form $q_G({\\mathbf x})$ among all unit vectors and in which direction does it occur? What is the minimum value of $q_G({\\mathbf x})$ and in which direction does it occur?</p></li><li>Because $l_A({\\mathbf x}) = \\sqrt{q_G({\\mathbf x})}$, the first singular value $\\sigma_1$ will be the square root of the maximum value of $q_G({\\mathbf x})$ and $\\sigma_2$ the square root of the minimum. Verify that the singular values that you found from the diagram are the square roots of the maximum and minimum values of $q_G({\\mathbf x})$.</li><li>Verify that the right singular vectors ${\\mathbf v}_1$ and ${\\mathbf v}_2$ that you found from the diagram are the directions in which the maximum and minimum values occur.</li><li>Finally, we introduce the <em>left singular vectors</em> ${\\mathbf u}_1$ and ${\\mathbf u}_2$ by requiring that $A{\\mathbf v}_1 = \\sigma_1{\\mathbf u}_1$ and $A{\\mathbf v}_2=\\sigma_2{\\mathbf u}_2$. Find the two left singular vectors.</li><li><p>Form the matrices</p>$$ U = \\begin{bmatrix}{\\mathbf u}_1 & {\\mathbf u}_2 \\end{bmatrix}, \\hspace{24pt} \\Sigma = \\begin{bmatrix} \\sigma_1 & 0 \\\\ 0 & \\sigma_2 \\\\ \\end{bmatrix}, \\hspace{24pt} V = \\begin{bmatrix}{\\mathbf v}_1 & {\\mathbf v}_2 \\end{bmatrix} $$<p>and explain why $AV = U\\Sigma$.</p></li><li>Finally, explain why $A=U\\Sigma V^T$ and verify that this relationship holds for this specific example.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\sigma_1=3$, ${\\mathbf v}_1 = \\left[\\begin{array}{r}1/\\sqrt{2} \\\\ 1/\\sqrt{2} \\end{array}\\right]$</li><li>$\\sigma_2=1$, ${\\mathbf v}_1 = \\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$<sup class=\"fn\" data-note=\"activity-7-4-2-b\"></sup></li><li>The maximum value of $q_G({\\mathbf x})$ is $9$, which occurs in the direction $\\left[\\begin{array}{r}1/\\sqrt{2} \\\\ 1/\\sqrt{2} \\end{array}\\right]$. The minimum value of $q_G({\\mathbf x})$ is $1$, which occurs in the direction $\\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$.</li><li>$\\sigma_1 = \\sqrt{9} = 3$ and $\\sigma_2 = \\sqrt{1} = 1$</li><li>${\\mathbf v}_1$ agrees with the direction in which $q_G({\\mathbf x})$ has its maximum value. The corresponding fact is true for ${\\mathbf v}_2$.</li><li>${\\mathbf u}_1=\\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$ and ${\\mathbf u}_2 = \\left[\\begin{array}{r}-1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$</li><li>$AV = \\begin{bmatrix} A{\\mathbf v}_1 & A{\\mathbf v}_2 \\end{bmatrix} = \\begin{bmatrix} \\sigma_1{\\mathbf u}_1 & \\sigma_2{\\mathbf u}_2 \\end{bmatrix} = U\\Sigma$.</li><li>Since $V$ is an orthogonal matrix, we have $A = AVV^T = U\\Sigma V^T$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The maximum value of $l_A({\\mathbf x})$ is $\\sigma_1=3$, which occurs at ${\\mathbf v}_1 = \\left[\\begin{array}{r}1/\\sqrt{2} \\\\ 1/\\sqrt{2} \\end{array}\\right]$.</li><li>The minimum value of $l_A({\\mathbf x})$ is $\\sigma_2=1$, which occurs at ${\\mathbf v}_1 = \\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$.</li><li><p>$G = \\begin{bmatrix} 5 & 4 \\\\ 4 & 5 \\\\ \\end{bmatrix} = QDQ^T$ where</p>$$ D = \\begin{bmatrix} 9 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix},\\hspace{24pt} Q = \\begin{bmatrix} 1/\\sqrt{2} & 1/\\sqrt{2} \\\\ 1/\\sqrt{2} & -1/\\sqrt{2} \\\\ \\end{bmatrix}\\text{.} $$<p>The maximum value of $q_G({\\mathbf x})$ is therefore $\\lambda_1=9$, which occurs in the direction $\\left[\\begin{array}{r}1/\\sqrt{2} \\\\ 1/\\sqrt{2} \\end{array}\\right]$. The minimum value of $q_G({\\mathbf x})$ is $\\lambda_2=1$, which occurs in the direction $\\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$.</p></li><li>We see that $\\sigma_1 = \\sqrt{\\lambda_1} = \\sqrt{9} = 3$ and $\\sigma_2 = \\sqrt{\\lambda_2} = \\sqrt{1} = 1$.</li><li>We also see that ${\\mathbf v}_1$, the first right singular vector, agrees with the direction in which $q_G({\\mathbf x})$ has its maximum value. The corresponding fact is true for ${\\mathbf v}_2$.</li><li>We find that ${\\mathbf u}_1=\\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$ and ${\\mathbf u}_2 = \\left[\\begin{array}{r}-1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$.</li><li>$AV = \\begin{bmatrix} A{\\mathbf v}_1 & A{\\mathbf v}_2 \\end{bmatrix} = \\begin{bmatrix} \\sigma_1{\\mathbf u}_1 & \\sigma_2{\\mathbf u}_2 \\end{bmatrix} = U\\Sigma$.</li><li>Since $V$ is an orthogonal matrix, we have $A = AVV^T = U\\Sigma V^T$.</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "7.4.3",
+   "source_number": "7.4.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-7-4-3"
+   },
+   "cite": "svd-recipe",
+   "prompt": "<p>In this activity, we will construct the singular value decomposition of $A=\\begin{bmatrix} 1 & 0 & -1 \\\\ 1 & 1 & 1 \\end{bmatrix}$. Notice that this matrix is not square so there are no eigenvalues and eigenvectors associated to it.</p><ol type=\"a\"><li>Construct the Gram matrix $G=A^TA$ and find an orthogonal diagonalization of it.</li><li>Identify the singular values of $A$ and the right singular vectors ${\\mathbf v}_1$, ${\\mathbf v}_2$, and ${\\mathbf v}_3$. What is the dimension of these vectors? How many nonzero singular values are there?</li><li>Find the left singular vectors ${\\mathbf u}_1$ and ${\\mathbf u}_2$ using the fact that $A{\\mathbf v}_i = \\sigma_i{\\mathbf u}_i$. What is the dimension of these vectors? What happens if you try to find a third left singular vector ${\\mathbf u}_3$ in this way?</li><li>As before, form the orthogonal matrices $U$ and $V$ from the left and right singular vectors. What are the shapes of $U$ and $V$? How do these shapes relate to the number of rows and columns of $A$?</li><li><p>Now form $\\Sigma$ so that it has the same shape as $A$:</p>$$ \\Sigma = \\begin{bmatrix} \\sigma_1 & 0 & 0 \\\\ 0 & \\sigma_2 & 0 \\end{bmatrix} $$<p>and verify that $A = U\\Sigma V^T$.</p></li><li>How can you use this singular value decomposition of $A=U\\Sigma V^T$ to easily find a singular value decomposition of $A^T=\\begin{bmatrix} 1 & 1 \\\\ 0 & 1 \\\\ -1 & 1 \\\\ \\end{bmatrix}$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$G$ can be orthogonally diagaonalized with</p>$$ D = \\begin{bmatrix} 3 & 0 & 0 \\\\ 0 & 2 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix},\\hspace{24pt} Q = \\begin{bmatrix} 1/\\sqrt{3} & 1/\\sqrt{2} & 1/\\sqrt{6} \\\\ 1/\\sqrt{3} & 0 & -2/\\sqrt{6} \\\\ 1/\\sqrt{3} & -1/\\sqrt{2} & 1/\\sqrt{6} \\end{bmatrix}. $$</li><li>$\\sigma_1 = \\sqrt{3}$, $\\sigma_2 = \\sqrt{2}$, and $\\sigma_3 = 0$. The three right singular vectors ${\\mathbf v}_i$ are the columns of $Q$.</li><li>${\\mathbf u}_1 = \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf u}_2 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$</li><li><p>We have</p>$$ U = \\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} 1/\\sqrt{3} & 1/\\sqrt{2} & 1/\\sqrt{6} \\\\ 1/\\sqrt{3} & 0 & -2/\\sqrt{6} \\\\ 1/\\sqrt{3} & -1/\\sqrt{2} & 1/\\sqrt{6} \\end{bmatrix}\\text{.} $$</li><li>With $\\Sigma = \\begin{bmatrix} \\sqrt{3} & 0 & 0 \\\\ 0 & \\sqrt{2} & 0 \\end{bmatrix}$, we see that $A=U\\Sigma V^T$.</li><li>$A^T=(U\\Sigma V^T)^T = V\\Sigma^T U^T$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Constructing the Gram matrix of $A$ gives the $3\\times3$ matrix</p>$$ G = \\begin{bmatrix} 2 & 1 & 0 \\\\ 1 & 1 & 1 \\\\ 0 & 1 & 2 \\end{bmatrix}\\text{,} $$<p>which can be orthogonally diagaonalized with</p>$$ D = \\begin{bmatrix} 3 & 0 & 0 \\\\ 0 & 2 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix},\\hspace{24pt} Q = \\begin{bmatrix} 1/\\sqrt{3} & 1/\\sqrt{2} & 1/\\sqrt{6} \\\\ 1/\\sqrt{3} & 0 & -2/\\sqrt{6} \\\\ 1/\\sqrt{3} & -1/\\sqrt{2} & 1/\\sqrt{6} \\end{bmatrix}. $$</li><li>This tells us that $\\sigma_1 = \\sqrt{3}$, $\\sigma_2 = \\sqrt{2}$, and $\\sigma_3 = 0$. The three right singular vectors ${\\mathbf v}_i$ are the columns of $Q$. Since these vectors are 3-dimensional, it follows that the matrix $V$ will be $3\\times3$.</li><li><p>We have</p>$$ \\begin{aligned} A{\\mathbf v}_1 & = \\left[\\begin{array}{r}0 \\\\ \\sqrt{3} \\end{array}\\right] = \\sqrt{3} \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right] \\\\ A{\\mathbf v}_2 & = \\left[\\begin{array}{r}\\sqrt{2} \\\\ 0 \\end{array}\\right] = \\sqrt{2} \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right] \\end{aligned} $$<p>showing that</p>$$ {\\mathbf u}_1 = \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right], \\hspace{24pt} {\\mathbf u}_2 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]. $$<p>Notice that $A{\\mathbf v}_3 = {\\mathbf 0}$ so it is not possible to find a vector ${\\mathbf u}_3$ in this way.</p><p>The left singular vectors are 2-dimensional so $U$ will be a $2\\times2$ matrix.</p></li><li><p>We have</p>$$ U = \\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} 1/\\sqrt{3} & 1/\\sqrt{2} & 1/\\sqrt{6} \\\\ 1/\\sqrt{3} & 0 & -2/\\sqrt{6} \\\\ 1/\\sqrt{3} & -1/\\sqrt{2} & 1/\\sqrt{6} \\end{bmatrix}\\text{.} $$<p>The matrix $U$ is $2\\times2$ since there are two rows in $A$ and $V$ is $3\\times3$ since there are three columns in $A$</p></li><li>With $\\Sigma = \\begin{bmatrix} \\sqrt{3} & 0 & 0 \\\\ 0 & \\sqrt{2} & 0 \\end{bmatrix}$, we see that $A=U\\Sigma V^T$.</li><li>If $A = U\\Sigma V^T$, then $A^T=(U\\Sigma V^T)^T = V\\Sigma^T U^T$.</li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "7.4.4",
+   "source_number": "7.4.4",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "structure-intro"
+   },
+   "cite": "structure-intro",
+   "prompt": "<p>Let’s suppose that a matrix $A$ has a singular value decomposition $A=U\\Sigma V^T$ where</p>$$ U=\\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 & {\\mathbf u}_3 & {\\mathbf u}_4 \\end{bmatrix},\\hspace{10pt} \\Sigma = \\begin{bmatrix} 20 & 0 & 0 \\\\ 0 & 5 & 0 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix},\\hspace{10pt} V=\\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 & {\\mathbf v}_3 \\end{bmatrix}. $$<ol type=\"a\"><li>What is the shape of $A$; that is, how many rows and columns does $A$ have?</li><li><p>Suppose we write a three-dimensional vector ${\\mathbf x}$ as a linear combination of right singular vectors:</p>$$ {\\mathbf x} = c_1{\\mathbf v}_1 + c_2{\\mathbf v}_2 + c_3{\\mathbf v}_3\\text{.} $$<p>We would like to find an expression for $A{\\mathbf x}$.</p><p>To begin, $V^T{\\mathbf x} = \\left[\\begin{array}{r}{\\mathbf v}_1\\cdot{\\mathbf x} \\\\ {\\mathbf v}_2\\cdot{\\mathbf x} \\\\ {\\mathbf v}_3\\cdot{\\mathbf x} \\end{array}\\right] = \\left[\\begin{array}{r}c_1 \\\\ c_2 \\\\ c_3 \\end{array}\\right]$.</p><p>Now $\\Sigma V^T {\\mathbf x} = \\begin{bmatrix} 20 & 0 & 0 \\\\ 0 & 5 & 0 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix}\\left[\\begin{array}{r}c_1 \\\\ c_2 \\\\ c_3 \\end{array}\\right] = \\left[\\begin{array}{c}20c_1 \\\\ 5c_2 \\\\ 0 \\\\ 0 \\end{array}\\right]$.</p><p>And finally, $A{\\mathbf x} = U\\Sigma V^T{\\mathbf x} = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 & {\\mathbf u}_3 & {\\mathbf u}_4 \\end{bmatrix} \\left[\\begin{array}{c}20c_1 \\\\ 5c_2 \\\\ 0 \\\\ 0 \\end{array}\\right] = 20c_1{\\mathbf u}_1 + 5c_2{\\mathbf u}_2$.</p><p>To summarize, we have $A{\\mathbf x} = 20c_1{\\mathbf u}_1 + 5c_2{\\mathbf u}_2$.</p><p>What condition on $c_1$, $c_2$, and $c_3$ must be satisfied if ${\\mathbf x}$ is a solution to the equation $A{\\mathbf x}=40{\\mathbf u}_1 + 20{\\mathbf u}_2$? Is there a unique solution or infinitely many?</p></li><li>Remembering that ${\\mathbf u}_1$ and ${\\mathbf u}_2$ are linearly independent, what condition on $c_1$, $c_2$, and $c_3$ must be satisfied if $A{\\mathbf x} = {\\mathbf 0}$?</li><li>How do the right singular vectors ${\\mathbf v}_i$ provide a basis for $\\text{Nul}(A)$, the subspace of solutions to the equation $A{\\mathbf x} = {\\mathbf 0}$?</li><li><p>Remember that ${\\mathbf b}$ is in $\\text{Col}(A)$ if the equation $A{\\mathbf x} = {\\mathbf b}$ is consistent, which means that</p>$$ A{\\mathbf x} = 20c_1{\\mathbf u}_1 + 5c_2{\\mathbf u}_2 = {\\mathbf b} $$<p>for some coefficients $c_1$ and $c_2$. How do the left singular vectors ${\\mathbf u}_i$ provide an orthonormal basis for $\\text{Col}(A)$?</p></li><li>Remember that $\\operatorname{rank}(A)$ is the dimension of the column space. What is $\\operatorname{rank}(A)$ and how do the number of nonzero singular values determine $\\operatorname{rank}(A)$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$A$ is $4\\times3$</li><li>$c_1 = 2$, $c_2 = 4$, and there is no condition on $c_3$</li><li>$c_1 = 0$, $c_2 = 0$, and there is no condition on $c_3$</li><li>${\\mathbf v}_3$ forms a basis for $\\text{Nul}(A)$.</li><li>${\\mathbf u}_1$ and ${\\mathbf u}_2$ form a basis for $\\text{Col}(A)$.</li><li>$\\operatorname{rank}(A) = 2$, which is the number of nonzero singular values.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The shape of $A$ is the same as $\\Sigma$ so $A$ is $4\\times3$; that is, $A$ has $4$ rows and $3$ columns.</li><li>We have $A{\\mathbf x}=20c_1{\\mathbf u}_1 + 5c_2{\\mathbf u}_2 = 40{\\mathbf u}_1 + 20{\\mathbf u}_2$. This means that $c_1 = 2$, $c_2 = 4$, and $c_3$ could be anything. Since there is no condition on $c_3$, there are infinitely many solutions.</li><li>We have $A{\\mathbf x}=20c_1{\\mathbf u}_1 + 5c_2{\\mathbf u}_2 = {\\mathbf 0}$, which says that $c_1 = 0$, $c_2 = 0$, and $c_3$ could be anything.</li><li>Any vector ${\\mathbf x}$ in $\\text{Nul}(A)$ satisfies $A{\\mathbf x} = {\\mathbf 0}$ and must have the form ${\\mathbf x} = c_3{\\mathbf v}_3$. Therefore, ${\\mathbf v}_3$ forms a basis for $\\text{Nul}(A)$.</li><li>The vector ${\\mathbf b}$ is in $\\text{Col}(A)$ only if ${\\mathbf b}$ is a linear combination of ${\\mathbf u}_1$ and ${\\mathbf u}_2$. Therefore, ${\\mathbf u}_1$ and ${\\mathbf u}_2$ form a basis for $\\text{Col}(A)$.</li><li>$\\operatorname{rank}(A) = 2$, which is the number of nonzero singular values.</li></ol>"
+   }
+  },
+  {
+   "id": "a5",
+   "source_id": "7.4.5",
+   "source_number": "7.4.5",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "reduced-intro"
+   },
+   "cite": "reduced-intro",
+   "prompt": "<p>Suppose we have a singular value decomposition $A = U\\Sigma V^T$ where</p>$$ U = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 & {\\mathbf u}_3 & {\\mathbf u}_4 \\end{bmatrix},\\hspace{24pt} \\Sigma = \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 & {\\mathbf v}_3 \\end{bmatrix}\\text{.} $$<ol type=\"a\"><li>What is the shape of $A$? What is $\\operatorname{rank}(A)$?</li><li>Identify bases for $\\text{Col}(A)$ and $\\text{Col}(A^T)$.</li><li><p>Explain why</p>$$ U\\Sigma = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 \\end{bmatrix} \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix}\\text{.} $$</li><li><p>Explain why</p>$$ \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix}V^T = \\begin{bmatrix} 18 & 0 \\\\ 0 & 4 \\\\ \\end{bmatrix} \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 \\end{bmatrix}^T\\text{.} $$</li><li>If $A = U\\Sigma V^T$, explain why $A=U_r\\Sigma_rV_r^T$ where the columns of $U_r$ are an orthonormal basis for $\\text{Col}(A)$, $\\Sigma_r$ is a square, diagonal, invertible matrix, and the columns of $V_r$ form an orthonormal basis for $\\text{Col}(A^T)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$A$ is a $4\\times3$ matrix and $\\operatorname{rank}(A) = 2$</li><li>${\\mathbf u}_1$ and ${\\mathbf u}_2$ form an orthonormal basis for $\\text{Col}(A)$, and ${\\mathbf v}_1$ and ${\\mathbf v}_2$ form an orthonormal basis for $\\text{Nul}(A)$<sup class=\"fn\" data-note=\"activity-7-4-5-b\"></sup>.</li><li><p>Notice that</p>$$ U\\Sigma = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 & {\\mathbf u}_3 & {\\mathbf u}_4 \\end{bmatrix} \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix} = \\begin{bmatrix} 18{\\mathbf u}_1 & 4{\\mathbf u}_2 & {\\mathbf 0} \\end{bmatrix} $$</li><li><p>Notice that</p>$$ \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix}V^T = \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} {\\mathbf v}_1^T \\\\ {\\mathbf v}_2^T \\\\ {\\mathbf v}_3^T \\end{bmatrix} $$</li><li><p>Put together the previous parts to see that $A=U_r\\Sigma_rV_r^T$ where</p>$$ U_r = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 \\end{bmatrix},\\hspace{24pt} \\Sigma_r = \\begin{bmatrix} 18 & 0 \\\\ 0 & 4 \\\\ \\end{bmatrix},\\hspace{24pt} V_r = \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 \\end{bmatrix}\\text{.} $$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$A$ is a $4\\times3$ matrix and $\\operatorname{rank}(A) = 2$ because there are two nonzero singular values.</li><li>${\\mathbf u}_1$ and ${\\mathbf u}_2$ form an orthonormal basis for $\\text{Col}(A)$, and ${\\mathbf v}_1$ and ${\\mathbf v}_2$ form an orthonormal basis for $\\text{Nul}(A)$.</li><li><p>Notice that</p>$$ U\\Sigma = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 & {\\mathbf u}_3 & {\\mathbf u}_4 \\end{bmatrix} \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix} = \\begin{bmatrix} 18{\\mathbf u}_1 & 4{\\mathbf u}_2 & {\\mathbf 0} \\end{bmatrix} = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 \\end{bmatrix} \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix}\\text{.} $$</li><li><p>Notice that</p>$$ \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix}V^T = \\begin{bmatrix} 18 & 0 & 0 \\\\ 0 & 4 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} {\\mathbf v}_1^T \\\\ {\\mathbf v}_2^T \\\\ {\\mathbf v}_3^T \\end{bmatrix} = \\begin{bmatrix} 18 {\\mathbf v}_1^T \\\\ 4 {\\mathbf v}_2^T \\end{bmatrix} = \\begin{bmatrix} 18 & 0 \\\\ 0 & 4 \\\\ \\end{bmatrix} \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 \\end{bmatrix}^T\\text{.} $$</li><li><p>Put together the previous parts to see that $A=U_r\\Sigma_rV_r^T$ where</p>$$ U_r = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2 \\end{bmatrix},\\hspace{24pt} \\Sigma_r = \\begin{bmatrix} 18 & 0 \\\\ 0 & 4 \\\\ \\end{bmatrix},\\hspace{24pt} V_r = \\begin{bmatrix} {\\mathbf v}_1 & {\\mathbf v}_2 \\end{bmatrix}\\text{.} $$</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "7.4.1",
+   "source_number": "7.4.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "svd-recipe",
+   "prompt": "<p>Consider the matrix $A = \\begin{bmatrix} 1 & 2 & 1 \\\\ 0 & -1 & 2 \\\\ \\end{bmatrix}$.</p><ol type=\"a\"><li>Find the Gram matrix $G=A^TA$ and use it to find the singular values and right singular vectors of $A$.</li><li>Find the left singular vectors.</li><li>Form the matrices $U$, $\\Sigma$, and $V$ and verify that $A=U\\Sigma V^T$.</li><li>What is $\\operatorname{rank}(A)$ and what does this say about $\\text{Col}(A)$?</li><li>Determine an orthonormal basis for $\\text{Nul}(A)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>$G = \\begin{bmatrix} 1 & 2 & 1 \\\\ 2 & 5 & 0 \\\\ 1 & 0 & 5 \\\\ \\end{bmatrix}$, which has</p>$$ D=\\begin{bmatrix} 6 & 0 & 0 \\\\ 0 & 5 & 0 \\\\ 0 & 0 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} Q = \\begin{bmatrix} 1/\\sqrt{6} & 0 & 5/\\sqrt{30} \\\\ 2/\\sqrt{6} & 1/\\sqrt{5} & -2/\\sqrt{30} \\\\ 1/\\sqrt{6} & -2/\\sqrt{5} & -1/\\sqrt{30} \\\\ \\end{bmatrix} $$<p>$\\sigma_1 = \\sqrt{6}$ and $\\sigma_2=\\sqrt{5}$. The right singular vectors are the columns of $Q$.</p></li><li>${\\mathbf u}_1 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ and ${\\mathbf u}_2=\\left[\\begin{array}{r}0 \\\\ -1 \\end{array}\\right]$.</li><li>$$ U=\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\\\ \\end{bmatrix},\\hspace{24pt} \\Sigma = \\begin{bmatrix} \\sqrt{6} & 0 & 0 \\\\ 0 & \\sqrt{5} & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} 1/\\sqrt{6} & 0 & 5/\\sqrt{30} \\\\ 2/\\sqrt{6} & 1/\\sqrt{5} & -2/\\sqrt{30} \\\\ 1/\\sqrt{6} & -2/\\sqrt{5} & -1/\\sqrt{30} \\\\ \\end{bmatrix} $$</li><li>$\\operatorname{rank}(A)=2$ and $\\text{Col}(A)={\\mathbb R}^2$.</li><li>${\\mathbf v}_3 = \\left[\\begin{array}{r}5/\\sqrt{30} \\\\ -2/\\sqrt{30} \\\\ -1/\\sqrt{30} \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$G = \\begin{bmatrix} 1 & 2 & 1 \\\\ 2 & 5 & 0 \\\\ 1 & 0 & 5 \\\\ \\end{bmatrix}$, which has</p>$$ D=\\begin{bmatrix} 6 & 0 & 0 \\\\ 0 & 5 & 0 \\\\ 0 & 0 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} Q = \\begin{bmatrix} 1/\\sqrt{6} & 0 & 5/\\sqrt{30} \\\\ 2/\\sqrt{6} & 1/\\sqrt{5} & -2/\\sqrt{30} \\\\ 1/\\sqrt{6} & -2/\\sqrt{5} & -1/\\sqrt{30} \\\\ \\end{bmatrix} $$<p>This says that $\\sigma_1 = \\sqrt{6}$ and $\\sigma_2=\\sqrt{5}$. The right singular vectors are the columns of $Q$.</p></li><li>${\\mathbf u}_1 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$ and ${\\mathbf u}_2=\\left[\\begin{array}{r}0 \\\\ -1 \\end{array}\\right]$.</li><li>$$ U=\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\\\ \\end{bmatrix},\\hspace{24pt} \\Sigma = \\begin{bmatrix} \\sqrt{6} & 0 & 0 \\\\ 0 & \\sqrt{5} & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} 1/\\sqrt{6} & 0 & 5/\\sqrt{30} \\\\ 2/\\sqrt{6} & 1/\\sqrt{5} & -2/\\sqrt{30} \\\\ 1/\\sqrt{6} & -2/\\sqrt{5} & -1/\\sqrt{30} \\\\ \\end{bmatrix} $$</li><li>$\\operatorname{rank}(A)=2$ because there are two nonzero singular values. Therefore, $\\text{Col}(A)$ is 2-dimensional and so $\\text{Col}(A)={\\mathbb R}^2$.</li><li>${\\mathbf v}_3 = \\left[\\begin{array}{r}5/\\sqrt{30} \\\\ -2/\\sqrt{30} \\\\ -1/\\sqrt{30} \\end{array}\\right]$</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "7.4.2",
+   "source_number": "7.4.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "svd-recipe",
+   "prompt": "<p>Find singular value decompositions for the following matrices:</p><ol type=\"a\"><li>$\\begin{bmatrix} 0 & 0 \\\\ 0 & -8 \\end{bmatrix}$.</li><li>$\\begin{bmatrix} 2 & 3 \\\\ 0 & 2 \\end{bmatrix}$.</li><li>$\\begin{bmatrix} 4 & 0 & 0 \\\\ 0 & 0 & 2 \\end{bmatrix}$</li><li>$\\begin{bmatrix} 4 & 0 \\\\ 0 & 0 \\\\ 0 & 2 \\end{bmatrix}$</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\begin{bmatrix} 0 & 0 \\\\ 0 & -8 \\\\ \\end{bmatrix} = \\begin{bmatrix} 0 & 1 \\\\ -1 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 8 & 0 \\\\ 0 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix}^T$<sup class=\"fn\" data-note=\"exercise-7-4-2-a\"></sup></li><li>$\\begin{bmatrix} 2 & 3 \\\\ 0 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 2/\\sqrt{5} & 1/\\sqrt{5} \\\\ 1/\\sqrt{5} & -2/\\sqrt{5} \\\\ \\end{bmatrix} \\begin{bmatrix} 4 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix} \\begin{bmatrix} 1/\\sqrt{5} & 2/\\sqrt{5} \\\\ 2/\\sqrt{5} & -1/\\sqrt{5} \\\\ \\end{bmatrix}^T$</li><li>$\\begin{bmatrix} 4 & 0 & 0 \\\\ 0 & 0 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix} \\begin{bmatrix} 4 & 0 & 0 \\\\ 0 & 2 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ \\end{bmatrix}^T$</li><li>$\\begin{bmatrix} 4 & 0 \\\\ 0 & 0 \\\\ 0 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 4 & 0 \\\\ 0 & 2 \\\\ 0 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix}^T$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\begin{bmatrix} 0 & 0 \\\\ 0 & -8 \\\\ \\end{bmatrix} = \\begin{bmatrix} 0 & 1 \\\\ -1 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 8 & 0 \\\\ 0 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix}^T$</li><li>$\\begin{bmatrix} 2 & 3 \\\\ 0 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 2/\\sqrt{5} & 1/\\sqrt{5} \\\\ 1/\\sqrt{5} & -2/\\sqrt{5} \\\\ \\end{bmatrix} \\begin{bmatrix} 4 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix} \\begin{bmatrix} 1/\\sqrt{5} & 2/\\sqrt{5} \\\\ 2/\\sqrt{5} & -1/\\sqrt{5} \\\\ \\end{bmatrix}^T$</li><li>$\\begin{bmatrix} 4 & 0 & 0 \\\\ 0 & 0 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix} \\begin{bmatrix} 4 & 0 & 0 \\\\ 0 & 2 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ \\end{bmatrix}^T$</li><li>$\\begin{bmatrix} 4 & 0 \\\\ 0 & 0 \\\\ 0 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 4 & 0 \\\\ 0 & 2 \\\\ 0 & 0 \\\\ \\end{bmatrix} \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix}^T$</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "7.4.3",
+   "source_number": "7.4.3",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-7-4-3",
+   "prompt": "<p>Consider the matrix $A = \\begin{bmatrix} 2 & 1 \\\\ 1 & 2 \\end{bmatrix}$.</p><ol type=\"a\"><li>Find a singular value decomposition of $A$ and verify that it is also an orthogonal diagonalization of $A$.</li><li>If $A$ is a symmetric, positive semidefinite matrix, explain why a singular value decomposition of $A$ is an orthogonal diagonalization of $A$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\begin{bmatrix} 2 & 1 \\\\ 1 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 1/\\sqrt{2} & 1/\\sqrt{2} \\\\ 1/\\sqrt{2} & -1/\\sqrt{2} \\\\ \\end{bmatrix} \\begin{bmatrix} 3 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix} \\begin{bmatrix} 1/\\sqrt{2} & 1/\\sqrt{2} \\\\ 1/\\sqrt{2} & -1/\\sqrt{2} \\\\ \\end{bmatrix}^T$</li><li>The singular values $\\sigma_i = \\lambda_i$, the eigenvalues of $A$ and the right singular vectors are eigenvectors of $A$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>$\\begin{bmatrix} 2 & 1 \\\\ 1 & 2 \\\\ \\end{bmatrix} = \\begin{bmatrix} 1/\\sqrt{2} & 1/\\sqrt{2} \\\\ 1/\\sqrt{2} & -1/\\sqrt{2} \\\\ \\end{bmatrix} \\begin{bmatrix} 3 & 0 \\\\ 0 & 1 \\\\ \\end{bmatrix} \\begin{bmatrix} 1/\\sqrt{2} & 1/\\sqrt{2} \\\\ 1/\\sqrt{2} & -1/\\sqrt{2} \\\\ \\end{bmatrix}^T$</p><p>Since $U=V$, this is an orthogonal diagonalization.</p></li><li><p>In this case, $G=A^TA = A^2$. If $\\lambda_i\\geq 0$ are the eigenvalues of $A$ and ${\\mathbf v}_i$ the associated eigenvectors, then $\\lambda_i^2$ is an eigenvalue of $G$ with associated eigenvector ${\\mathbf v}_i$. Therefore, $\\sigma_i = \\sqrt{\\lambda_i^2} = \\lambda_i$ and the right singular vectors are ${\\mathbf v}_i$.</p><p>The left singular vectors are $A{\\mathbf v}_i = \\sigma_i{\\mathbf u}_i = \\lambda_i{\\mathbf v}_i$ so the left singular vectors are the same as the right singular vectors.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "7.4.4",
+   "source_number": "7.4.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "thm-four-subspaces",
+   "prompt": "<p>Suppose that the matrix $A$ has the singular value decomposition</p>$$ \\begin{bmatrix} -0.46 & 0.52 & 0.46 & 0.55 \\\\ -0.82 & 0.00 & -0.14 & -0.55 \\\\ -0.04 & 0.44 & -0.85 & 0.28 \\\\ -0.34 & -0.73 & -0.18 & 0.55 \\end{bmatrix} \\begin{bmatrix} 6.2 & 0.0 & 0.0 \\\\ 0.0 & 4.1 & 0.0 \\\\ 0.0 & 0.0 & 0.0 \\\\ 0.0 & 0.0 & 0.0 \\end{bmatrix} \\begin{bmatrix} -0.74 & 0.62 & -0.24 \\\\ 0.28 & 0.62 & 0.73 \\\\ -0.61 & -0.48 & 0.64 \\end{bmatrix}. $$<ol type=\"a\"><li>What are the dimensions of $A$?</li><li>What is $\\operatorname{rank}(A)$?</li><li>Find orthonormal bases for $\\text{Col}(A)$, $\\text{Nul}(A)$, $\\text{Col}(A^T)$, and $\\text{Nul}(A^T)$.</li><li>Find the orthogonal projection of ${\\mathbf b}=\\left[\\begin{array}{r}1 \\\\ 0 \\\\ 2 \\\\ -1 \\end{array}\\right]$ onto $\\text{Col}(A)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$4\\times 3$</li><li>$2$</li><li>A basis for $\\text{Col}(A)$ is formed by the first two columns of $U$. A basis for $\\text{Nul}(A^T)$ is formed by the last two columns of $U$. A basis for $\\text{Col}(A^T)$ is formed by the first two columns of $V$. A basis for $\\text{Nul}(A)$ is formed by the last column of $V$.</li><li>$\\left[\\begin{array}{r}1.20 \\\\ 0.16 \\\\ 0.95 \\\\ -1.49 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$A$ is $4\\times 3$</li><li>$\\operatorname{rank}(A) = 2$</li><li>A basis for $\\text{Col}(A)$ is formed by the first two columns of $U$. A basis for $\\text{Nul}(A^T)$ is formed by the last two columns of $U$. A basis for $\\text{Col}(A^T)$ is formed by the first two columns of $V$. A basis for $\\text{Nul}(A)$ is formed by the last column of $V$.</li><li>Form $Q = \\begin{bmatrix} {\\mathbf u}_1 & {\\mathbf u}_2\\end{bmatrix}$ and find $QQ^T{\\mathbf b} = \\left[\\begin{array}{r}1.20 \\\\ 0.16 \\\\ 0.95 \\\\ -1.49 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "7.4.5",
+   "source_number": "7.4.5",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "remaining-left",
+   "prompt": "<p>Consider the matrix $A = \\begin{bmatrix} 1 & 0 & -1 \\\\ 2 & 2 & 0 \\\\ -1 & 1 & 2\\\\ \\end{bmatrix}$.</p><ol type=\"a\"><li>Construct the Gram matrix $G$ and use it to find the singular values and right singular vectors ${\\mathbf v}_1$, ${\\mathbf v}_2$, and ${\\mathbf v}_3$ of $A$. What are the matrices $\\Sigma$ and $V$ in a singular value decomposition?</li><li>What is $\\operatorname{rank}(A)$?</li><li>Find as many left singular vectors ${\\mathbf u}_j$ as you can using the relationship $A{\\mathbf v}_j=\\sigma_j{\\mathbf u}_j$.</li><li>Find an orthonormal basis for $\\text{Nul}(A^T)$ and use it to construct the matrix $U$ so that $A=U\\Sigma V^T$.</li><li>State an orthonormal basis for $\\text{Nul}(A)$ and an orthonormal basis for $\\text{Col}(A)$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\Sigma = \\begin{bmatrix} 3 & 0 & 0 \\\\ 0 & \\sqrt{7} & 0 \\\\ 0 & 0 & 0 \\\\ \\end{bmatrix}$ and $V = \\begin{bmatrix} 2/\\sqrt{6} & 0 & 1/\\sqrt{3} \\\\ 1/\\sqrt{6} & 1/\\sqrt{2} & -1/\\sqrt{3} \\\\ -1/\\sqrt{6} & 1/\\sqrt{2} & 1/\\sqrt{3} \\\\ \\end{bmatrix}$</li><li>$\\operatorname{rank}(A)=2$</li><li>${\\mathbf u}_1 =\\left[\\begin{array}{r}1/\\sqrt{6} \\\\ 2/\\sqrt{6} \\\\ -1/\\sqrt{6} \\end{array}\\right]$ and ${\\mathbf u}_1 =\\left[\\begin{array}{r}-1/\\sqrt{14} \\\\ 2/\\sqrt{14} \\\\ 3/\\sqrt{14} \\end{array}\\right]$<sup class=\"fn\" data-note=\"exercise-7-4-5-c\"></sup></li><li>$U=\\begin{bmatrix} 1/\\sqrt{6} & -1/\\sqrt{14} & 4/\\sqrt{21} \\\\ 2/\\sqrt{6} & 2/\\sqrt{14} & -1/\\sqrt{21} \\\\ -1/\\sqrt{6} & 3/\\sqrt{14} & 2/\\sqrt{21} \\\\ \\end{bmatrix}$</li><li>The third column of $V$ forms a basis for $\\text{Nul}(A)$ while the first two columns of $U$ form a basis for $\\text{Col}(A)$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\Sigma = \\begin{bmatrix} 3 & 0 & 0 \\\\ 0 & \\sqrt{7} & 0 \\\\ 0 & 0 & 0 \\\\ \\end{bmatrix}$ and $V = \\begin{bmatrix} 2/\\sqrt{6} & 0 & 1/\\sqrt{3} \\\\ 1/\\sqrt{6} & 1/\\sqrt{2} & -1/\\sqrt{3} \\\\ -1/\\sqrt{6} & 1/\\sqrt{2} & 1/\\sqrt{3} \\\\ \\end{bmatrix}$</li><li>$\\operatorname{rank}(A)=2$</li><li>${\\mathbf u}_1 =\\left[\\begin{array}{r}1/\\sqrt{6} \\\\ 2/\\sqrt{6} \\\\ -1/\\sqrt{6} \\end{array}\\right]$ and ${\\mathbf u}_1 =\\left[\\begin{array}{r}-1/\\sqrt{14} \\\\ 2/\\sqrt{14} \\\\ 3/\\sqrt{14} \\end{array}\\right]$</li><li>${\\mathbf u}_3 = \\left[\\begin{array}{r}4/\\sqrt{21} \\\\ -1/\\sqrt{21} \\\\ 2/\\sqrt{21} \\end{array}\\right]$ so that $U=\\begin{bmatrix} 1/\\sqrt{6} & -1/\\sqrt{14} & 4/\\sqrt{21} \\\\ 2/\\sqrt{6} & 2/\\sqrt{14} & -1/\\sqrt{21} \\\\ -1/\\sqrt{6} & 3/\\sqrt{14} & 2/\\sqrt{21} \\\\ \\end{bmatrix}$</li><li>The third column of $V$ forms a basis for $\\text{Nul}(A)$ while the first two columns of $U$ form a basis for $\\text{Col}(A)$.</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "7.4.6",
+   "source_number": "7.4.6",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-svd-transpose",
+   "prompt": "<p>Consider the matrix $B=\\begin{bmatrix} 1 & 0 \\\\ 2 & -1 \\\\ 1 & 2 \\end{bmatrix}$ and notice that $B=A^T$ where $A$ is the matrix in <a href=\"#7.4-ex-e1\">Exercise 7.4.1</a>.</p><ol type=\"a\"><li>Use your result from <a href=\"#7.4-ex-e1\">Exercise 7.4.1</a> to find a singular value decomposition of $B=U\\Sigma V^T$.</li><li>What is $\\operatorname{rank}(B)$? Determine a basis for $\\text{Col}(B)$ and $\\text{Col}(B)^\\perp$.</li><li>Suppose that ${\\mathbf b}=\\left[\\begin{array}{r}-3 \\\\ 4 \\\\ 7 \\end{array}\\right]$. Use the bases you found in the previous part of this exercise to write ${\\mathbf b}=\\widehat{{\\mathbf b}}+{\\mathbf b}^\\perp$, where $\\widehat{{\\mathbf b}}$ is in $\\text{Col}(B)$ and ${\\mathbf b}^\\perp$ is in $\\text{Col}(B)^\\perp$.</li><li>Find the least-squares approximate solution to the equation $B{\\mathbf x}={\\mathbf b}$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>From the previous problem, we have</p>$$ U=\\begin{bmatrix} 1/\\sqrt{6} & 0 & 5/\\sqrt{30} \\\\ 2/\\sqrt{6} & 1/\\sqrt{5} & -2/\\sqrt{30} \\\\ 1/\\sqrt{6} & -2/\\sqrt{5} & -1/\\sqrt{30} \\\\ \\end{bmatrix},\\hspace{24pt} \\Sigma = \\begin{bmatrix} \\sqrt{6} & 0 \\\\ 0 & \\sqrt{5} \\\\ 0 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\\\ \\end{bmatrix} $$</li><li>$\\operatorname{rank}(B)=2$</li><li>$\\widehat{{\\mathbf b}} = \\left[\\begin{array}{r}2 \\\\ 2 \\\\ 6 \\end{array}\\right]$</li><li>$\\widehat{{\\mathbf x}} =\\left[\\begin{array}{r}2 \\\\ 2 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>From the previous problem, we have</p>$$ U=\\begin{bmatrix} 1/\\sqrt{6} & 0 & 5/\\sqrt{30} \\\\ 2/\\sqrt{6} & 1/\\sqrt{5} & -2/\\sqrt{30} \\\\ 1/\\sqrt{6} & -2/\\sqrt{5} & -1/\\sqrt{30} \\\\ \\end{bmatrix},\\hspace{24pt} \\Sigma = \\begin{bmatrix} \\sqrt{6} & 0 \\\\ 0 & \\sqrt{5} \\\\ 0 & 0 \\\\ \\end{bmatrix},\\hspace{24pt} V = \\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\\\ \\end{bmatrix} $$</li><li>$\\operatorname{rank}(B)=2$. A basis for $\\text{Col}(B)$ consists of the first two columns of $U$ and a basis for $\\text{Col}(A)^\\perp$<sup class=\"fn\" data-note=\"exercise-7-4-6-b\"></sup> consists of the third column of $U$.</li><li>If $Q$ is the matrix consisting of the first two columns of $U$, then $\\widehat{{\\mathbf b}} = QQ^T{\\mathbf b} = \\left[\\begin{array}{r}2 \\\\ 2 \\\\ 6 \\end{array}\\right]$. Then ${\\mathbf b}^\\perp = {\\mathbf b} - \\widehat{{\\mathbf b}} = \\left[\\begin{array}{r}-5 \\\\ 2 \\\\ 1 \\end{array}\\right]$.</li><li>We solve the equation $B{\\mathbf x} = \\widehat{{\\mathbf b}} = \\left[\\begin{array}{r}2 \\\\ 2 \\\\ 6 \\end{array}\\right]$ to find $\\widehat{{\\mathbf x}} =\\left[\\begin{array}{r}2 \\\\ 2 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "7.4.7",
+   "source_number": "7.4.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "theorem-svd",
+   "prompt": "<p>Suppose that $A$ is a square $m\\times m$ matrix with singular value decomposition $A=U\\Sigma V^T$.</p><ol type=\"a\"><li>If $A$ is invertible, find a singular value decomposition of $A^{-1}$.</li><li>What condition on the singular values must hold for $A$ to be invertible?</li><li>How are the singular values of $A$ and the singular values of $A^{-1}$ related to one another?</li><li>How are the right and left singular vectors of $A$ related to the right and left singular vectors of $A^{-1}$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$A^{-1} = V\\Sigma^{-1}U^T$</li><li>All the singular values are nonzero.</li><li>They are reciprocals of one another.</li><li>The left singular vectors of $A$ are the right singular vectors of $A^{-1}$ and vice versa.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$A^{-1} = (U\\Sigma^{-1}V^T)^{-1} = V\\Sigma^{-1}U^T$<sup class=\"fn\" data-note=\"exercise-7-4-7-a\"></sup></li><li>We need $\\operatorname{rank}(A)=m$ so all the singular values are nonzero. This means that the square matrix $\\Sigma$ is invertible.</li><li>If $\\sigma_i$ are the singular values for $A$, then $1/\\sigma_i$ are the singular values for $A^{-1}$.</li><li>The left singular vectors of $A$ are the right singular vectors of $A^{-1}$ and vice versa.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "7.4.8",
+   "source_number": "7.4.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "theorem-svd",
+   "prompt": "<ol type=\"a\"><li>If $Q$ is an orthogonal matrix, remember that $Q^TQ=I$. Explain why $\\det Q = \\pm 1$.</li><li>If $A=U\\Sigma V^T$ is a singular value decomposition of a square matrix $A$, explain why $|\\det A|$ is the product of the singular values of $A$.</li><li>What does this say about the singular values of $A$ if $A$ is invertible?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(Q^TQ) = \\det(Q^T)\\det(Q)=\\det(I)$</li><li>$|\\det(A) = |\\det(U)|~|\\det(\\Sigma)|~|\\det(V^T)|$</li><li>All the singular values are nonzero.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\det(Q^TQ) = \\det(Q^T)\\det(Q)=(\\det(Q))^2 = \\det(I) = 1$ so $\\det(Q) = \\pm 1$.</li><li>$|\\det(A) = |\\det(U)|~|\\det(\\Sigma)|~|\\det(V^T)| = |\\det(\\Sigma)|$, which equals the product of the singular values.</li><li>If $A$ is invertible, then $\\det(A) \\neq 0$, which says that all the singular values are nonzero.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "7.4.9",
+   "source_number": "7.4.9",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "gram-matrix",
+   "prompt": "<p>If $A$ is a matrix and $G=A^TA$ its Gram matrix, remember that</p>$$ {\\mathbf x}\\cdot(G{\\mathbf x}) = {\\mathbf x}\\cdot(A^TA{\\mathbf x}) = (A{\\mathbf x})\\cdot(A{\\mathbf x}) = \\left|A{\\mathbf x}\\right|^2. $$<ol type=\"a\"><li>For a general matrix $A$, explain why the eigenvalues of $G$ are nonnegative.</li><li>Given a symmetric matrix $A$ having an eigenvalue $\\lambda$, explain why $\\lambda^2$ is an eigenvalue of $G$.</li><li>If $A$ is symmetric, explain why the singular values of $A$ equal the absolute value of its eigenvalues: $\\sigma_j = |\\lambda_j|$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>If ${\\mathbf v}$ is an eigenvector of $G$ with eigenvalue $\\lambda$, then ${\\mathbf v}\\cdot(G{\\mathbf v}) = \\lambda{\\mathbf v}\\cdot{\\mathbf v}$</li><li>If $A$ is symmetric, then $G=A^TA = A^2$.</li><li>If $\\lambda$ is an eigenvalue of $A$, then $\\sigma^2 = \\lambda^2$ is an eigenvalue of $G$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>If ${\\mathbf v}$ is an eigenvector of $G$ with eigenvalue $\\lambda$, then ${\\mathbf v}\\cdot(G{\\mathbf v}) = \\lambda{\\mathbf v}\\cdot{\\mathbf v}= \\lambda|{\\mathbf v}|^2 = |A{\\mathbf v}|^2$ so $\\lambda\\geq0$.</li><li>If $A$ is symmetric, then $G=A^TA = A^2$. Then if $A{\\mathbf v}=\\lambda {\\mathbf v}$, it follows that $G{\\mathbf v} = \\lambda^2{\\mathbf v}$.</li><li>If $\\lambda$ is an eigenvalue of $A$, then $\\sigma^2 = \\lambda^2$ is an eigenvalue of $G$. Then $\\sigma = |\\lambda|$.</li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "7.4.10",
+   "source_number": "7.4.10",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "thm-four-subspaces",
+   "prompt": "<p>Determine whether the following statements are true or false and explain your reasoning.</p><ol type=\"a\"><li>If $A=U\\Sigma V^T$ is a singular value decomposition of $A$, then $G=V(\\Sigma^T\\Sigma)V^T$ is an orthogonal diagonalization of its Gram matrix.</li><li>If $A=U\\Sigma V^T$ is a singular value decomposition of a rank 2 matrix $A$, then ${\\mathbf v}_1$ and ${\\mathbf v}_2$ form an orthonormal basis for the column space $\\text{Col}(A)$.</li><li>If $A$ is a symmetric matrix, then its set of singular values is the same as its set of eigenvalues.</li><li>If $A$ is a $10\\times7$ matrix and $\\sigma_7 = 4$, then the columns of $A$ are linearly independent.</li><li>The Gram matrix is always orthogonally diagonalizable.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>True</li><li>False</li><li>False</li><li>True</li><li>True</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>True. Remembering that $U$ is orthogonal, we have $G = A^TA=(U\\Sigma V^T)^T(U\\Sigma V^T) = V\\Sigma^T U^T U \\Sigma V^T = V (\\Sigma^T\\Sigma)V^T$. Since $\\Sigma^T\\Sigma$ is diagonal and $V$ is orthogonal, this is an orthogonal diagonalization.</li><li>False. They form a basis for $\\text{Col}(A^T)$.</li><li>False. The singular values are always nonnegative whereas the eigenvalues can take on any sign.</li><li>True. This would say that $\\text{Nul}(A) = \\{{\\mathbf 0}\\}$, which implies that the columns are linearly independent.</li><li>True. The Gram matrix is always symmetric and hence orthogonally diagonalizable.</li></ol>"
+   }
+  },
+  {
+   "id": "e11",
+   "source_id": "7.4.11",
+   "source_number": "7.4.11",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "thm-four-subspaces",
+   "prompt": "<p>Suppose that $A=U\\Sigma V^T$ is a singular value decomposition of the $m\\times n$ matrix $A$. If $\\sigma_1,\\ldots,\\sigma_r$ are the nonzero singular values, the general form of the matrix $\\Sigma$ is</p>$$ \\Sigma = \\begin{bmatrix} \\sigma_1 & \\ldots & 0 & \\ldots & 0 \\\\ 0 & \\ldots & 0 & \\ldots & 0 \\\\ 0 & \\ldots & \\sigma_r & \\ldots & 0 \\\\ 0 & \\ldots & 0 & \\ldots & 0 \\\\ 0 & \\vdots & 0 & \\vdots & 0 \\\\ 0 & \\ldots & 0 & \\ldots & 0 \\\\ \\end{bmatrix}. $$<ol type=\"a\"><li>If you know that the columns of $A$ are linearly independent, what more can you say about the form of $\\Sigma$?</li><li>If you know that the columns of $A$ span ${\\mathbb R}^m$, what more can you say about the form of $\\Sigma$?</li><li>If you know that the columns of $A$ are linearly independent and span ${\\mathbb R}^m$, what more can you say about the form of $\\Sigma$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Every column of $\\Sigma$ has a nonzero singular value.</li><li>Every row of $\\Sigma$ has a nonzero singular value.</li><li>Then $\\Sigma$ is a square matrix and every singular value is nonzero.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>If the columns are linearly independent, then $\\text{Nul}(A)=\\{{\\mathbf 0}\\}$, which means that the rank equals the number of columns. Therefore, every column of $\\Sigma$ has a nonzero singular value.</li><li>In the columns span ${\\mathbb R}^m$, then $\\text{Col}(A)={\\mathbb R}^m$, which says that the rank equals the number of rows. Therefore, every row of $\\Sigma$ has a nonzero singular value.</li><li>Then $\\Sigma$ is a square matrix and every singular value is nonzero.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "gram-matrix"
+  },
+  {
+   "exercise": "a1",
+   "concept": "symmetric-matrix"
+  },
+  {
+   "exercise": "a1",
+   "concept": "quadratic-form"
+  },
+  {
+   "exercise": "a1",
+   "concept": "extreme-values-of-a-quadratic-form"
+  },
+  {
+   "exercise": "a2",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "a2",
+   "concept": "singular-vectors"
+  },
+  {
+   "exercise": "a2",
+   "concept": "gram-matrix"
+  },
+  {
+   "exercise": "a2",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "a3",
+   "concept": "finding-a-singular-value-decomposition"
+  },
+  {
+   "exercise": "a3",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "a3",
+   "concept": "svd-of-the-transpose"
+  },
+  {
+   "exercise": "a4",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "a4",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "a4",
+   "concept": "column-space"
+  },
+  {
+   "exercise": "a4",
+   "concept": "kernel"
+  },
+  {
+   "exercise": "a5",
+   "concept": "reduced-svd"
+  },
+  {
+   "exercise": "a5",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "e1",
+   "concept": "finding-a-singular-value-decomposition"
+  },
+  {
+   "exercise": "e1",
+   "concept": "gram-matrix"
+  },
+  {
+   "exercise": "e1",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "e1",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "e2",
+   "concept": "finding-a-singular-value-decomposition"
+  },
+  {
+   "exercise": "e2",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "e3",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "e3",
+   "concept": "orthogonally-diagonalizable-matrix"
+  },
+  {
+   "exercise": "e3",
+   "concept": "gram-matrix"
+  },
+  {
+   "exercise": "e4",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "e4",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "e4",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e5",
+   "concept": "finding-a-singular-value-decomposition"
+  },
+  {
+   "exercise": "e5",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "e5",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "e6",
+   "concept": "svd-of-the-transpose"
+  },
+  {
+   "exercise": "e6",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "e6",
+   "concept": "projection-matrix"
+  },
+  {
+   "exercise": "e6",
+   "concept": "least-squares-solution"
+  },
+  {
+   "exercise": "e7",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "e7",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e7",
+   "concept": "matrix-inverse"
+  },
+  {
+   "exercise": "e8",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "e8",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e8",
+   "concept": "orthogonal-matrix"
+  },
+  {
+   "exercise": "e8",
+   "concept": "determinant-of-a-product"
+  },
+  {
+   "exercise": "e9",
+   "concept": "gram-matrix"
+  },
+  {
+   "exercise": "e9",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e9",
+   "concept": "symmetric-matrix"
+  },
+  {
+   "exercise": "e10",
+   "concept": "singular-value-decomposition"
+  },
+  {
+   "exercise": "e10",
+   "concept": "gram-matrix"
+  },
+  {
+   "exercise": "e10",
+   "concept": "svd-and-the-four-fundamental-subspaces"
+  },
+  {
+   "exercise": "e10",
+   "concept": "singular-value"
+  },
+  {
+   "exercise": "e11",
+   "concept": "rank-from-singular-values"
+  },
+  {
+   "exercise": "e11",
+   "concept": "singular-value-decomposition"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "example-7-4-2-order",
+   "kind": "correction",
+   "html": "The book prints $\\kA\\kV = \\begin{bmatrix} \\kA\\kvecvone & \\kA\\kvecvtwo \\end{bmatrix} = \\begin{bmatrix} \\ksigmaone\\kvecuone & \\ksigmatwo\\kvecutwo \\end{bmatrix} = \\kSigma\\kU$; the product is $\\kU\\kSigma$, as the sentence before the display says: the columns of $\\kU\\kSigma$ are $\\ksigmaone\\kvecuone$ and $\\ksigmatwo\\kvecutwo$."
+  },
+  {
+   "id": "example-7-4-4-second",
+   "kind": "correction",
+   "html": "The book prints the second line as $\\kA\\kvecvtwo = 3\\kvecuone$ with $\\kvecuone = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$; it finds the second left singular vector: $\\kA\\kvecvtwo = 3\\kvecutwo$ with $\\kvecutwo = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$, the second column of $\\kU$."
+  },
+  {
+   "id": "activity-7-4-2-b",
+   "kind": "correction",
+   "html": "Part b’s answer and solution print ${\\mathbf v}_1 = \\left[\\begin{array}{r}1/\\sqrt{2} \\\\ -1/\\sqrt{2} \\end{array}\\right]$; this vector is the second right singular vector ${\\mathbf v}_2$, the direction of the minimum."
+  },
+  {
+   "id": "activity-7-4-5-b",
+   "kind": "correction",
+   "html": "Part b’s answer and solution say ${\\mathbf v}_1$ and ${\\mathbf v}_2$ form an orthonormal basis for $\\text{Nul}(A)$; the part asks for $\\text{Col}(A^T)$, and they form an orthonormal basis for $\\text{Col}(A^T)$ (Theorem 7.4.9), while $\\text{Nul}(A)$ is spanned by ${\\mathbf v}_3$."
+  },
+  {
+   "id": "exercise-7-4-2-a",
+   "kind": "correction",
+   "html": "With the printed $V = I$ the product is $\\begin{bmatrix} 0 & 1 \\\\ -1 & 0 \\end{bmatrix} \\begin{bmatrix} 8 & 0 \\\\ 0 & 0 \\end{bmatrix} = \\begin{bmatrix} 0 & 0 \\\\ -8 & 0 \\end{bmatrix}$, not the matrix of part a. The right singular vectors are ${\\mathbf v}_1 = \\left[\\begin{array}{r}0 \\\\ 1 \\end{array}\\right]$ and ${\\mathbf v}_2 = \\left[\\begin{array}{r}1 \\\\ 0 \\end{array}\\right]$, so $V = \\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\end{bmatrix}$, and then $\\begin{bmatrix} 0 & 1 \\\\ -1 & 0 \\end{bmatrix} \\begin{bmatrix} 8 & 0 \\\\ 0 & 0 \\end{bmatrix} \\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\end{bmatrix}^T = \\begin{bmatrix} 0 & 0 \\\\ 0 & -8 \\end{bmatrix}$."
+  },
+  {
+   "id": "exercise-7-4-5-c",
+   "kind": "correction",
+   "html": "The second vector printed as ${\\mathbf u}_1$ is the second left singular vector ${\\mathbf u}_2$, from $A{\\mathbf v}_2 = \\sqrt{7}\\,{\\mathbf u}_2$; it is the second column of $U$ in part d."
+  },
+  {
+   "id": "exercise-7-4-6-b",
+   "kind": "correction",
+   "html": "The solution prints $\\text{Col}(A)^\\perp$; the part asks for $\\text{Col}(B)^\\perp$, which the third column of $U$ spans."
+  },
+  {
+   "id": "exercise-7-4-7-a",
+   "kind": "correction",
+   "html": "The solution prints $(U\\Sigma^{-1}V^T)^{-1}$; it inverts $A = U\\Sigma V^T$: $A^{-1} = (U\\Sigma V^T)^{-1} = (V^T)^{-1}\\Sigma^{-1}U^{-1} = V\\Sigma^{-1}U^T$."
+  }
+ ],
+ "derivations": [
+  {
+   "id": "left-orthonormal",
+   "what": "the left singular vectors are orthogonal",
+   "source": "Understanding Linear Algebra, 7.4 Finding singular value decompositions",
+   "nodes": [
+    {
+     "assumes": [
+      {
+       "text": "A scalar comes out of either side of a dot product: $(s{\\mathbf x})\\cdot(t{\\mathbf y}) = st\\,({\\mathbf x}\\cdot{\\mathbf y})$.",
+       "src": "6.1, properties of the dot product"
+      },
+      {
+       "tex": "\\kA\\kvecvi = \\ksigmai\\kvecui",
+       "src": "7.4, the left singular vectors"
+      },
+      {
+       "tex": "(\\kA\\kvecvi)\\cdot(\\kA\\kvecvj) = \\kvecvi\\cdot(\\kAT\\kA\\kvecvj)",
+       "src": "Proposition 7.1.10"
+      },
+      {
+       "tex": "\\kG = \\kAT\\kA",
+       "src": "7.4, the Gram matrix"
+      },
+      {
+       "tex": "\\kG\\kvecvj = \\klambdaj\\kvecvj",
+       "src": "7.4: the right singular vectors are eigenvectors of the Gram matrix"
+      },
+      {
+       "tex": "\\kvecvi\\cdot\\kvecvj = 0,\\quad i\\neq j",
+       "src": "7.1, the Spectral Theorem"
+      },
+      {
+       "text": "The singular values $\\ksigmai$ and $\\ksigmaj$ are nonzero."
+      }
+     ],
+     "then": {
+      "tex": "\\mk{l}{\\ksigmai\\ksigmaj(\\kvecui\\cdot\\kvecuj)} = \\mk{r}{(\\ksigmai\\kvecui)\\cdot(\\ksigmaj\\kvecuj)}",
+      "uses": [
+       0
+      ]
+     },
+     "steps": [
+      {
+       "tex": "\\mk{l}{\\ksigmai\\ksigmaj(\\kvecui\\cdot\\kvecuj)} = \\mk{r}{(\\kA\\kvecvi)\\cdot(\\kA\\kvecvj)}",
+       "uses": [
+        1
+       ]
+      },
+      {
+       "tex": "\\mk{l}{\\ksigmai\\ksigmaj(\\kvecui\\cdot\\kvecuj)} = \\mk{r}{\\kvecvi\\cdot(\\kAT\\kA\\kvecvj)}",
+       "uses": [
+        2
+       ],
+       "cap": "A matrix moves across a dot product as its transpose: $(\\kA\\kvecvi)\\cdot{\\mathbf w} = \\kvecvi\\cdot(\\kAT{\\mathbf w})$ with ${\\mathbf w} = \\kA\\kvecvj$."
+      },
+      {
+       "tex": "\\mk{l}{\\ksigmai\\ksigmaj(\\kvecui\\cdot\\kvecuj)} = \\mk{r}{\\kvecvi\\cdot(\\kG\\kvecvj)}",
+       "uses": [
+        3
+       ]
+      },
+      {
+       "tex": "\\mk{l}{\\ksigmai\\ksigmaj(\\kvecui\\cdot\\kvecuj)} = \\mk{r}{\\klambdaj\\,\\kvecvi\\cdot\\kvecvj}",
+       "uses": [
+        4
+       ]
+      },
+      {
+       "tex": "\\mk{l}{\\ksigmai\\ksigmaj(\\kvecui\\cdot\\kvecuj)} = \\mk{r}{0}",
+       "uses": [
+        5
+       ]
+      },
+      {
+       "tex": "\\mk{l}{\\kvecui\\cdot\\kvecuj} = \\mk{r}{0}",
+       "uses": [
+        6
+       ]
+      }
+     ],
+     "src": "7.4, Finding singular value decompositions"
+    }
+   ]
+  }
+ ]
+}
