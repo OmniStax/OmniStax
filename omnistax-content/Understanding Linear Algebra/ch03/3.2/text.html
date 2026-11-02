@@ -1,0 +1,169 @@
+<section id="new-coordinates">
+<h2>A basis makes a coordinate system</h2>
+<p id="section-aim">In this section, we will develop the concept of a <span data-concept="basis">basis</span> through which we will create new <span data-concept="coordinate-system">coordinate systems</span> in ${\mathbb R}^m$. We will see that the right choice of a <span data-concept="coordinate-system">coordinate system</span> provides a more natural way to approach some problems.</p>
+</section>
+
+<section id="introduction">
+<h2>Introduction</h2>
+<p id="cartesian-coordinates">Standard <span data-concept="coordinate-system">Cartesian coordinates</span> are commonly used to describe points in the plane. If we mention the point $(4,3)$, we know that we arrive at this point from the origin by moving four units to the right and three units up.</p>
+<p id="city-directions">Sometimes, however, it is more natural to work in a different <span data-concept="coordinate-system">coordinate system</span>. Suppose that you live in the city whose map is shown in Figure 3.2.1 and that you would like to give a guest directions for getting from your house to the store. You would probably say something like, “Go four blocks up Maple. Then turn left on Main for three blocks.” The grid of streets in the city gives a more natural <span data-concept="coordinate-system">coordinate system</span> than standard north-south, east-west coordinates. We will see how a <span data-concept="basis">basis</span> provides the right framework for this type of thinking.</p>
+<figure class="sim" id="sim-city-map" data-figure="3.2.1" data-original="/media/ch03/city-map.svg" data-original-caption="A city map.">
+  <div class="sim-head"><span class="eyebrow">Figure 3.2.1</span><span>The streets of the city do not run north and south, so directions are given in blocks along Maple and blocks along Main rather than in east and north. From the house, four blocks along Maple and then three along Main reach the store, a displacement that is also $2.5$ units east and $4.25$ units north on the map; the two descriptions name the same arrow in two <span data-concept="coordinate-system">coordinate systems</span>. Slide the numbers of blocks to walk elsewhere.</span></div>
+</figure>
+<figure class="sim" id="sim-basis-grid" data-figure="3.2.2" data-original="/media/ch03/basis-1.svg" data-original-caption="Linear combinations of v1 and v2.">
+  <div class="sim-head"><span class="eyebrow">Figure 3.2.2</span><span>The plane has no grid of its own. The <span data-concept="vector">vectors</span> <span data-ref="v-1">$\kvecvone = \left[\begin{array}{r}2 \\ 1 \end{array}\right]$</span> and <span data-ref="v-2">$\kvecvtwo = \left[\begin{array}{r}1 \\ 2 \end{array}\right]$</span> lay one over the standard grid, and every <span data-concept="vector">vector</span> is a walk along it: $\kvecx = \left[\begin{array}{r}1 \\ -4 \end{array}\right]$ is <span data-ref="v-1">two steps along $\kvecvone$</span> and <span data-ref="v-2">three steps back along $\kvecvtwo$</span>, so its <span data-concept="coordinates-in-a-basis">coordinates in the basis</span> ${\mathcal B}$ are $\kvecxB = \left[\begin{array}{r}2 \\ -3 \end{array}\right]$. The <span data-concept="change-of-basis-matrix">matrix $\kPB$ whose columns are $\kvecvone$ and $\kvecvtwo$</span> <span data-concept="conversion-between-coordinate-systems">turns ${\mathcal B}$-coordinates into standard ones, and its inverse turns them back</span>. Drag the head of $\kvecx$, and change the <span data-concept="basis">basis</span> to see the same <span data-concept="vector">vector</span> read on another grid.</span></div>
+</figure>
+<div class="exercises" data-place="sim-basis-grid"></div>
+<p id="two-descriptions">In the preview activity, we worked with a set of two <span data-concept="vector">vectors</span> in ${\mathbb R}^2$ and found that we could express any <span data-concept="vector">vector</span> in ${\mathbb R}^2$ in two different ways: in the usual way where the components of the <span data-concept="vector">vector</span> describe horizontal and vertical changes, and in a new way as a <span data-concept="linear-combination">linear combination</span> of $\kvecvone$ and $\kvecvtwo$. We could also translate between these two descriptions. This example illustrates the central idea of this section.</p>
+</section>
+
+<section id="bases">
+<h2>Bases</h2>
+<p id="bases-intro">In the preview activity, we created a new <span data-concept="coordinate-system">coordinate system</span> for ${\mathbb R}^2$ using <span data-concept="linear-combination">linear combinations</span> of a set of two <span data-concept="vector">vectors</span>. More generally, the following definition will guide us.</p>
+<div class="note" id="definition-3-2-3">
+<div class="eyebrow">Definition 3.2.3</div>
+<p>A set of <span data-concept="vector">vectors</span> $\kvecvone,\kvecvtwo,\ldots,\kvecv_n$ in ${\mathbb R}^m$ is called a <em><span data-concept="basis">basis</span></em> for ${\mathbb R}^m$ if the set of <span data-concept="vector">vectors</span> <span data-concept="span">spans</span> ${\mathbb R}^m$ and is <span data-concept="linear-independence-of-vectors">linearly independent</span>.</p>
+</div>
+<div class="exercises" data-place="definition-3-2-3"></div>
+<p id="basis-test">We can develop a <span data-concept="basis-test-by-row-reduction">test to determine if a set of vectors</span> $\kvecvone,\kvecvtwo,\ldots,\kvecv_n$ forms a <span data-concept="basis">basis</span> for ${\mathbb R}^m$ by considering the <span data-concept="matrix">matrix</span></p>
+$$ \kA = \left[\begin{array}{rrrr} \kvecvone & \kvecvtwo & \ldots & \kvecv_n \end{array}\right]. $$
+<p>To be a <span data-concept="basis">basis</span>, this set of <span data-concept="vector">vectors</span> must <span data-concept="span">span</span> ${\mathbb R}^m$ and be <span data-concept="linear-independence-of-vectors">linearly independent</span>.</p>
+<p id="pivot-test">We know that the <span data-concept="span">span</span> of the set of <span data-concept="vector">vectors</span> is ${\mathbb R}^m$ if and only if $\kA$ has a <span data-concept="pivot">pivot position</span> in every row. We also know that the set of <span data-concept="vector">vectors</span> is <span data-concept="linear-independence-of-vectors">linearly independent</span> if and only if $\kA$ has a <span data-concept="pivot">pivot position</span> in every column. This means that <span data-concept="basis-test-by-row-reduction">a set of vectors forms a basis if and only if $\kA$ has a pivot in every row and every column</span>. Therefore, $\kA$ must be <span data-concept="row-equivalence">row equivalent</span> to the <span data-concept="identity-matrix">identity matrix</span> $\kI$:</p>
+$$ \kA \sim \left[\begin{array}{cccc} 1 & 0 & \cdots & 0 \\ 0 & 1 & \cdots & 0 \\ \vdots & \vdots & \ddots & \vdots \\ 0 & 0 & \cdots & 1 \end{array}\right] = \kI. $$
+<p id="number-of-vectors">In addition to helping identify <span data-concept="basis">bases</span>, this fact tells us something important about the <span data-concept="size-of-a-basis">number of vectors in a basis</span>. Since the <span data-concept="matrix">matrix</span> $\kA$ has a <span data-concept="pivot">pivot position</span> in every row and every column, it must have the same number of rows as columns. Therefore, the number of <span data-concept="vector">vectors</span> in a <span data-concept="basis">basis</span> for ${\mathbb R}^m$ must be $m$. For example, a <span data-concept="basis">basis</span> for ${\mathbb R}^{23}$ must have exactly 23 <span data-concept="vector">vectors</span>.</p>
+<div class="note" id="proposition-3-2-4">
+<div class="eyebrow">Proposition 3.2.4</div>
+<p><span data-concept="basis-test-by-row-reduction">A set of vectors forms a basis for ${\mathbb R}^m$ if and only if the matrix</span></p>
+$$ \kA = \left[\begin{array}{rrrr} \kvecvone & \kvecvtwo & \cdots & \kvecv_n \end{array}\right] \sim \kI. $$
+<p>This means there must be <span data-concept="size-of-a-basis">$m$ vectors in a basis for ${\mathbb R}^m$</span>.</p>
+</div>
+<div class="example" id="example-3-2-5">
+<h3>Example 3.2.5</h3>
+<p>Notice that the <span data-concept="vector">vectors</span></p>
+$$ \kveceone = \left[\begin{array}{r}1 \\ 0 \\ 0 \end{array}\right], \kvecetwo = \left[\begin{array}{r}0 \\ 1 \\ 0 \end{array}\right], \kvecethree = \left[\begin{array}{r}0 \\ 0 \\ 1 \end{array}\right] $$
+<p>form the columns of the $3\times3$ <span data-concept="identity-matrix">identity matrix</span>, which implies that this set forms a <span data-concept="basis">basis</span> for ${\mathbb R}^3$. More generally, the set of <span data-concept="vector">vectors</span> $\kveceone,\kvecetwo,\ldots,\kvece_m$ forms a <span data-concept="basis">basis</span> for ${\mathbb R}^m$, which we call the <em><span data-concept="standard-basis">standard</span></em> <span data-concept="standard-basis">basis</span> for ${\mathbb R}^m$.</p>
+</div>
+</section>
+
+<section id="coordinate-systems">
+<h2>Coordinate systems</h2>
+<p id="coordinate-system">A <span data-concept="basis">basis</span> for ${\mathbb R}^m$ <span data-concept="coordinate-system">forms a coordinate system</span> for ${\mathbb R}^m$, as we will describe. Rather than continuing to write a list of <span data-concept="vector">vectors</span>, we will find it convenient to denote a <span data-concept="basis">basis</span> using a single symbol, such as</p>
+$$ {\mathcal B} = \{\kvecvone,\kvecvtwo,\ldots,\kvecv_m\}. $$
+<div class="example" id="example-3-2-6">
+<h3>Example 3.2.6</h3>
+<p id="example-3-2-6-basis">In this section’s preview activity, we considered the <span data-concept="vector">vectors</span></p>
+$$ \kvecvone = \left[\begin{array}{r}2 \\ 1 \end{array}\right], \kvecvtwo = \left[\begin{array}{r}1 \\ 2 \end{array}\right], $$
+<p>which form a <span data-concept="basis">basis</span> ${\mathcal B}=\{\kvecvone,\kvecvtwo\}$ for ${\mathbb R}^2$.</p>
+<p id="new-coordinate-system">In the standard <span data-concept="coordinate-system">coordinate system</span>, the point $(2,-3)$ is found by moving 2 units to the right and 3 units down. We would like to define a new <span data-concept="coordinate-system">coordinate system</span> where we interpret $(2,-3)$ to mean we move <span data-ref="v-1">two times along $\kvecvone$</span> and <span data-ref="v-2">3 times along $-\kvecvtwo$</span>. As we see in <a href="#sim-basis-grid">the figure</a>, doing so leaves us at the point $(1,-4)$, expressed in the usual <span data-concept="coordinate-system">coordinate system</span>.</p>
+<p id="we-have-seen">We have seen that</p>
+$$ \kvecx = \left[\begin{array}{r}1 \\ -4 \end{array}\right] = 2\kvecvone - 3\kvecvtwo. $$
+<p id="coordinates-are-weights"><span data-concept="coordinates-in-a-basis">The coordinates of the vector $\kvecx$ in the new coordinate system are the weights</span> that we use to create $\kvecx$ as a <span data-concept="linear-combination">linear combination</span> of $\kvecvone$ and $\kvecvtwo$.</p>
+<p id="two-descriptions-of-x">Since we now have two descriptions of the <span data-concept="vector">vector</span> $\kvecx$, we need some notation to keep track of which <span data-concept="coordinate-system">coordinate system</span> we are using. Because $\left[\begin{array}{r}1 \\ -4 \end{array}\right] = 2\kvecvone - 3\kvecvtwo$, we will write</p>
+$$ \left\{\left[\begin{array}{r}1 \\ -4 \end{array}\right]\right\}_{{\mathcal B}} = \left[\begin{array}{r}2 \\ -3 \end{array}\right]. $$
+<p id="coordinates-notation">More generally, $\kvecxB$ will denote the <span data-concept="coordinates-in-a-basis">coordinates of $\kvecx$ in the basis ${\mathcal B}$</span>; that is, $\kvecxB$ is the <span data-concept="vector">vector</span> $\left[\begin{array}{r}c_1 \\ c_2 \end{array}\right]$ of <span data-concept="linear-combination">weights</span> such that</p>
+$$ \kvecx = c_1\kvecvone + c_2 \kvecvtwo. $$
+<p id="coordinates-example">For example, if the <span data-concept="coordinates-in-a-basis">coordinates of $\kvecx$ in the basis ${\mathcal B}$</span> are</p>
+$$ \kvecxB = \left[\begin{array}{r}5 \\ -2 \end{array}\right], $$
+<p>then</p>
+$$ \kvecx = 5\kvecvone - 2\kvecvtwo = 5\left[\begin{array}{r}2 \\ 1 \end{array}\right]-2\left[\begin{array}{r}1 \\ 2 \end{array}\right] = \left[\begin{array}{r}8 \\ 1 \end{array}\right], $$
+<p>and we conclude that</p>
+$$ \left\{\left[\begin{array}{r}8 \\ 1 \end{array}\right]\right\}_{{\mathcal B}} = \left[\begin{array}{r}5 \\ -2 \end{array}\right]. $$
+<p>This demonstrates how we can <span data-concept="conversion-between-coordinate-systems">translate coordinates in the basis ${\mathcal B}$ into standard coordinates</span>.</p>
+<p id="finding-coordinates">Suppose we know the expression of a <span data-concept="vector">vector</span> $\kvecx$ in standard coordinates. <span data-concept="finding-coordinates-in-a-basis">How can we find its coordinates in the basis ${\mathcal B}$?</span> For instance, suppose $\kvecx=\left[\begin{array}{r}-8 \\ 2 \end{array}\right]$ and that we would like to find $\kvecxB$. We can write</p>
+$$ \left\{\left[\begin{array}{r}-8 \\ 2 \end{array}\right]\right\}_{{\mathcal B}}=\left[\begin{array}{r}c_1 \\ c_2 \end{array}\right], $$
+<p>which means that</p>
+$$ \left[\begin{array}{r}-8 \\ 2 \end{array}\right] = c_1\kvecvone + c_2\kvecvtwo $$
+<p>or</p>
+$$ c_1 \left[\begin{array}{r}2 \\ 1 \end{array}\right] + c_2 \left[\begin{array}{r}1 \\ 2 \end{array}\right] = \left[\begin{array}{r}-8 \\ 2 \end{array}\right]. $$
+<p>This <span data-concept="linear-system-of-equations">linear system</span> for the <span data-concept="linear-combination">weights</span> defines an <span data-concept="augmented-matrix">augmented matrix</span></p>
+$$ \left[\begin{array}{rr|r} 2 & 1 & -8 \\ 1 & 2 & 2 \\ \end{array}\right] \sim \left[\begin{array}{rr|r} 1 & 0 & -6 \\ 0 & 1 & 4 \\ \end{array}\right], $$
+<p>which means that</p>
+$$ \left\{\left[\begin{array}{r}-8 \\ 2 \end{array}\right]\right\}_{{\mathcal B}} = \left[\begin{array}{r}-6 \\ 4 \end{array}\right]. $$
+</div>
+<p id="example-illustrates">This example illustrates how a <span data-concept="basis">basis</span> in ${\mathbb R}^2$ provides a new <span data-concept="coordinate-system">coordinate system</span> for ${\mathbb R}^2$ and shows how we may <span data-concept="conversion-between-coordinate-systems">translate between this coordinate system and the standard one</span>.</p>
+<p id="unique-representation">More generally, suppose that ${\mathcal B}=\{\kvecvone,\kvecvtwo,\ldots,\kvecv_m\}$ is a <span data-concept="basis">basis</span> for ${\mathbb R}^m$. We know that the <span data-concept="span">span</span> of the <span data-concept="vector">vectors</span> is ${\mathbb R}^m$, which implies that any <span data-concept="vector">vector</span> $\kvecx$ in ${\mathbb R}^m$ can be written as a <span data-concept="linear-combination">linear combination</span> of the <span data-concept="vector">vectors</span>. In addition, we know that the <span data-concept="vector">vectors</span> are <span data-concept="linear-independence-of-vectors">linearly independent</span>, which means that <span data-concept="unique-representation-in-a-basis">we can write $\kvecx$ as a linear combination of the vectors in exactly one way</span>. Therefore, we have</p>
+$$ \kvecx = c_1\kvecvone + c_2\kvecvtwo + \ldots + c_m\kvecv_m $$
+<p>where the <span data-concept="linear-combination">weights</span> $c_1, c_2,\ldots, c_m$ are unique. In this case, we write the <span data-concept="coordinates-in-a-basis">coordinate description of $\kvecx$ in the basis ${\mathcal B}$</span> as</p>
+$$ \kvecxB = \left[\begin{array}{c}c_1 \\ c_2 \\ \vdots \\ c_m \end{array}\right]. $$
+<div class="exercises" data-place="unique-representation"></div>
+<p id="convert-efficiently">This activity demonstrates how we can efficiently <span data-concept="conversion-between-coordinate-systems">convert between coordinate systems defined by different bases</span>. Let’s consider a <span data-concept="basis">basis</span> ${\mathcal B} = \{\kvecvone,\kvecvtwo,\ldots,\kvecv_m\}$ and a <span data-concept="vector">vector</span> $\kvecx$. We know that</p>
+$$ \begin{aligned} \kvecx & {}={} c_1\kvecvone +c_2\kvecvtwo+\ldots+c_m\kvecv_m \\ \\ & {}={} \left[\begin{array}{rrrr} \kvecvone & \kvecvtwo & \cdots & \kvecv_m \end{array}\right] \left[\begin{array}{c}c_1 \\ c_2 \\ \vdots \\ c_m \end{array}\right] \\ \\ & {}={} \left[\begin{array}{rrrr} \kvecvone & \kvecvtwo & \cdots & \kvecv_m \end{array}\right] \kvecxB\text{.} \end{aligned} $$
+<p id="change-of-basis-matrix">If we use $\kPB$ to denote <span data-concept="change-of-basis-matrix">the matrix whose columns are the basis vectors</span>, then we find that</p>
+$$ \kvecx = \kPB\kvecxB $$
+<p>where $\kPB = \left[\begin{array}{rrrr} \kvecvone & \kvecvtwo & \cdots & \kvecv_m \end{array}\right]$. This means that the <span data-concept="matrix">matrix</span> $\kPB$ <span data-concept="conversion-between-coordinate-systems">converts coordinates in the basis ${\mathcal B}$ into standard coordinates</span>.</p>
+<p id="p-b-invertible">Since the columns of $\kPB$ are the <span data-concept="basis">basis</span> <span data-concept="vector">vectors</span> $\kvecvone,\kvecvtwo,\ldots,\kvecv_m$, we know that $\kPB \sim \kIm$, and $\kPB$ is therefore <span data-concept="invertible-matrix">invertible</span>. Since we have</p>
+$$ \kvecx = \kPB\kvecxB, $$
+<p>we must also have</p>
+$$ \kPBinv\kvecx = \kvecxB. $$
+<div class="note" id="proposition-coordinate-transform">
+<div class="eyebrow">Proposition 3.2.7</div>
+<p><span data-concept="conversion-between-coordinate-systems">If ${\mathcal B}$ is a basis and $\kPB$ the matrix whose columns are the basis vectors, then</span></p>
+$$ \begin{aligned} \kvecx & = \kPB\kvecxB, \\ \\ \kvecxB & = \kPBinv\kvecx. \end{aligned} $$
+</div>
+<p id="two-bases">If we have another <span data-concept="basis">basis</span> ${\mathcal C}$, we find, in the same way, that $\kvecx = \kPC\kvecxC$ for the <span data-concept="conversion-between-coordinate-systems">conversion between coordinates in the basis ${\mathcal C}$ into standard coordinates</span>. We then have</p>
+$$ \kvecxB = \kPBinv \kvecx = \kPBinv(\kPC \kvecxC) = (\kPBinv\kPC) \kvecxC. $$
+<p>Therefore, $\kPBinv\kPC$ is the <span data-concept="matrix">matrix</span> that <span data-concept="conversion-between-coordinate-systems">converts ${\mathcal C}$-coordinates into ${\mathcal B}$-coordinates</span>.</p>
+</section>
+
+<section id="examples-of-bases">
+<h2>Examples of bases</h2>
+<p id="examples-intro">We will now look at some examples of <span data-concept="basis">bases</span> that illustrate how it can be useful to study a problem using a different <span data-concept="coordinate-system">coordinate system</span>.</p>
+<div class="example" id="example-3-2-8">
+<h3>Example 3.2.8</h3>
+<p>Let’s consider the <span data-concept="basis">basis</span> of ${\mathbb R}^3$:</p>
+$$ {\mathcal B} = \left\{ \left[\begin{array}{r}1 \\ 0 \\ -2 \end{array}\right], \left[\begin{array}{r}-2 \\ 1 \\ 0 \end{array}\right], \left[\begin{array}{r}1 \\ 1 \\ 2 \end{array}\right] \right\}. $$
+<p>It is relatively straightforward to <span data-concept="conversion-between-coordinate-systems">convert a vector’s representation in this basis into to the standard basis</span> using the <span data-concept="change-of-basis-matrix">matrix whose columns are the basis vectors</span>:</p>
+$$ \kPB = \left[\begin{array}{rrr} 1 & -2 & 1 \\ 0 & 1 & 1 \\ -2 & 0 & 2 \\ \end{array}\right]. $$
+<p>For example, suppose that the <span data-concept="vector">vector</span> $\kvecx$ is described in the <span data-concept="coordinate-system">coordinate system defined by the basis</span> as $\kvecxB = \left[\begin{array}{r}2 \\ -2 \\ 1 \end{array}\right]$. We then have</p>
+$$ \kvecx = \kPB\kvecxB = \left[\begin{array}{rrr} 1 & -2 & 1 \\ 0 & 1 & 1 \\ -2 & 0 & 2 \\ \end{array}\right] \left[\begin{array}{r}2 \\ -2 \\ 1 \end{array}\right] = \left[\begin{array}{r}7 \\ -1 \\ -2 \end{array}\right]. $$
+<p>Consider now the <span data-concept="vector">vector</span> $\kvecx=\left[\begin{array}{r}3 \\ 1 \\ -2 \end{array}\right]$. If we would like to express $\kvecx$ in the <span data-concept="coordinate-system">coordinate system defined by ${\mathcal B}$</span>, then we compute</p>
+$$ \kvecxB = \kPBinv\kvecx = \left[\begin{array}{rrr} \frac14 & \frac 12 & -\frac38 \\ -\frac14 & \frac12 & -\frac18 \\ \frac14 & \frac12 & \frac18 \\ \end{array}\right] \left[\begin{array}{r}3 \\ 1 \\ -2 \end{array}\right] = \left[\begin{array}{r}2 \\ 0 \\ 1 \end{array}\right]. $$
+</div>
+<div class="example" id="example-wavelet-basis">
+<h3>Example 3.2.9</h3>
+<p>Suppose we work for a company that records its quarterly revenue, in millions of dollars, as:</p>
+<div class="book-table" id="tab-3-2-10">
+<span class="tcap"><span class="eyebrow">Table 3.2.10</span><span>A company’s quarterly revenue</span></span>
+<table>
+<thead><tr><th>Quarter</th><th>Revenue</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>10.3</td></tr>
+<tr><td>2</td><td>13.1</td></tr>
+<tr><td>3</td><td>7.5</td></tr>
+<tr><td>4</td><td>8.2</td></tr>
+</tbody>
+</table>
+</div>
+<p>Rather than using a table to record the data, we could display it in a graph or write it as a <span data-concept="vector">vector</span> in ${\mathbb R}^4$:</p>
+$$ \kvecx=\left[\begin{array}{r}10.3 \\ 13.1 \\ 7.5 \\ 8.2 \end{array}\right]. $$
+<figure class="sim" id="sim-revenue-wavelet" data-figure="3.2.11" data-original="/media/ch03/basis-revenue-elements-a.svg,/media/ch03/basis-revenue-elements-b.svg,/media/ch03/basis-revenue-elements-c.svg,/media/ch03/basis-revenue-elements-d.svg,/media/ch03/basis-revenue.svg,/media/ch03/basis-revenue-approx-1.svg,/media/ch03/basis-revenue-approx-2.svg,/media/ch03/basis-revenue-approx-3.svg" data-original-caption="A representation of the basis elements of B.">
+  <div class="sim-head"><span class="eyebrow">Figure 3.2.11</span><span>A year’s quarterly revenue is a <span data-concept="vector">vector</span> $\kvecx$ in ${\mathbb R}^4$, and the <span data-concept="haar-wavelet-basis">Haar wavelet basis</span> reads it at three time scales. The first <span data-concept="coordinates-in-a-basis">coordinate</span>, $9.775$, is the average over the year; the second, $1.925$, is how far the two half-years sit above and below it; the last two, $-1.400$ and $-0.350$, are how far each quarter sits from its half-year’s average. Adding <span data-ref="v-1 v-2 v-3 v-4">the terms</span> one at a time rebuilds the revenue from the coarsest view to the finest. Slide a quarter’s revenue to see which coordinates it moves.</span></div>
+</figure>
+<p>Let’s consider a new <span data-concept="basis">basis</span> ${\mathcal B}$ for ${\mathbb R}^4$ using <span data-concept="vector">vectors</span></p>
+$$ \kvecvone=\left[\begin{array}{r}1 \\ 1 \\ 1 \\ 1 \end{array}\right],~~~ \kvecvtwo=\left[\begin{array}{r}1 \\ 1 \\ -1 \\ -1 \end{array}\right],~~~ \kvecvthree=\left[\begin{array}{r}1 \\ -1 \\ 0 \\ 0 \end{array}\right],~~~ \kvecvfour=\left[\begin{array}{r}0 \\ 0 \\ 1 \\ -1 \end{array}\right]. $$
+<p>We may view these <span data-concept="basis">basis</span> elements graphically, as in Figure 3.2.11. To <span data-concept="conversion-between-coordinate-systems">convert our revenue vectors into the coordinates given by ${\mathcal B}$</span>, we form the <span data-concept="change-of-basis-matrix">matrices</span>:</p>
+$$ \kPB = \left[\begin{array}{rrrr} 1 & 1 & 1 & 0 \\ 1 & 1 & -1 & 0 \\ 1 & -1 & 0 & 1 \\ 1 & -1 & 0 & -1 \\ \end{array}\right],~~~ \kPBinv = \left[\begin{array}{rrrr} \frac14 & \frac14 & \frac14 & \frac14 \\ \frac14 & \frac14 & -\frac14 & -\frac14 \\ \frac12 & -\frac12 & 0 & 0 \\ 0 & 0 & \frac12 & -\frac12 \\ \end{array}\right]. $$
+<p>In particular, if the revenue <span data-concept="vector">vector</span> is $\kvecx = \left[\begin{array}{r}x_1 \\ x_2 \\ x_3 \\ x_4 \end{array}\right]$, then</p>
+$$ \kvecxB = \left[\begin{array}{c}\frac14 x_1 + \frac14 x_2 + \frac14 x_3 + \frac14 x_4 \\ \frac14 x_1 + \frac14 x_2 - \frac14 x_3 - \frac14 x_4 \\ \frac12 x_1 - \frac12 x_2 \\ \frac12 x_3 - \frac12 x_4 \end{array}\right]. $$
+<p>Notice that the first component of $\kvecxB$ is the average of the components of $\kvecx$.</p>
+<p>For our particular revenue <span data-concept="vector">vector</span> $\kvecx = \left[\begin{array}{r}10.3 \\ 13.1 \\ 7.5 \\ 8.2 \end{array}\right]$, we have</p>
+$$ \kvecxB = \kPBinv \kvecx = \kPBinv \left[\begin{array}{r}10.3 \\ 13.1 \\ 7.5 \\ 8.2 \end{array}\right] = \left[\begin{array}{r}9.775 \\ 1.925 \\ -1.400 \\ -0.350 \end{array}\right]. $$
+<p>This means that our revenue <span data-concept="vector">vector</span> is</p>
+$$ \kvecx = 9.775 \kvecvone + 1.925 \kvecvtwo - 1.400\kvecvthree - 0.350 \kvecvfour. $$
+<p>We will think about what these terms mean by adding them together one at a time.</p>
+<p><span data-ref="v-1">The first term</span>,</p>
+$$ 9.775\kvecvone = \left[\begin{array}{r}9.775 \\ 9.775 \\ 9.775 \\ 9.775 \end{array}\right], $$
+<p>gives us the average revenue over the year.</p>
+<p>The average revenue for the first two quarters is 11.7, which is 1.925 million dollars above the yearly average. Similarly, the average revenue for the last two quarters is 1.925 million dollars below the yearly average. This is recorded by <span data-ref="v-2">the second term</span></p>
+$$ 1.925\kvecvtwo = \left[\begin{array}{c}1.925 \\ 1.925 \\ -1.925 \\ -1.925 \end{array}\right]. $$
+<p>Finally, the first quarter’s revenue is 1.400 million dollars below the average over the first two quarters and the second quarter’s revenue is 1.400 million dollars above that average. This, and the corresponding data for the last two quarters, is captured by <span data-ref="v-3 v-4">the last two terms</span>:</p>
+$$ -1.400\kvecvthree - 0.350\kvecvfour = \left[\begin{array}{c}-1.400 \\ 1.400 \\ -0.350 \\ 0.350 \end{array}\right]. $$
+<p>If we write $\kvecxB = \left[\begin{array}{r}c_1 \\ c_2 \\ c_3 \\ c_4 \end{array}\right]$, we see that the coefficient $c_1$ measures the average revenue over the year, $c_2$ measures the deviation from the annual average in the first and second halves of the year, and $c_3$ measures how the revenue in the first and second quarter differs from the average in the first half of the year. In this way, the coefficients provide a view of the revenue over different time scales, from an annual summary to a finer view of quarterly behavior.</p>
+<p id="haar-wavelet-basis">This <span data-concept="basis">basis</span> is sometimes called a <em><span data-concept="haar-wavelet-basis">Haar</span></em> <span data-concept="haar-wavelet-basis">wavelet basis</span>, and the change of basis is known as a <em><span data-concept="haar-wavelet-basis">Haar</span></em> <span data-concept="haar-wavelet-basis">wavelet transform</span>. In the next section, we will see how this <span data-concept="basis">basis</span> provides a useful way to store digital images.</p>
+</div>
+<figure class="photo" id="fig-edge-detection" data-figure="3.2.12">
+  <img src="/media/ch03/spring-canyon-edge-detection.jpg" alt="On the left, a color photograph of a red rock canyon wall against a blue sky; on the right, a black and white image showing the edges detected in the photograph by an edge detection algorithm.">
+  <figcaption><span class="eyebrow">Figure 3.2.12</span><span>A canyon wall in Capitol Reef National Park and the result of an edge detection algorithm.</span></figcaption>
+</figure>
+<div class="exercises" data-place="fig-edge-detection"></div>
+</section>

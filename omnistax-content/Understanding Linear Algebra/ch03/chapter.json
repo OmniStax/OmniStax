@@ -180,25 +180,29 @@
       "sym": "v_1_vec",
       "meaning": "the first vector of a basis 𝓑 = {v₁, v₂, …} of ℝᵐ, the first column of the matrix P_𝓑",
       "section": "3.2",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-1"
     },
     {
       "sym": "v_2_vec",
       "meaning": "the second vector of a basis 𝓑 = {v₁, v₂, …} of ℝᵐ, the second column of the matrix P_𝓑",
       "section": "3.2",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-2"
     },
     {
       "sym": "v_3_vec",
       "meaning": "the third vector of a basis of ℝ³ or ℝ⁴",
       "section": "3.2",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-3"
     },
     {
       "sym": "v_4_vec",
       "meaning": "the fourth vector of the Haar wavelet basis of ℝ⁴",
       "section": "3.2",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-4"
     },
     {
       "sym": "v_i_vec",
@@ -461,21 +465,24 @@
       "meaning": "the first column of the 2 × 2 matrix A = [v₁ v₂], one side of the parallelogram whose signed area is det(A)",
       "section": "3.4",
       "concept": "vector",
-      "redefines": true
+      "redefines": true,
+      "ref": "v-1"
     },
     {
       "sym": "v_2_vec",
       "meaning": "the second column of the 2 × 2 matrix A = [v₁ v₂], the other side of the parallelogram whose signed area is det(A)",
       "section": "3.4",
       "concept": "vector",
-      "redefines": true
+      "redefines": true,
+      "ref": "v-2"
     },
     {
       "sym": "v_3_vec",
       "meaning": "the third column of a 3 × 3 matrix, one edge of the parallelepiped whose signed volume is its determinant",
       "section": "3.4",
       "concept": "vector",
-      "redefines": true
+      "redefines": true,
+      "ref": "v-3"
     },
     {
       "sym": "e_1_vec",
