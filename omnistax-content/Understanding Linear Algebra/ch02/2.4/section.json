@@ -1,0 +1,1185 @@
+{
+ "id": "2.4",
+ "module": "sec-linear-dep",
+ "chapter": "2",
+ "title": "Linear independence",
+ "lead": "Where the <span data-concept=\"span\">span</span> answered whether a <span data-concept=\"linear-system-of-equations\">linear system</span> has a <span data-concept=\"solution-of-a-linear-system\">solution</span>, <span data-concept=\"linear-independence-of-vectors\">linear independence</span> turns to whether that solution is unique: whether one <span data-concept=\"vector\">vector</span> of a set is a <span data-concept=\"linear-combination\">linear combination</span> of the others, read from the <span data-concept=\"pivot\">pivot positions</span> of a <span data-concept=\"matrix\">matrix</span> and from the <span data-concept=\"homogeneous-matrix-equation\">homogeneous equation</span> $\\kA\\kvecx = \\kveczero$.",
+ "objectives": [],
+ "summary_html": "<ul><li>A set of vectors is linearly dependent if one of the vectors is a linear combination of the others.</li><li>A set of vectors is linearly independent if and only if the vectors form a matrix that has a pivot position in every column.</li><li>A set of linearly independent vectors in ${\\mathbb R}^m$ contains no more than $m$ vectors.</li><li>The columns of the matrix $\\kA$ are linearly dependent if the homogeneous equation $\\kA\\kvecx = \\kveczero$ has a nonzero solution.</li><li>A set of vectors $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ is linearly dependent if there are weights $c_1,c_2,\\ldots,c_n$, not all of which are zero, such that $$ c_1\\kvecv_1 + c_2\\kvecv_2 + \\ldots + c_n\\kvecv_n = \\kveczero $$.</li></ul>",
+ "notes": "The book’s empty Sage cells in the activities and exercises are left out, since they are not live.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the two activities stand in the text as cards, with the book’s solutions where it prints no separate answer. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-third-vector",
+   "kind": "sim",
+   "number": "2.4.3",
+   "folds": [
+    "2.4.4"
+   ],
+   "originals": [
+    "/media/ch02/3d-plane-nonstd.svg",
+    "/media/ch02/3d-plane-span-no-w.svg",
+    "/media/ch02/3d-plane-nonstd-w.svg",
+    "/media/ch02/3d-plane-span-yes-w.svg"
+   ],
+   "original_caption": "(Figure 2.4.3) The span of the vectors v1, v2, and v3. (Figure 2.4.4) The span of the vectors w1, w2, and w3.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [
+  {
+   "id": "v-1",
+   "label": "the vector v₁ of Example 2.4.1",
+   "figures": [
+    "sim-third-vector"
+   ]
+  },
+  {
+   "id": "v-2",
+   "label": "the vector v₂ of Example 2.4.1",
+   "figures": [
+    "sim-third-vector"
+   ]
+  },
+  {
+   "id": "v-3",
+   "label": "the vector v₃ of Example 2.4.1",
+   "figures": [
+    "sim-third-vector"
+   ]
+  },
+  {
+   "id": "w-1",
+   "label": "the vector w₁ of Example 2.4.2",
+   "figures": [
+    "sim-third-vector"
+   ]
+  },
+  {
+   "id": "w-2",
+   "label": "the vector w₂ of Example 2.4.2",
+   "figures": [
+    "sim-third-vector"
+   ]
+  },
+  {
+   "id": "w-3",
+   "label": "the vector w₃ of Example 2.4.2",
+   "figures": [
+    "sim-third-vector"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "span-recalled",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "span-recalled",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "span-recalled",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "span-recalled",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "uniqueness-turn",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "uniqueness-turn",
+   "concept": "existence-and-uniqueness-questions",
+   "verb": "uses"
+  },
+  {
+   "span": "uniqueness-turn",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "two-situations",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "two-situations",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-r3",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-r3",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-r3",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-r3",
+   "concept": "pivot-rows-and-span",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-r3",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "dependent-vector-does-not-change-span",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-plane",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "geometric-view",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-third-vector",
+   "concept": "dependent-vector-does-not-change-span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-third-vector",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-third-vector",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-third-vector",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "independent-direction",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "independent-direction",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "independent-direction",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "already-in-plane",
+   "concept": "dependent-vector-does-not-change-span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "already-in-plane",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "already-in-plane",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "what-distinguishes",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "what-distinguishes",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-linear-independence",
+   "concept": "linear-independence-of-vectors",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-linear-independence",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-linear-independence",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "one-nonzero-vector",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "one-nonzero-vector",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-positions-role",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pivot-positions-role",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-positions-role",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-positions-role",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "third-column",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "third-column",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "dependent-four",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "dependent-four",
+   "concept": "dependent-vector-does-not-change-span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "dependent-four",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "column-without-pivot",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "column-without-pivot",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "column-without-pivot",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "column-without-pivot",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "column-without-pivot",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-in-every-column",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-in-every-column",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-in-every-column",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "every-column-pivot",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-2-4-6",
+   "concept": "pivot-columns-and-linear-independence",
+   "verb": "introduces"
+  },
+  {
+   "span": "proposition-2-4-6",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-2-4-6",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "constraint",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "constraint",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "constraint",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "constraint",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "at-least-as-many-rows",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "no-greater-than-dimensions",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "no-greater-than-dimensions",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "no-greater-than-dimensions",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "no-greater-than-dimensions",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "no-greater-than-dimensions",
+   "concept": "pivots-per-row-and-column",
+   "verb": "uses"
+  },
+  {
+   "span": "no-greater-than-dimensions",
+   "concept": "size-of-a-linearly-independent-set",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-linear-indep-bound",
+   "concept": "size-of-a-linearly-independent-set",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-linear-indep-bound",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-linear-indep-bound",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "three-directions",
+   "concept": "size-of-a-linearly-independent-set",
+   "verb": "reinforces"
+  },
+  {
+   "span": "three-directions",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "three-directions",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "compare-span-bound",
+   "concept": "size-of-a-linearly-independent-set",
+   "verb": "reinforces"
+  },
+  {
+   "span": "compare-span-bound",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "compare-span-bound",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "compare-span-bound",
+   "concept": "vectors-needed-to-span",
+   "verb": "uses"
+  },
+  {
+   "span": "compare-span-bound",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "homogeneous",
+   "concept": "homogeneous-matrix-equation",
+   "verb": "introduces"
+  },
+  {
+   "span": "homogeneous",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "homogeneous",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "homogeneous",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "homogeneous",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "nonzero-solution",
+   "concept": "homogeneous-matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "nonzero-solution",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "nonzero-solution",
+   "concept": "solution-space",
+   "verb": "uses"
+  },
+  {
+   "span": "nonzero-solution",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "nonzero-solution",
+   "concept": "zero-vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "testing-linear-independence",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "homogeneous-matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "free-variable",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-4-8",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "many-ways",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "characterizations-of-linear-dependence",
+   "verb": "introduces"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "homogeneous-matrix-equation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-2-4-9",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "second-question",
+   "concept": "existence-and-uniqueness-questions",
+   "verb": "uses"
+  },
+  {
+   "span": "second-question",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "second-question",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-as-vectors",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-as-vectors",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "span-and-linear-independence-compared",
+   "verb": "introduces"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "linear-independence-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "pivot-columns-and-linear-independence",
+   "verb": "reinforces"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "size-of-a-linearly-independent-set",
+   "verb": "reinforces"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "span",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "pivot-rows-and-span",
+   "verb": "uses"
+  },
+  {
+   "span": "tab-2-4-10",
+   "concept": "vectors-needed-to-span",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "2.4.1",
+   "source_number": "2.4.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "uniqueness-turn"
+   },
+   "cite": "span-recalled",
+   "prompt": "<p>Let’s begin by looking at some sets of vectors in ${\\mathbb R}^3$. As we saw in the previous section, the span of a set of vectors in ${\\mathbb R}^3$ will be either a line, a plane, or ${\\mathbb R}^3$ itself.</p><ol type=\"a\"><li><p>Consider the following vectors in ${\\mathbb R}^3$:</p>$$ \\kvecv_1=\\left[\\begin{array}{r}0 \\\\ -1 \\\\ 2 \\end{array}\\right], \\kvecv_2=\\left[\\begin{array}{r}3 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecv_3=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 1 \\end{array}\\right] $$<p>. Describe the span of these vectors, $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\}$, as a line, a plane, or ${\\mathbb R}^3$.</p></li><li><p>Now consider the set of vectors:</p>$$ \\kvecw_1=\\left[\\begin{array}{r}0 \\\\ -1 \\\\ 2 \\end{array}\\right], \\kvecw_2=\\left[\\begin{array}{r}3 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecw_3=\\left[\\begin{array}{r}3 \\\\ 0 \\\\ 1 \\end{array}\\right] $$<p>. Describe the span of these vectors, $\\kSpan\\left\\{ \\kvecw_1,\\kvecw_2,\\kvecw_3 \\right\\}$, as a line, a plane, or ${\\mathbb R}^3$.</p></li><li><p>Show that the vector $\\kvecw_3$ is a linear combination of $\\kvecw_1$ and $\\kvecw_2$ by finding weights such that</p>$$ \\kvecw_3 = c\\kvecw_1 + d\\kvecw_2 $$<p>.</p></li><li><p>Explain why any linear combination of $\\kvecw_1$, $\\kvecw_2$, and $\\kvecw_3$,</p>$$ c_1\\kvecw_1 + c_2\\kvecw_2 + c_3\\kvecw_3 $$<p>can be written as a linear combination of $\\kvecw_1$ and $\\kvecw_2$.</p></li><li><p>Explain why</p>$$ \\kSpan\\left\\{ \\kvecw_1,\\kvecw_2,\\kvecw_3 \\right\\} = \\kSpan\\left\\{ \\kvecw_1,\\kvecw_2 \\right\\} $$<p>.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\} = {\\mathbb R}^3$.</li><li>$\\kSpan\\left\\{ \\kvecw_1, \\kvecw_2, \\kvecw_3 \\right\\}$ is a plane in ${\\mathbb R}^3$.</li><li>$\\kvecw_3 = \\kvecw_1 + \\kvecw_2$.</li><li><p>We have</p>$$ c_1\\kvecw_1 + c_2\\kvecw_2 + c_3\\kvecw_3 = c_1\\kvecw_1 + c_2\\kvecw_2 + c_3(\\kvecw_1+\\kvecw_2)= (c_1+c_3)\\kvecw_1 + (c_2+c_3)\\kvecw_2. $$</li><li>Any linear combination of $\\kvecw_1$, $\\kvecw_2$, and $\\kvecw_3$ is itself a linear combination of $\\kvecw_1$ and $\\kvecw_2$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We will construct the matrix whose columns are $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$:</p>$$ \\begin{bmatrix} 0 & 3 & 2 \\\\ -1 & 1 & 0 \\\\ 2 & -1 & 1 \\\\ \\end{bmatrix} \\sim \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{bmatrix}. $$<p>Because there is a pivot in every row, <a href=\"/understanding-linear-algebra/ch02/2.3/#prop-pivot-row\">Proposition 2.3.14</a> tells us that $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\} = {\\mathbb R}^3$.</p></li><li><p>Similarly,</p>$$ \\begin{bmatrix} 0 & 3 & 3 \\\\ -1 & 1 & 0 \\\\ 2 & -1 & 1 \\\\ \\end{bmatrix} \\sim \\begin{bmatrix} 1 & 0 & 1 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\\\ \\end{bmatrix}. $$<p>As there are two pivot positions, we see that $\\kSpan\\left\\{ \\kvecw_1, \\kvecw_2, \\kvecw_3 \\right\\}$ is a plane in ${\\mathbb R}^3$.</p></li><li><p>We see that</p>$$ \\left[\\begin{array}{rr|r} 0 & 3 & 3 \\\\ -1 & 1 & 0 \\\\ 2 & -1 & 1 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 1 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\end{array}\\right], $$<p>which tells us that $\\kvecw_3 = \\kvecw_1 + \\kvecw_2$.</p></li><li><p>We have</p>$$ c_1\\kvecw_1 + c_2\\kvecw_2 + c_3\\kvecw_3 = c_1\\kvecw_1 + c_2\\kvecw_2 + c_3(\\kvecw_1+\\kvecw_2)= (c_1+c_3)\\kvecw_1 + (c_2+c_3)\\kvecw_2. $$</li><li>Any linear combination of $\\kvecw_1$, $\\kvecw_2$, and $\\kvecw_3$ is itself a linear combination of $\\kvecw_1$ and $\\kvecw_2$.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "2.4.2",
+   "source_number": "2.4.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "recognizing-heading"
+   },
+   "cite": "proposition-2-4-6",
+   "prompt": "<p>We would like to develop a means to detect when a set of vectors is linearly dependent. This activity will point the way.</p><ol type=\"a\"><li><p>Suppose we have five vectors in ${\\mathbb R}^4$ that form the columns of a matrix having reduced row echelon form</p>$$ \\left[\\begin{array}{rrrrr} \\kvecv_1 & \\kvecv_2 & \\kvecv_3 & \\kvecv_4 & \\kvecv_5 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrrr} 1 & 0 & -1 & 0 & 2 \\\\ 0 & 1 & 2 & 0 & 3 \\\\ 0 & 0 & 0 & 1 & -1 \\\\ 0 & 0 & 0 & 0 & 0 \\end{array}\\right] $$<p>. Is it possible to write one of the vectors $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_5$ as a linear combination of the others? If so, show explicitly how one vector appears as a linear combination of some of the other vectors. Is this set of vectors linearly dependent or independent?</p></li><li><p>Suppose we have another set of three vectors in ${\\mathbb R}^4$ that form the columns of a matrix having reduced row echelon form</p>$$ \\left[\\begin{array}{rrr} \\kvecw_1 & \\kvecw_2 & \\kvecw_3 \\\\ \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & 0 & 0 \\end{array}\\right] $$<p>. Is it possible to write one of these vectors $\\kvecw_1$, $\\kvecw_2$, $\\kvecw_3$ as a linear combination of the others? If so, show explicitly how one vector appears as a linear combination of some of the other vectors. Is this set of vectors linearly dependent or independent?</p></li><li>By looking at the pivot positions, how can you determine whether the columns of a matrix are linearly dependent or independent?</li><li>If one vector in a set is the zero vector $\\kveczero$, can the set of vectors be linearly independent?</li><li>Suppose a set of vectors in ${\\mathbb R}^{10}$ has twelve vectors. Is it possible for this set to be linearly independent?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Let’s focus on the first three vectors and view the matrix as an augmented one:</p>$$ \\left[\\begin{array}{rr|r} \\kvecv_1 & \\kvecv_2 & \\kvecv_3 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & -1 \\\\ 0 & 1 & 2 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\end{array}\\right]\\text{.} $$<p>This shows that $\\kvecv_3=-\\kvecv_1+2\\kvecv_2$ so it is possible to write one of the vectors as a linear combination of the others. Therefore, the set is linearly dependent.</p></li><li>Applying the same reasoning as in the previous part, we see that we cannot write any of the vectors as a linear combination of the others. Therefore, the set is linearly independent.</li><li>The columns of a matrix are linearly independent exactly when there is a pivot position in every column of the matrix.</li><li>No, because we can write the zero vector $\\kveczero$ as a linear combination of the other vectors: $\\kveczero = 0\\kvecv_2 + \\ldots + 0\\kvecv_n$.</li><li>No, because the matrix formed by the vectors would have 12 columns and only 10 rows. There can be at most 10 pivot positions so there are at least two columns without pivot positions.</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "2.4.3",
+   "source_number": "2.4.3",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "homogeneous"
+   },
+   "cite": "homogeneous",
+   "prompt": "<p><strong>Linear independence and homogeneous equations.</strong></p><ol type=\"a\"><li>Explain why the homogeneous equation $\\kA\\kvecx = \\kveczero$ is consistent no matter the matrix $\\kA$.</li><li><p>Consider the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} 3 & 2 & 0 \\\\ -1 & 0 & -2 \\\\ 2 & 1 & 1 \\end{array}\\right] $$<p>whose columns we denote by $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$. Describe the solution space of the homogeneous equation $\\kA\\kvecx = \\kveczero$ using a parametric description, if appropriate.</p></li><li><p>Find a nonzero solution to the homogeneous equation and use it to find weights $c_1$, $c_2$, and $c_3$ such that</p>$$ c_1\\kvecv_1 + c_2\\kvecv_2 + c_3\\kvecv_3 = \\kveczero $$<p>.</p></li><li>Use the equation you found in the previous part to write one of the vectors as a linear combination of the others.</li><li>Are the vectors $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$ linearly dependent or independent?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>The vector $\\kveczero$ is always a solution.</li><li><p>We have</p>$$ \\left[\\begin{array}{rrr} 3 & 2 & 0 \\\\ -1 & 0 & -2 \\\\ 2 & 1 & 1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & 2 \\\\ 0 & 1 & -3 \\\\ 0 & 0 & 0 \\end{array}\\right]. $$<p>From the reduced row echelon form, we see that $x_3$ is a free variable and that we have</p>$$ \\begin{alignedat}{2} x_1 & {}={} -2x_3 \\\\ x_2 & {}={} 3x_3\\text{.} \\\\ \\end{alignedat} $$<p>The solution space is then written parametrically as</p>$$ \\kvecx=\\left[\\begin{array}{r}x_1 \\\\ x_2 \\\\ x_3 \\end{array}\\right] = x_3\\left[\\begin{array}{r}-2 \\\\ 3 \\\\ 1 \\end{array}\\right]\\text{.} $$</li><li><p>If we set $x_3=1$, then we have the solution $\\kvecx=\\left[\\begin{array}{r}-2 \\\\ 3 \\\\ 1 \\end{array}\\right]$, which says that</p>$$ -2\\kvecv_1+3\\kvecv_2+\\kvecv_3 = \\kveczero\\text{.} $$</li><li>We may rewrite this expression as $\\kvecv_3=2\\kvecv_1-3\\kvecv_2$, showing that $\\kvecv_3$ is a linear combination of $\\kvecv_1$ and $\\kvecv_2$.</li><li>The vectors $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$ are linearly dependent, and we know this in two ways. We have seen how to express one vector as a linear combination of the others. Also, we have seen that the associated matrix has a column without a pivot position.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "2.4.1",
+   "source_number": "2.4.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-2-4-9",
+   "prompt": "<p>Consider the set of vectors</p>$$ \\kvecv_1 = \\left[\\begin{array}{r}1 \\\\ 2 \\\\ 1 \\end{array}\\right], \\kvecv_2 = \\left[\\begin{array}{r}0 \\\\ 1 \\\\ 3 \\end{array}\\right], \\kvecv_3 = \\left[\\begin{array}{r}2 \\\\ 3 \\\\ -1 \\end{array}\\right], \\kvecv_4 = \\left[\\begin{array}{r}-2 \\\\ 4 \\\\ -1 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Explain why this set of vectors is linearly dependent.</li><li>Write one of the vectors as a linear combination of the others.</li><li><p>Find weights $c_1$, $c_2$, $c_3$, and $c_4$, not all of which are zero, such that</p>$$ c_1\\kvecv_1 + c_2 \\kvecv_2 + c_3 \\kvecv_3 + c_4 \\kvecv_4 = \\kveczero $$<p>.</p></li><li>Suppose $\\kA=\\left[\\begin{array}{rrrr} \\kvecv_1&\\kvecv_2&\\kvecv_3&\\kvecv_4 \\end{array}\\right]$. Find a nonzero solution to the homogenous equation $\\kA\\kvecx = \\kveczero$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Four vectors in ${\\mathbb R}^3$ must always be linearly dependent.</li><li>$\\kvecv_3 = 2\\kvecv_1-\\kvecv_2$.</li><li>$c_1=-2$, $c_2=1$, $c_3=1$, and $c_4=0$</li><li>$\\kvecx = \\left[\\begin{array}{r}-2 \\\\ 1 \\\\ 1 \\\\ 0 \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We view the vectors as the columns of a matrix so that</p>$$ \\left[\\begin{array}{rrrr} 1 & 0 & 2 & -2 \\\\ 2 & 1 & 3 & 4 \\\\ 1 & 3 & -1 & -1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} 1 & 0 & 2 & 0 \\\\ 0 & 1 & -1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]\\text{.} $$<p>Since there is a column without a pivot position, the vectors must be linearly dependent. We also expect this because four vectors in ${\\mathbb R}^3$ must always be linearly dependent.</p></li><li><p>If we view the first three columns as an augmented matrix, we have</p>$$ \\left[\\begin{array}{rr|r} 1 & 0 & 2 \\\\ 2 & 1 & 3 \\\\ 1 & 3 & -1 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 2 \\\\ 0 & 1 & -1 \\\\ 0 & 0 & 0 \\end{array}\\right]\\text{.} $$<p>We see that $\\kvecv_3 = 2\\kvecv_1-\\kvecv_2$.</p></li><li>From the solution to the previous part, we have $-2\\kvecv_1+\\kvecv_2+\\kvecv_3 = \\kveczero$, which says that $c_1=-2$, $c_2=1$, $c_3=1$, and $c_4=0$ is an appropriate choice of weights.</li><li>From the solution to the previous part, we see that $\\kvecx = \\left[\\begin{array}{r}-2 \\\\ 1 \\\\ 1 \\\\ 0 \\end{array}\\right]$ is a solution of the homogeneous equation.</li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "2.4.2",
+   "source_number": "2.4.2",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-2-4-6",
+   "prompt": "<p>Consider the vectors</p>$$ \\kvecv_1 = \\left[\\begin{array}{r}2 \\\\ -1 \\\\ 0 \\end{array}\\right], \\kvecv_2 = \\left[\\begin{array}{r}1 \\\\ 2 \\\\ 1 \\end{array}\\right], \\kvecv_3 = \\left[\\begin{array}{r}2 \\\\ -2 \\\\ 3 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Are these vectors linearly independent or linearly dependent?</li><li>Describe the $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\}$.</li><li>Suppose that $\\kvecb$ is a vector in ${\\mathbb R}^3$. Explain why we can guarantee that $\\kvecb$ may be written as a linear combination of $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$.</li><li>Suppose that $\\kvecb$ is a vector in ${\\mathbb R}^3$. In how many ways can $\\kvecb$ be written as a linear combination of $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Linearly independent.</li><li>$\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\} = {\\mathbb R}^3$.</li><li>Because $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\} = {\\mathbb R}^3$, every vector in ${\\mathbb R}^3$ can be written as a linear combination of $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$.</li><li>In exactly one way.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Viewing the vectors as the columns of a matrix, we have</p>$$ \\left[\\begin{array}{rrr} 2 & 1 & 2 \\\\ -1 & 2 & -2 \\\\ 0 & 1 & 3 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right]\\text{.} $$<p>Since there is a pivot position in every column, the vectors are linearly independent.</p></li><li>Since the matrix has a pivot position in every row, we see that $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\} = {\\mathbb R}^3$.</li><li>Because $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3 \\right\\} = {\\mathbb R}^3$, every vector in ${\\mathbb R}^3$ can be written as a linear combination of $\\kvecv_1$, $\\kvecv_2$, and $\\kvecv_3$.</li><li>In exactly one way. Because the matrix has a pivot position in every column, there cannot be a free variable.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "2.4.3",
+   "source_number": "2.4.3",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-linear-independence",
+   "prompt": "<p>Respond to the following questions and provide a justification for your responses.</p><ol type=\"a\"><li>If the vectors $\\kvecv_1$ and $\\kvecv_2$ form a linearly dependent set, must one vector be a scalar multiple of the other?</li><li>Suppose that $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ is a linearly independent set of vectors. What can you say about the linear independence or dependence of a subset of these vectors?</li><li>Suppose $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ is a linearly independent set of vectors that form the columns of a matrix $\\kA$. If the equation $\\kA\\kvecx = \\kvecb$ is inconsistent, what can you say about the linear independence or dependence of the set of vectors $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n,\\kvecb$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Yes</li><li>Any subset is linearly independent.</li><li>They form a linearly independent set.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Yes. If $c_1\\kvecv_1 + c_2\\kvecv_2 = \\kveczero$ and one of the weights is not zero, we can rearrange this expression to solve for one of the vectors as a scalar multiple of the other. For instance, if $2\\kvecv_1-3\\kvecv_2=\\kveczero$, then $\\kvecv_1 = \\frac32\\kvecv_2$.</li><li>Any subset of the vectors forms a linearly independent set. Because the original set is linearly independent, none of the vectors can be written as a linear combination of the others. This is still true when we look at a smaller set of the vectors.</li><li>The set of vectors $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n,\\kvecb$ will also be linearly independent. Since $\\kA\\kvecx=\\kvecb$ is inconsistent, we know that $\\kvecb$ cannot be written as a linear combination of the other vectors. We also know that each of the vectors $\\kvecv_j$ cannot be written as a linear combination of the others because $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ is a linearly independent set.</li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "2.4.4",
+   "source_number": "2.4.4",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-linear-indep-bound",
+   "prompt": "<p>Determine whether the following statements are true or false and provide a justification for your response.</p><ol type=\"a\"><li>If $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ are linearly dependent, then one vector is a scalar multiple of one of the others.</li><li>If $\\kvecv_1, \\kvecv_2, \\ldots, \\kvecv_{10}$ are vectors in ${\\mathbb R}^5$, then the set of vectors is linearly dependent.</li><li>If $\\kvecv_1, \\kvecv_2, \\ldots, \\kvecv_5$ are vectors in ${\\mathbb R}^{10}$, then the set of vectors is linearly independent.</li><li>Suppose we have a set of vectors $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ and that $\\kvecv_2$ is a scalar multiple of $\\kvecv_1$. Then the set is linearly dependent.</li><li>Suppose that $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ are linearly independent and form the columns of a matrix $\\kA$. If $\\kA\\kvecx = \\kvecb$ is consistent, then there is exactly one solution.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>False</li><li>True</li><li>False</li><li>True</li><li>True</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>False. We only know that one vector can be written as a linear combination of the others.</li><li>True. If we put the vectors into a matrix, there are more columns than rows. Therefore, there must be a column without a pivot position so the vectors form a linearly dependent set.</li><li>False. They could form a linearly independent set, but we cannot guarantee it. We would have to look at the location of the pivot positions in the associated $10\\times5$ matrix.</li><li>True. In this case, $\\kvecv_2$ can be written as a linear combination of the other vectors so the set is linearly dependent.</li><li>True. Since the vectors are linearly independent, $\\kA$ has a pivot position in every column. Therefore, there is not a free variable in the description of the solution space to the equation $\\kA\\kvecx=\\kvecb$. Therefore, the solution is unique.</li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "2.4.5",
+   "source_number": "2.4.5",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-2-4-9",
+   "prompt": "<p>Suppose we have a set of vectors $\\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4$ in ${\\mathbb R}^5$ that satisfy the relationship:</p>$$ 2\\kvecv_1 - \\kvecv_2 + 3\\kvecv_3 + \\kvecv_4 = \\kveczero $$<p>and suppose that $\\kA$ is the matrix $\\kA=\\left[\\begin{array}{rrrr} \\kvecv_1&\\kvecv_2&\\kvecv_3&\\kvecv_4 \\end{array}\\right]$.</p><ol type=\"a\"><li>Find a nonzero solution to the equation $\\kA\\kvecx = \\kveczero$.</li><li>Explain why the matrix $\\kA$ has a column without a pivot position.</li><li>Write one of the vectors as a linear combination of the others.</li><li>Explain why the set of vectors is linearly dependent.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecx=\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 3 \\\\ 1 \\end{array}\\right]$</li><li>There are infinitely many solutions to the homogeneous equation $\\kA\\kvecx=\\kveczero$.</li><li>$\\kvecv_4 = -2\\kvecv_1 + \\kvecv_2 - 3\\kvecv_3$.</li><li>One vector can be written as a linear combination of the others.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The vector $\\kvecx=\\left[\\begin{array}{r}2 \\\\ -1 \\\\ 3 \\\\ 1 \\end{array}\\right]$ is a solution.</li><li>There is a nonzero solution to the homogeneous equation $\\kA\\kvecx=\\kveczero$. Since there is also the zero solution $\\kvecx=\\kveczero$, there must be infinitely many solutions. This can only happen when there is a column of $\\kA$ that does not have a pivot position.</li><li>$\\kvecv_4 = -2\\kvecv_1 + \\kvecv_2 - 3\\kvecv_3$.</li><li>Because one of the vectors can be written as a linear combination of the others, the set of vectors is linearly dependent.</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "2.4.6",
+   "source_number": "2.4.6",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "compare-span-bound",
+   "prompt": "<p>Suppose that $\\kvecv_1,\\kvecv_2,\\ldots,\\kvecv_n$ is a set of vectors in ${\\mathbb R}^{27}$ that form the columns of a matrix $\\kA$.</p><ol type=\"a\"><li>Suppose that the vectors span ${\\mathbb R}^{27}$. What can you say about the number of vectors $n$ in this set?</li><li>Suppose instead that the vectors are linearly independent. What can you say about the number of vectors $n$ in this set?</li><li>Suppose that the vectors are both linearly independent and span ${\\mathbb R}^{27}$. What can you say about the number of vectors in the set?</li><li>Assume that the vectors are both linearly independent and span ${\\mathbb R}^{27}$. Given a vector $\\kvecb$ in ${\\mathbb R}^{27}$, what can you say about the solution space to the equation $\\kA\\kvecx = \\kvecb$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>There must be at least 27 vectors.</li><li>There must be at most 27 vectors.</li><li>There are exactly 27 vectors.</li><li>There is exactly one solution.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>In this case, the matrix $\\kA$ must have a pivot position in evey row. There must be at least 27 vectors for this to be possible.</li><li>In this case, the matrix $\\kA$ must have a pivot position in every column. There must be at most 27 vectors for this to be possible.</li><li>There must be exactly 27 vectors.</li><li>There is exactly one solution to the equation $\\kA\\kvecx=\\kvecb$ because the matrix $\\kA$ has a pivot position in every row and every column.</li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "2.4.7",
+   "source_number": "2.4.7",
+   "kind": "exercise",
+   "bloom": "Create",
+   "place": {
+    "at": "end"
+   },
+   "cite": "tab-2-4-10",
+   "prompt": "<p>Given below are some descriptions of sets of vectors that form the columns of a matrix $\\kA$. For each description, give a possible reduced row echelon form for $\\kA$ or indicate why there is no set of vectors satisfying the description by stating why the required reduced row echelon matrix cannot exist.</p><ol type=\"a\"><li>A set of 4 linearly independent vectors in ${\\mathbb R}^5$.</li><li>A set of 4 linearly independent vectors in ${\\mathbb R}^4$.</li><li>A set of 3 vectors whose span is ${\\mathbb R}^4$.</li><li>A set of 5 linearly independent vectors in ${\\mathbb R}^3$.</li><li>A set of 5 vectors whose span is ${\\mathbb R}^4$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]$.</li><li>This is not possible.</li><li>This is not possible.</li><li>$\\left[\\begin{array}{rrrrr} 1 & 0 & 0 & 0 & -1 \\\\ 0 & 1 & 0 & 0 & 0 \\\\ 0 & 0 & 1 & 0 & -2 \\\\ 0 & 0 & 0 & 1 & 4 \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>There must be a pivot position in every column: $\\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]$.</li><li>There must be a pivot position in every row. $\\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right]$.</li><li>This is not possible. The matrix $\\kA$ has dimensions $4\\times 3$ so there cannot be a pivot position in every row.</li><li>This is not possible. The matrix $\\kA$ has dimensions $3\\times5$ so there cannot be a pivot position in every column.</li><li>There must be a pivot position in every row. $\\left[\\begin{array}{rrrrr} 1 & 0 & 0 & 0 & -1 \\\\ 0 & 1 & 0 & 0 & 0 \\\\ 0 & 0 & 1 & 0 & -2 \\\\ 0 & 0 & 0 & 1 & 4 \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "2.4.8",
+   "source_number": "2.4.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "nonzero-solution",
+   "prompt": "<p>When we explored matrix multiplication in <a href=\"/understanding-linear-algebra/ch02/2.2/\">Section 2.2</a>, we saw that some properties that are true for real numbers are not true for matrices. This exercise will investigate that in some more depth.</p><ol type=\"a\"><li>Suppose that $\\kA$ and $\\kB$ are two matrices and that $\\kA\\kB = 0$. If $\\kB \\neq 0$, what can you say about the linear independence of the columns of $\\kA$?</li><li>Suppose that we have matrices $\\kA$, $\\kB$ and $\\kC$ such that $\\kA\\kB = \\kA\\kC$. We have seen that we cannot generally conclude that $\\kB=\\kC$. If we assume additionally that $\\kA$ is a matrix whose columns are linearly independent, explain why $\\kB = \\kC$. You may wish to begin by rewriting the equation $\\kA\\kB = \\kA\\kC$ as $\\kA\\kB-\\kA\\kC = \\kA(\\kB-\\kC) = 0$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>They are linearly dependent.</li><li>The columns of $\\kB$ and $\\kC$ are all equal.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Since $\\kB\\neq0$, there is a column of $\\kB$, which we’ll call $\\kvecx$, that is not zero. Since $\\kA\\kB = 0$, we know that $\\kA\\kvecx = \\kveczero$, which means that $\\kvecx$ is a nonzero solution to the homogenous equation $\\kA\\kvecx = \\kveczero$. Therefore, the columns of $\\kA$ are linearly dependent.</li><li>Since the columns of $\\kA$ are linearly independent, the only solution to the homogeneous equation $\\kA\\kvecx=\\kveczero$ is $\\kvecx=\\kveczero$. Since that $\\kA(\\kB-\\kC) = 0$, every column $\\kvecx$ of $\\kB-\\kC$ satisfies $\\kA\\kvecx = \\kveczero$. Therefore, every column of $\\kB-\\kC$ is the zero vector, which implies that $\\kB=\\kC$.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "2.4.9",
+   "source_number": "2.4.9",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-2-4-6",
+   "prompt": "<p>Suppose that $k$ is an unknown parameter and consider the set of vectors</p>$$ \\kvecv_1 = \\left[\\begin{array}{r}2 \\\\ 0 \\\\ 1 \\end{array}\\right], \\kvecv_2 = \\left[\\begin{array}{r}4 \\\\ -2 \\\\ -1 \\end{array}\\right], \\kvecv_3 = \\left[\\begin{array}{r}0 \\\\ 2 \\\\ k \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>For what values of $k$ is the set of vectors linearly dependent?</li><li>For what values of $k$ does the set of vectors span ${\\mathbb R}^3$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$k=3$.</li><li>$k\\neq3$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We construct the matrix</p>$$ \\left[\\begin{array}{rrr} 2 & 4 & 0 \\\\ 0 & -2 & 2 \\\\ 1 & -1 & k \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 2 & 0 \\\\ 0 & 1 & -1 \\\\ 0 & 0 & k-3 \\end{array}\\right]\\text{.} $$<p>If the vectors are linearly dependent, we cannot have a pivot position in the third column. This means that $k=3$.</p></li><li>If the vectors span ${\\mathbb R}^3$, there must be a pivot in the third row, which means that $k\\neq 3$.</li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "2.4.10",
+   "source_number": "2.4.10",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-span-plane",
+   "prompt": "<p>Given a set of linearly dependent vectors, we can eliminate some of the vectors to create a smaller, linearly independent set of vectors.</p><ol type=\"a\"><li>Suppose that $\\kvecw$ is a linear combination of the vectors $\\kvecv_1$ and $\\kvecv_2$. Explain why $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2, \\kvecw\\right\\} = \\kSpan\\left\\{ \\kvecv_1,\\kvecv_2 \\right\\}$.</li><li><p>Consider the vectors</p>$$ \\kvecv_1 = \\left[\\begin{array}{r}2 \\\\ -1 \\\\ 0 \\end{array}\\right], \\kvecv_2 = \\left[\\begin{array}{r}1 \\\\ 2 \\\\ 1 \\end{array}\\right], \\kvecv_3 = \\left[\\begin{array}{r}-2 \\\\ 6 \\\\ 2 \\end{array}\\right], \\kvecv_4 = \\left[\\begin{array}{r}7 \\\\ -1 \\\\ 1 \\end{array}\\right] $$<p>. Write one of the vectors as a linear combination of the others. Find a set of three vectors whose span is the same as $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\}$.</p></li><li>Are the three vectors you are left with linearly independent? If not, express one of the vectors as a linear combination of the others and find a set of two vectors whose span is the same as $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\}$.</li><li>Give a geometric description of $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\}$ in ${\\mathbb R}^3$ as we did in <a href=\"/understanding-linear-algebra/ch02/2.3/\">Section 2.3</a>.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Any linear combination of $\\kvecv_1$, $\\kvecv_2$, and $\\kvecw$ can be rewritten as a linear combination of $\\kvecv_1$ and $\\kvecv_2$.</li><li>$\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\} = \\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_4 \\right\\}$.</li><li>$\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\} = \\kSpan\\left\\{ \\kvecv_1,\\kvecv_2 \\right\\}$.</li><li>It is a plane in ${\\mathbb R}^3$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>If $\\kvecw$ is a linear combination of $\\kvecv_1$ and $\\kvecv_2$, then we can write $\\kvecw=a\\kvecv_1+b\\kvecv_2$. Then any linear combination of $\\kvecv_1,\\kvecv_2,\\kvecw$ can be rewritten as</p>$$ c_1\\kvecv_1+c_2\\kvecv_2+c_3\\kvecw=(c_1+c_3a)\\kvecv_1 + (c_2+c_3b)\\kvecv_2\\text{.} $$</li><li><p>We have</p>$$ \\left[\\begin{array}{rrrr} 2 & 1 & -2 & 7 \\\\ -1 & 2 & 6 & -1 \\\\ 0 & 1 & 2 & 1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} 1 & 0 & -2 & 3 \\\\ 0 & 1 & 2 & 1 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]\\text{.} $$<p>This shows that $\\kvecv_3 = -2\\kvecv_1+2\\kvecv_2$ and so $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\} = \\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_4 \\right\\}$.</p></li><li>The remaining three vectors are linearly dependent because $\\kvecv_4 = 3\\kvecv_1+\\kvecv_2$. We therefore have $\\kSpan\\left\\{ \\kvecv_1,\\kvecv_2,\\kvecv_3,\\kvecv_4 \\right\\} = \\kSpan\\left\\{ \\kvecv_1,\\kvecv_2 \\right\\}$.</li><li>The vectors $\\kvecv_1$ and $\\kvecv_2$ are linearly independent so their span is a plane in ${\\mathbb R}^3$.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "span"
+  },
+  {
+   "exercise": "a1",
+   "concept": "spans-in-three-dimensions"
+  },
+  {
+   "exercise": "a1",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "a1",
+   "concept": "dependent-vector-does-not-change-span"
+  },
+  {
+   "exercise": "a1",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "a2",
+   "concept": "pivot-columns-and-linear-independence"
+  },
+  {
+   "exercise": "a2",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "a2",
+   "concept": "size-of-a-linearly-independent-set"
+  },
+  {
+   "exercise": "a2",
+   "concept": "zero-vector"
+  },
+  {
+   "exercise": "a3",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "a3",
+   "concept": "characterizations-of-linear-dependence"
+  },
+  {
+   "exercise": "a3",
+   "concept": "parametric-description"
+  },
+  {
+   "exercise": "a3",
+   "concept": "testing-linear-independence"
+  },
+  {
+   "exercise": "e1",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e1",
+   "concept": "size-of-a-linearly-independent-set"
+  },
+  {
+   "exercise": "e1",
+   "concept": "characterizations-of-linear-dependence"
+  },
+  {
+   "exercise": "e1",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "e1",
+   "concept": "testing-linear-independence"
+  },
+  {
+   "exercise": "e2",
+   "concept": "pivot-columns-and-linear-independence"
+  },
+  {
+   "exercise": "e2",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e2",
+   "concept": "span-and-linear-independence-compared"
+  },
+  {
+   "exercise": "e2",
+   "concept": "testing-linear-independence"
+  },
+  {
+   "exercise": "e3",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e3",
+   "concept": "characterizations-of-linear-dependence"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e4",
+   "concept": "size-of-a-linearly-independent-set"
+  },
+  {
+   "exercise": "e4",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e4",
+   "concept": "characterizations-of-linear-dependence"
+  },
+  {
+   "exercise": "e5",
+   "concept": "characterizations-of-linear-dependence"
+  },
+  {
+   "exercise": "e5",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "e5",
+   "concept": "pivot-columns-and-linear-independence"
+  },
+  {
+   "exercise": "e6",
+   "concept": "size-of-a-linearly-independent-set"
+  },
+  {
+   "exercise": "e6",
+   "concept": "vectors-needed-to-span"
+  },
+  {
+   "exercise": "e6",
+   "concept": "span-and-linear-independence-compared"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pivot-columns-and-linear-independence"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e7",
+   "concept": "span-and-linear-independence-compared"
+  },
+  {
+   "exercise": "e8",
+   "concept": "homogeneous-matrix-equation"
+  },
+  {
+   "exercise": "e8",
+   "concept": "characterizations-of-linear-dependence"
+  },
+  {
+   "exercise": "e8",
+   "concept": "noncommutativity-of-matrix-multiplication"
+  },
+  {
+   "exercise": "e9",
+   "concept": "pivot-columns-and-linear-independence"
+  },
+  {
+   "exercise": "e9",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e9",
+   "concept": "testing-linear-independence"
+  },
+  {
+   "exercise": "e10",
+   "concept": "dependent-vector-does-not-change-span"
+  },
+  {
+   "exercise": "e10",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e10",
+   "concept": "describing-a-span-geometrically"
+  }
+ ],
+ "footnotes": []
+}

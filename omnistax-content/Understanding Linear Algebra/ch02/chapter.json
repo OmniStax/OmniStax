@@ -47,22 +47,26 @@
     {
       "sym": "w_vec",
       "meaning": "a second vector, paired with v in sums and linear combinations",
-      "section": "2.1"
+      "section": "2.1",
+      "type": "vector"
     },
     {
       "sym": "u_vec",
       "meaning": "a 3-dimensional vector, an example of a vector in ℝ³",
-      "section": "2.1"
+      "section": "2.1",
+      "type": "vector"
     },
     {
       "sym": "b_vec",
       "meaning": "the vector asked to be written as a linear combination of v₁, v₂, …, vₙ, the rightmost column of the augmented matrix [v₁ v₂ … vₙ | b] and the right-hand side of the matrix equation Ax = b",
-      "section": "2.1"
+      "section": "2.1",
+      "type": "vector"
     },
     {
       "sym": "v_i_vec",
       "meaning": "the vectors v₁, v₂, …, vₙ of a linear combination, which form the columns of the matrix [v₁ v₂ … vₙ]",
-      "section": "2.1"
+      "section": "2.1",
+      "type": "vector"
     },
     {
       "sym": "c",
@@ -218,19 +222,22 @@
       "sym": "v_1_vec",
       "meaning": "the first of two or three named vectors whose span is examined",
       "section": "2.3",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-1"
     },
     {
       "sym": "v_2_vec",
       "meaning": "the second of two or three named vectors whose span is examined",
       "section": "2.3",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-2"
     },
     {
       "sym": "v_3_vec",
       "meaning": "the third of three named vectors whose span is examined",
       "section": "2.3",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-3"
     },
     {
       "sym": "e_1_vec",
@@ -302,37 +309,43 @@
       "sym": "v_1_vec",
       "meaning": "the first of three vectors v₁, v₂, v₃ whose span is all of three-dimensional space",
       "section": "2.4",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-1"
     },
     {
       "sym": "v_2_vec",
       "meaning": "the second of three vectors v₁, v₂, v₃ whose span is all of three-dimensional space",
       "section": "2.4",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-2"
     },
     {
       "sym": "v_3_vec",
       "meaning": "the third of three vectors v₁, v₂, v₃, which is not a linear combination of the other two",
       "section": "2.4",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "v-3"
     },
     {
       "sym": "w_1_vec",
       "meaning": "the first of three vectors w₁, w₂, w₃ whose span is a plane",
       "section": "2.4",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "w-1"
     },
     {
       "sym": "w_2_vec",
       "meaning": "the second of three vectors w₁, w₂, w₃ whose span is a plane",
       "section": "2.4",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "w-2"
     },
     {
       "sym": "w_3_vec",
       "meaning": "the third of three vectors w₁, w₂, w₃, which is a linear combination of the other two",
       "section": "2.4",
-      "concept": "vector"
+      "concept": "vector",
+      "ref": "w-3"
     },
     {
       "sym": "c_i",
