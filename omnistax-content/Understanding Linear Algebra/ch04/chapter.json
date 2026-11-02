@@ -73,13 +73,15 @@
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the first of two eigenvectors v₁, v₂ of a 2 × 2 matrix A, which form a basis of ℝ²; [1, 1] for A = [1 2; 2 1], [3, 1] for the rental-car matrix",
-   "section": "4.1"
+   "section": "4.1",
+   "ref": "v-1"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the second of two eigenvectors v₁, v₂ of a 2 × 2 matrix A; [−1, 1] for both A = [1 2; 2 1] and the rental-car matrix",
-   "section": "4.1"
+   "section": "4.1",
+   "ref": "v-2"
   },
   {
    "sym": "x_vec",
@@ -326,13 +328,15 @@
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the first vector of a basis of eigenvectors of A, the first column of P, with eigenvalue λ₁",
-   "section": "4.3"
+   "section": "4.3",
+   "ref": "v-1"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the second vector of a basis of eigenvectors of A, the second column of P, with eigenvalue λ₂",
-   "section": "4.3"
+   "section": "4.3",
+   "ref": "v-2"
   },
   {
    "sym": "v_i_vec",
@@ -512,13 +516,15 @@
    "sym": "v_1_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvector v₁ = [2, 1] of the two-species matrix, with eigenvalue 1.3, whose line the trajectories approach",
-   "section": "4.4"
+   "section": "4.4",
+   "ref": "v-1"
   },
   {
    "sym": "v_2_vec",
    "concept": "eigenvector",
    "meaning": "the eigenvector v₂ = [−2, 1] of the two-species matrix, with eigenvalue 0.5",
-   "section": "4.4"
+   "section": "4.4",
+   "ref": "v-2"
   },
   {
    "sym": "v_3_vec",
@@ -778,19 +784,22 @@
    "sym": "P_k",
    "meaning": "the number of cars at location P on day k; the percentage of voters voting for party P in election k",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "ref": "party-p"
   },
   {
    "sym": "Q_k",
    "meaning": "the number of cars at location Q on day k; the percentage of voters voting for party Q in election k",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "ref": "party-q"
   },
   {
    "sym": "R_k",
    "meaning": "the percentage of voters voting for party R in election k",
    "section": "4.5",
-   "redefines": true
+   "redefines": true,
+   "ref": "party-r"
   }
  ]
 }
