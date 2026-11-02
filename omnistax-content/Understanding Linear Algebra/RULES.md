@@ -80,7 +80,11 @@ The root layout, plus `COLOR.md`, `modules.json`, `toc.md`, `briefs/` (the fille
 
 ## Template sections
 
-Until this book's first sections are built, the template is Diffy Qs: `omnistax-content/Differential Equations for Engineers/appA/A.1` (vectors and matrices, draggable arrows, a derivation, keyed and AI-answered exercises) and `ch03/3.5` (a moving phase portrait under a matrix); `ch00/0.2` for the id and exercise conventions. Once built, `ch01/1.2` (Gaussian elimination, activities as inline cards) and `ch02/2.1` (vectors, interactives rebuilt as Sims) are this book's templates, and `ch02/intro` for an introduction page.
+`ch01/1.2` for a page of prose, boxes, examples and inline activity cards (its `plan.md` ends with the id and exercise conventions every section copies); `ch02/2.1` for vectors with draggable heads; `ch02/2.6` for the grid under a transformation; `ch04/4.4` for moving figures under the transport; `ch06/6.5` for data; `ch02/intro` for a chapter introduction page and `intro/` for the book's preface. The conventions the chapter passes settled are in the chapters' `config.md`: dropped worksheet figures a card cites (`ch02/config.md` line 5), cross-page links (`ch04/config.md` line 19), captions (line 20) and corrections (line 21).
+
+## What was built
+
+The whole book, on 2026-11-02 (LOG passes 2 to 9): the preface, six chapter introductions and all 32 sections, each passed by its chapter. 340 concepts, 653 prerequisite edges, every activity of the book an inline card and every end exercise in the Exercises system. Chapters 1 to 5 were built by claude-fable-5-1 and Chapters 6 and 7 by claude-opus-5-5, both at high effort; each section's `ai` names its makers.
 
 ## Standing decisions for the build (carried into every chapter's `config.md`)
 
