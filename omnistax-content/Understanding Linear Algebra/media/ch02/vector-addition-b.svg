@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="vector-addition-b-figure" width="260" height="260" viewBox="0 0 260 260">
+  <defs>
+    <clipPath id="vector-addition-b-__clipPath-0">
+      <rect x="5.0" y="5.0" width="250.0" height="250.0"/>
+    </clipPath>
+    <clipPath id="vector-addition-b-__clipPath-1">
+      <rect x="5.0" y="5.0" width="250.0" height="250.0"/>
+    </clipPath>
+    <marker id="vector-addition-b-arrow-head-end-3_None_24_60-h777" markerWidth="13.5" markerHeight="12.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="9.8" refY="6.0">
+      <path d="M 13.5 6.0L 0.0 12.0L 2.6 7.5L 2.6 4.5L 0.0 0.0Z" fill="#777" stroke="none"/>
+    </marker>
+    <marker id="vector-addition-b-arrow-head-end-3_None_24_60-h777-outline" markerWidth="17.5" markerHeight="16.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="11.8" refY="8.0">
+      <path d="M 16.3 9.8 L 2.8 15.8 A 2 2 0 0 1 0.0 14.0 L 0.0 2.0 A 2 2 0 0 1 2.8 0.2 L 16.3 6.2 A 2 2 0 0 1 16.3 9.8 Z" fill="white" stroke="none"/>
+    </marker>
+    <marker id="vector-addition-b-arrow-head-end-3_None_24_60-blue" markerWidth="13.5" markerHeight="12.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="9.8" refY="6.0">
+      <path d="M 13.5 6.0L 0.0 12.0L 2.6 7.5L 2.6 4.5L 0.0 0.0Z" fill="blue" stroke="none"/>
+    </marker>
+    <marker id="vector-addition-b-arrow-head-end-3_None_24_60-blue-outline" markerWidth="17.5" markerHeight="16.0" markerUnits="userSpaceOnUse" orient="auto-start-reverse" refX="11.8" refY="8.0">
+      <path d="M 16.3 9.8 L 2.8 15.8 A 2 2 0 0 1 0.0 14.0 L 0.0 2.0 A 2 2 0 0 1 2.8 0.2 L 16.3 6.2 A 2 2 0 0 1 16.3 9.8 Z" fill="white" stroke="none"/>
+    </marker>
+  </defs>
+  <g id="vector-addition-b-grid-axes">
+    <g id="vector-addition-b-grid" stroke="#ccc" stroke-width="1">
+      <line x1="5.0" y1="255.0" x2="5.0" y2="5.0"/>
+      <line x1="40.7" y1="255.0" x2="40.7" y2="5.0"/>
+      <line x1="76.4" y1="255.0" x2="76.4" y2="5.0"/>
+      <line x1="112.1" y1="255.0" x2="112.1" y2="5.0"/>
+      <line x1="147.9" y1="255.0" x2="147.9" y2="5.0"/>
+      <line x1="183.6" y1="255.0" x2="183.6" y2="5.0"/>
+      <line x1="219.3" y1="255.0" x2="219.3" y2="5.0"/>
+      <line x1="255.0" y1="255.0" x2="255.0" y2="5.0"/>
+      <line x1="5.0" y1="255.0" x2="255.0" y2="255.0"/>
+      <line x1="5.0" y1="219.3" x2="255.0" y2="219.3"/>
+      <line x1="5.0" y1="183.6" x2="255.0" y2="183.6"/>
+      <line x1="5.0" y1="147.9" x2="255.0" y2="147.9"/>
+      <line x1="5.0" y1="112.1" x2="255.0" y2="112.1"/>
+      <line x1="5.0" y1="76.4" x2="255.0" y2="76.4"/>
+      <line x1="5.0" y1="40.7" x2="255.0" y2="40.7"/>
+      <line x1="5.0" y1="5.0" x2="255.0" y2="5.0"/>
+    </g>
+    <g id="vector-addition-b-axes" stroke="black" stroke-width="2">
+      <line id="vector-addition-b-__line-16" x1="5.0" y1="219.3" x2="255.0" y2="219.3" stroke="black" stroke-width="2"/>
+      <line id="vector-addition-b-__line-17" x1="40.7" y1="255.0" x2="40.7" y2="5.0" stroke="black" stroke-width="2"/>
+    </g>
+    <g id="vector-addition-b-__label-0" transform="translate(251.0,215.3) translate(-10.4,-8.2)">
+      <g id="vector-addition-b-__g-0">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -0.200px" width="10.352px" height="8.200px" role="img" focusable="false" viewBox="0 -442 572 453" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-1-NCM-I-1D465" d="M527 373C527 419 482 442 432 442C389 442 355 419 329 373C308 419 273 442 222 442C173 442 133 419 101 374C74 335 60 306 60 287C60 278 65 273 75 273C84 273 90 278 92 287C111 345 153 413 220 413C253 413 269 392 269 351C269 330 251 252 216 118C199 51 169 18 126 18C112 18 99 21 88 26C114 36 127 54 127 80C127 106 114 119 87 119C54 119 29 91 29 58C29 12 76-11 125-11C167-11 201 12 228 58C247 12 283-11 335-11C383-11 423 12 455 57C482 96 496 125 496 144C496 153 491 158 481 158C472 158 467 153 464 144C447 87 402 18 337 18C304 18 287 38 287 79C287 92 292 120 303 165L337 300C356 375 387 413 431 413C445 413 458 410 469 405C442 396 429 378 429 351C429 325 443 312 470 312C502 312 527 341 527 373Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="mi" data-semantic-type="identifier" data-semantic-role="latinletter" data-semantic-font="italic" data-semantic-annotation="clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:x" data-semantic-speech="x">
+                <use data-c="1D465" xlink:href="#vector-addition-b-MJX-1-NCM-I-1D465"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <g id="vector-addition-b-__label-1" transform="translate(44.7,9.0) translate(0.0,-0.0)">
+      <g id="vector-addition-b-__g-1">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -3.712px" width="8.872px" height="11.712px" role="img" focusable="false" viewBox="0 -442 490 647" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-2-NCM-I-1D466" d="M163 442C118 442 83 417 58 367C39 328 29 301 29 286C29 277 34 272 45 272C59 272 60 278 64 293C87 372 119 412 160 412C173 412 180 403 180 385C180 369 175 346 164 317C126 214 107 145 107 108C107 32 154-13 231-13C264-13 295-1 323 23C288-109 233-175 158-175C124-175 101-164 89-142C129-140 149-121 149-85C149-60 136-47 109-47C72-47 50-78 50-115C50-170 100-205 158-205C273-205 367-99 392-1L486 377C489 388 490 396 490 401C490 421 479 431 458 431C442 431 429 423 420 408C414 387 409 369 406 354L342 97C332 61 279 16 234 16C196 16 177 41 177 92C177 134 194 198 227 284C240 319 247 343 247 357C247 406 212 442 163 442Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="mi" data-semantic-type="identifier" data-semantic-role="latinletter" data-semantic-font="italic" data-semantic-annotation="clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:y" data-semantic-speech="y">
+                <use data-c="1D466" xlink:href="#vector-addition-b-MJX-2-NCM-I-1D466"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+  </g>
+  <g id="vector-addition-b-v">
+    <g id="vector-addition-b-v" transform="translate(100.3,207.4) translate(0.0,-0.0)">
+      <g id="vector-addition-b-__g-2">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.528px" width="44.232px" height="18.096px" role="img" focusable="false" viewBox="0 -750 2444 1000" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-3-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="vector-addition-b-MJX-3-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="vector-addition-b-MJX-3-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="vector-addition-b-MJX-3-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\vvec;color:red" data-semantic-speech="red backslash vvec">
+                <use data-c="5C" xlink:href="#vector-addition-b-MJX-3-NCM-N-5C"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-3-NCM-N-76" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-3-NCM-N-76" transform="translate(1028,0)"/>
+                <use data-c="65" xlink:href="#vector-addition-b-MJX-3-NCM-N-65" transform="translate(1556,0)"/>
+                <use data-c="63" xlink:href="#vector-addition-b-MJX-3-NCM-N-63" transform="translate(2000,0)"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#777" stroke-width="3" fill="none" marker-end="url(#vector-addition-b-arrow-head-end-3_None_24_60-h777)" d="M 40.7 219.3 L 144.4 184.7"/>
+  </g>
+  <g id="vector-addition-b-v-trans">
+    <g id="vector-addition-b-v-trans" transform="translate(159.7,88.3) translate(-44.2,-18.1)">
+      <g id="vector-addition-b-__g-3">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.528px" width="44.232px" height="18.096px" role="img" focusable="false" viewBox="0 -750 2444 1000" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-4-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="vector-addition-b-MJX-4-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="vector-addition-b-MJX-4-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="vector-addition-b-MJX-4-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\vvec;color:red" data-semantic-speech="red backslash vvec">
+                <use data-c="5C" xlink:href="#vector-addition-b-MJX-4-NCM-N-5C"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-4-NCM-N-76" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-4-NCM-N-76" transform="translate(1028,0)"/>
+                <use data-c="65" xlink:href="#vector-addition-b-MJX-4-NCM-N-65" transform="translate(1556,0)"/>
+                <use data-c="63" xlink:href="#vector-addition-b-MJX-4-NCM-N-63" transform="translate(2000,0)"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#777" stroke-width="3" fill="none" marker-end="url(#vector-addition-b-arrow-head-end-3_None_24_60-h777)" d="M 112.1 112.1 L 215.8 77.6"/>
+  </g>
+  <g id="vector-addition-b-w-trans">
+    <g id="vector-addition-b-w-trans" transform="translate(189.6,136.0) translate(0.0,-0.0)">
+      <g id="vector-addition-b-__g-4">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.528px" width="47.744px" height="18.096px" role="img" focusable="false" viewBox="0 -750 2638 1000" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-5-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="vector-addition-b-MJX-5-NCM-N-77" d="M620 332C634 371 662 392 703 393L703 431C672 428 646 427 627 428L531 431L531 393C569 392 588 377 588 349C588 345 587 339 584 330L497 89L403 353C400 362 399 367 399 370C399 385 418 393 457 393L457 431L350 428C330 427 299 428 258 431L258 393C293 393 314 388 321 379C324 376 332 359 343 328L262 102L172 354C169 363 167 368 167 370C167 385 187 393 226 393L226 431L114 428L18 431L18 393C67 393 80 394 91 361L216 13C222-3 230-11 240-11C251-11 259-4 264 11L360 279L457 10C462-4 470-11 481-11C488-10 496-3 504 10Z"/>
+            <path id="vector-addition-b-MJX-5-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="vector-addition-b-MJX-5-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="vector-addition-b-MJX-5-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\wvec;color:red" data-semantic-speech="red backslash wvec">
+                <use data-c="5C" xlink:href="#vector-addition-b-MJX-5-NCM-N-5C"/>
+                <use data-c="77" xlink:href="#vector-addition-b-MJX-5-NCM-N-77" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-5-NCM-N-76" transform="translate(1222,0)"/>
+                <use data-c="65" xlink:href="#vector-addition-b-MJX-5-NCM-N-65" transform="translate(1750,0)"/>
+                <use data-c="63" xlink:href="#vector-addition-b-MJX-5-NCM-N-63" transform="translate(2194,0)"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#777" stroke-width="3" fill="none" marker-end="url(#vector-addition-b-arrow-head-end-3_None_24_60-h777)" d="M 147.9 183.6 L 217.3 79.5"/>
+  </g>
+  <g id="vector-addition-b-w">
+    <g id="vector-addition-b-w" transform="translate(70.4,159.7) translate(-47.7,-18.1)">
+      <g id="vector-addition-b-__g-5">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.528px" width="47.744px" height="18.096px" role="img" focusable="false" viewBox="0 -750 2638 1000" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-6-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="vector-addition-b-MJX-6-NCM-N-77" d="M620 332C634 371 662 392 703 393L703 431C672 428 646 427 627 428L531 431L531 393C569 392 588 377 588 349C588 345 587 339 584 330L497 89L403 353C400 362 399 367 399 370C399 385 418 393 457 393L457 431L350 428C330 427 299 428 258 431L258 393C293 393 314 388 321 379C324 376 332 359 343 328L262 102L172 354C169 363 167 368 167 370C167 385 187 393 226 393L226 431L114 428L18 431L18 393C67 393 80 394 91 361L216 13C222-3 230-11 240-11C251-11 259-4 264 11L360 279L457 10C462-4 470-11 481-11C488-10 496-3 504 10Z"/>
+            <path id="vector-addition-b-MJX-6-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="vector-addition-b-MJX-6-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="vector-addition-b-MJX-6-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math">
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\wvec;color:red" data-semantic-speech="red backslash wvec">
+                <use data-c="5C" xlink:href="#vector-addition-b-MJX-6-NCM-N-5C"/>
+                <use data-c="77" xlink:href="#vector-addition-b-MJX-6-NCM-N-77" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-6-NCM-N-76" transform="translate(1222,0)"/>
+                <use data-c="65" xlink:href="#vector-addition-b-MJX-6-NCM-N-65" transform="translate(1750,0)"/>
+                <use data-c="63" xlink:href="#vector-addition-b-MJX-6-NCM-N-63" transform="translate(2194,0)"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="#777" stroke-width="3" fill="none" marker-end="url(#vector-addition-b-arrow-head-end-3_None_24_60-h777)" d="M 40.7 219.3 L 110.1 115.2"/>
+  </g>
+  <g id="vector-addition-b-sum">
+    <g id="vector-addition-b-sum" transform="translate(219.3,70.4) translate(-57.1,-18.1)">
+      <g id="vector-addition-b-__g-6">
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -4.528px" width="114.104px" height="18.096px" role="img" focusable="false" viewBox="0 -750 6304.4 1000" x="0.0" y="0.0">
+          <defs>
+            <path id="vector-addition-b-MJX-7-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+            <path id="vector-addition-b-MJX-7-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+            <path id="vector-addition-b-MJX-7-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+            <path id="vector-addition-b-MJX-7-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+            <path id="vector-addition-b-MJX-7-NCM-N-2B" d="M698 274L413 274L413 559C413 575 405 583 389 583C373 583 365 575 365 559L365 274L80 274C64 274 56 266 56 250C56 234 64 226 80 226L365 226L365-59C365-75 373-83 389-83C405-83 413-75 413-59L413 226L698 226C714 226 722 234 722 250C722 263 711 274 698 274Z"/>
+            <path id="vector-addition-b-MJX-7-NCM-N-77" d="M620 332C634 371 662 392 703 393L703 431C672 428 646 427 627 428L531 431L531 393C569 392 588 377 588 349C588 345 587 339 584 330L497 89L403 353C400 362 399 367 399 370C399 385 418 393 457 393L457 431L350 428C330 427 299 428 258 431L258 393C293 393 314 388 321 379C324 376 332 359 343 328L262 102L172 354C169 363 167 368 167 370C167 385 187 393 226 393L226 431L114 428L18 431L18 393C67 393 80 394 91 361L216 13C222-3 230-11 240-11C251-11 259-4 264 11L360 279L457 10C462-4 470-11 481-11C488-10 496-3 504 10Z"/>
+          </defs>
+          <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+            <g data-mml-node="math" data-semantic-type="infixop" data-semantic-role="addition" data-semantic-annotation="depth:1" data-semantic-id="3" data-semantic-children="0,2" data-semantic-content="1" data-semantic-attributes="latex:\vvec + \wvec" data-semantic-speech="red backslash vvec plus red backslash wvec">
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="annotation" data-semantic-font="normal" data-semantic-annotation="factor:operator;clearspeak:unit;nemeth:number;depth:2" data-semantic-id="0" data-semantic-parent="3" data-semantic-attributes="latex:\vvec;color:red" data-semantic-speech="red backslash vvec">
+                <use data-c="5C" xlink:href="#vector-addition-b-MJX-7-NCM-N-5C"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-7-NCM-N-76" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-7-NCM-N-76" transform="translate(1028,0)"/>
+                <use data-c="65" xlink:href="#vector-addition-b-MJX-7-NCM-N-65" transform="translate(1556,0)"/>
+                <use data-c="63" xlink:href="#vector-addition-b-MJX-7-NCM-N-63" transform="translate(2000,0)"/>
+              </g>
+              <g data-mml-node="mo" data-semantic-type="operator" data-semantic-role="addition" data-semantic-annotation="depth:2" data-semantic-id="1" data-semantic-parent="3" data-semantic-attributes="latex:+" data-semantic-operator="infixop,+" data-semantic-speech="plus" transform="translate(2666.2,0)">
+                <use data-c="2B" xlink:href="#vector-addition-b-MJX-7-NCM-N-2B"/>
+              </g>
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="annotation" data-semantic-font="normal" data-semantic-annotation="factor:operator;clearspeak:unit;depth:2" data-semantic-id="2" data-semantic-parent="3" data-semantic-attributes="latex:\wvec;color:red" data-semantic-speech="red backslash wvec" transform="translate(3666.4,0)">
+                <use data-c="5C" xlink:href="#vector-addition-b-MJX-7-NCM-N-5C"/>
+                <use data-c="77" xlink:href="#vector-addition-b-MJX-7-NCM-N-77" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#vector-addition-b-MJX-7-NCM-N-76" transform="translate(1222,0)"/>
+                <use data-c="65" xlink:href="#vector-addition-b-MJX-7-NCM-N-65" transform="translate(1750,0)"/>
+                <use data-c="63" xlink:href="#vector-addition-b-MJX-7-NCM-N-63" transform="translate(2194,0)"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </g>
+    </g>
+    <path stroke="blue" stroke-width="3" fill="none" marker-end="url(#vector-addition-b-arrow-head-end-3_None_24_60-blue)" d="M 40.7 219.3 L 216.4 78.7"/>
+  </g>
+</svg>

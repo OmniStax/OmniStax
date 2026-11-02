@@ -1,0 +1,40 @@
+{
+  "id": "understanding-linear-algebra",
+  "title": "Understanding Linear Algebra",
+  "publisher": "David Austin",
+  "authors": ["David Austin"],
+  "source_url": "https://understandinglinearalgebra.org",
+  "copyright": "David Austin",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "language": "en",
+  "highlights": {
+    "facts": true,
+    "refs": true,
+    "concepts": true,
+    "words": false,
+    "symbols": true,
+    "underlines": true
+  },
+  "chapters": [],
+  "intro": { "module": "preface" },
+  "types": [
+    { "id": "vector", "label": "vector" },
+    { "id": "matrix", "label": "matrix, transformation" },
+    { "id": "region", "label": "subspace, span, solution set" },
+    { "id": "eigenvalue", "label": "eigenvalue, singular value" },
+    { "id": "point", "label": "data point" },
+    { "id": "curve", "label": "trajectory" }
+  ],
+  "symbols": [],
+  "exercise_kinds": [
+    { "id": "preview", "label": "Preview Activity" },
+    { "id": "activity", "label": "Activity" },
+    { "id": "checkpoint", "label": "Checkpoint" },
+    { "id": "exercise", "label": "Exercise" }
+  ],
+  "exercise_sources": [],
+  "concepts": [],
+  "concept_prereqs": [],
+  "sheets": []
+}

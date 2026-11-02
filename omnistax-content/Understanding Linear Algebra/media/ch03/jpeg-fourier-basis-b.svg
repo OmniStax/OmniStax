@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="jpeg-fourier-basis-b-figure" width="285" height="210" viewBox="0 0 285 210">
+  <defs>
+    <clipPath id="jpeg-fourier-basis-b-__clipPath-0">
+      <rect x="30.0" y="5.0" width="250.0" height="200.0"/>
+    </clipPath>
+    <clipPath id="jpeg-fourier-basis-b-__clipPath-1">
+      <rect x="30.0" y="5.0" width="250.0" height="200.0"/>
+    </clipPath>
+  </defs>
+  <g id="jpeg-fourier-basis-b-axes" stroke="black" stroke-width="2">
+    <line id="jpeg-fourier-basis-b-__line-0" x1="30.0" y1="105.0" x2="280.0" y2="105.0" stroke="black" stroke-width="2"/>
+    <g>
+      <line id="jpeg-fourier-basis-b-__line-1" x1="65.7" y1="108.0" x2="65.7" y2="102.0"/>
+      <line id="jpeg-fourier-basis-b-__line-2" x1="101.4" y1="108.0" x2="101.4" y2="102.0"/>
+      <line id="jpeg-fourier-basis-b-__line-3" x1="137.1" y1="108.0" x2="137.1" y2="102.0"/>
+      <line id="jpeg-fourier-basis-b-__line-4" x1="172.9" y1="108.0" x2="172.9" y2="102.0"/>
+      <line id="jpeg-fourier-basis-b-__line-5" x1="208.6" y1="108.0" x2="208.6" y2="102.0"/>
+      <line id="jpeg-fourier-basis-b-__line-6" x1="244.3" y1="108.0" x2="244.3" y2="102.0"/>
+      <line id="jpeg-fourier-basis-b-__line-7" x1="280.0" y1="108.0" x2="280.0" y2="102.0"/>
+    </g>
+    <line id="jpeg-fourier-basis-b-__line-8" x1="30.0" y1="205.0" x2="30.0" y2="5.0" stroke="black" stroke-width="2"/>
+    <g>
+      <line id="jpeg-fourier-basis-b-__line-9" x1="27.0" y1="185.0" x2="33.0" y2="185.0"/>
+      <line id="jpeg-fourier-basis-b-__line-10" x1="27.0" y1="25.0" x2="33.0" y2="25.0"/>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-0" transform="translate(34.0,9.0) translate(0.0,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-0">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -5.168px" width="52.136px" height="18.736px" role="img" focusable="false" viewBox="0 -750 2880.6 1035.4" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-1-NCM-N-5C" d="M420-250C436-250 444-242 444-226C444-223 444-220 443-218L101 734C97 745 90 750 79 750C63 750 55 742 55 726C55 723 55 720 56 718L398-234C402-245 409-250 420-250Z"/>
+          <path id="jpeg-fourier-basis-b-MJX-1-NCM-N-76" d="M388 354C388 349 386 342 382 332L286 91L179 356C175 365 173 370 173 371C173 386 192 393 230 393L230 431L118 428C94 427 61 428 19 431L19 393C75 393 84 395 98 359L240 10C245-4 253-11 264-11C275-11 283-4 288 10L417 329C421 340 425 349 430 357C444 381 470 393 508 393L508 431C475 428 449 427 430 428L341 431L341 393C370 392 388 380 388 354Z"/>
+          <path id="jpeg-fourier-basis-b-MJX-1-NCM-N-65" d="M415 251C415 366 348 448 236 448C176 448 126 425 85 378C47 334 28 281 28 220C28 157 49 104 91 58C133 12 185-11 247-11C304-11 348 9 378 48C403 81 415 105 415 121C415 131 409 136 398 136C390 136 385 131 382 120C360 54 317 21 253 21C208 21 173 42 146 85C127 116 118 163 117 227L387 227C409 227 415 229 415 251M326 349C337 316 342 284 342 255L118 255C121 321 138 366 168 389C193 409 215 419 236 419C281 419 311 396 326 349Z"/>
+          <path id="jpeg-fourier-basis-b-MJX-1-NCM-N-63" d="M251 416C293 416 325 406 347 386C323 383 306 361 306 338C306 305 322 289 355 289C388 289 404 306 404 339C404 410 327 448 250 448C188 448 137 426 96 380C55 334 34 279 34 216C34 155 55 101 96 56C137 11 187-11 248-11C298-11 337 3 365 32C388 55 403 78 411 102C414 111 415 117 415 121C415 130 409 134 398 134C390 134 385 130 382 122C361 55 320 21 257 21C228 21 200 34 172 61C139 92 123 144 123 218C123 318 161 416 251 416Z"/>
+          <path id="jpeg-fourier-basis-b-MJX-1-NCM-N-31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="msub" data-semantic-type="subscript" data-semantic-role="unknown" data-semantic-annotation="depth:1" data-semantic-id="2" data-semantic-children="0,1" data-semantic-attributes="latex:\vvec_{1}" data-semantic-speech="red backslash vvec Subscript 1">
+              <g data-mml-node="mtext" fill="red" stroke="red" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:2" data-semantic-id="0" data-semantic-parent="2" data-semantic-attributes="latex:\vvec;color:red" data-semantic-speech="red backslash vvec" data-semantic-prefix="Base">
+                <use data-c="5C" xlink:href="#jpeg-fourier-basis-b-MJX-1-NCM-N-5C"/>
+                <use data-c="76" xlink:href="#jpeg-fourier-basis-b-MJX-1-NCM-N-76" transform="translate(500,0)"/>
+                <use data-c="76" xlink:href="#jpeg-fourier-basis-b-MJX-1-NCM-N-76" transform="translate(1028,0)"/>
+                <use data-c="65" xlink:href="#jpeg-fourier-basis-b-MJX-1-NCM-N-65" transform="translate(1556,0)"/>
+                <use data-c="63" xlink:href="#jpeg-fourier-basis-b-MJX-1-NCM-N-63" transform="translate(2000,0)"/>
+              </g>
+              <g data-mml-node="TeXAtom" transform="translate(2477,-285.4) scale(0.707)" data-mjx-texclass="ORD">
+                <g data-mml-node="mn" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="clearspeak:simple;depth:2" data-semantic-id="1" data-semantic-parent="2" data-semantic-attributes="latex:{1};texclass:ORD" data-semantic-speech="1" data-semantic-prefix="Subscript">
+                  <use data-c="31" xlink:href="#jpeg-fourier-basis-b-MJX-1-NCM-N-31"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-1" transform="translate(65.7,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-1">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: 0.000px" width="9.048px" height="12.056px" role="img" focusable="false" viewBox="0 -666 500 666" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-2-NCM-N-31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{1}" data-semantic-speech="1">
+              <use data-c="31" xlink:href="#jpeg-fourier-basis-b-MJX-2-NCM-N-31"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-2" transform="translate(101.4,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-2">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: 0.000px" width="9.048px" height="12.056px" role="img" focusable="false" viewBox="0 -666 500 666" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-3-NCM-N-32" d="M237 666C186 666 143 648 106 612C69 576 50 534 50 483C50 449 75 424 106 424C136 424 161 450 161 480C161 513 137 536 105 536C102 536 100 536 98 535C117 584 161 627 224 627C306 627 352 556 352 470C352 403 318 331 250 255L62 43C49 28 50 29 50 0L421 0L450 180L417 180C409 129 402 100 396 91C391 86 361 84 306 84L139 84L236 179C304 243 390 312 419 365C439 400 449 435 449 470C449 588 357 666 237 666Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{2}" data-semantic-speech="2">
+              <use data-c="32" xlink:href="#jpeg-fourier-basis-b-MJX-3-NCM-N-32"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-3" transform="translate(137.1,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-3">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -0.400px" width="9.048px" height="12.456px" role="img" focusable="false" viewBox="0 -666 500 688" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-4-NCM-N-33" d="M303 353C369 378 431 441 431 526C431 569 410 604 369 631C333 654 292 666 246 666C201 666 162 654 127 631C88 605 68 571 68 528C68 495 90 472 122 472C154 472 176 495 176 527C176 560 157 578 119 580C145 615 186 633 242 633C302 633 332 598 332 527C332 485 324 450 309 421C282 373 245 364 183 364C171 362 165 357 165 348C165 333 172 333 192 333L235 333C310 333 348 280 348 173C348 88 317 14 241 14C176 14 128 36 99 80C134 79 160 105 160 139C160 173 135 198 101 198C62 198 42 178 42 137C42 88 64 49 108 18C147-9 193-22 244-22C301-22 350-3 393 34C436 71 457 117 457 173C457 267 383 332 303 353Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{3}" data-semantic-speech="3">
+              <use data-c="33" xlink:href="#jpeg-fourier-basis-b-MJX-4-NCM-N-33"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-4" transform="translate(172.9,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-4">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: 0.000px" width="9.048px" height="12.256px" role="img" focusable="false" viewBox="0 -677 500 677" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-5-NCM-N-34" d="M353 677C344 677 336 672 330 663L28 199L28 163L289 163L289 81C289 63 285 51 278 46C271 41 252 39 219 39L194 39L194 0C223 2 269 3 331 3C393 3 439 2 468 0L468 39L443 39C410 39 391 41 384 46C377 51 373 63 373 81L373 163L471 163L471 202L373 202L373 660C373 670 366 677 353 677M295 553L295 202L67 202Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{4}" data-semantic-speech="4">
+              <use data-c="34" xlink:href="#jpeg-fourier-basis-b-MJX-5-NCM-N-34"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-5" transform="translate(208.6,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-5">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -0.400px" width="9.048px" height="12.456px" role="img" focusable="false" viewBox="0 -666 500 688" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-6-NCM-N-35" d="M118 315C123 315 129 319 134 326C164 371 205 393 257 393C292 393 319 373 337 332C348 305 354 264 354 209C354 146 346 102 331 76C306 35 272 14 229 14C162 14 109 62 91 114C94 113 96 114 100 114C130 114 155 137 155 167C155 198 130 219 100 219C65 219 50 200 50 163C50 63 131-22 231-22C292-22 344 0 386 44C428 88 449 141 449 202C449 260 432 310 398 353C361 400 315 423 259 423C212 423 171 408 138 378L138 556C165 548 191 544 218 544C264 544 304 555 338 578C369 597 390 616 402 634C408 642 411 648 411 651C411 661 406 666 396 666C341 645 294 634 256 634C211 634 168 643 127 662C122 664 118 665 114 665C105 665 100 656 100 637L100 345C100 324 100 315 118 315Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{5}" data-semantic-speech="5">
+              <use data-c="35" xlink:href="#jpeg-fourier-basis-b-MJX-6-NCM-N-35"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-6" transform="translate(244.3,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-6">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -0.400px" width="9.048px" height="12.456px" role="img" focusable="false" viewBox="0 -666 500 688" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-7-NCM-N-36" d="M383 504C416 504 432 521 432 555C432 627 378 666 304 666C221 666 155 627 106 548C63 480 42 403 42 316C42 189 65 100 112 47C152 1 198-22 251-22C312-22 362 1 401 47C438 91 457 144 457 205C457 266 439 318 403 361C365 407 316 431 257 431C205 431 165 402 138 346L138 352C138 465 166 561 226 605C252 624 279 633 306 633C342 633 368 623 385 602C351 602 334 583 334 553C334 525 355 504 383 504M344 340C355 317 361 272 361 206C361 141 356 98 345 76C325 35 294 14 251 14C222 14 200 24 184 44C171 60 162 74 158 85C146 116 140 163 140 227C140 255 144 282 151 308C164 355 201 399 256 399C295 399 325 379 344 340Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{6}" data-semantic-speech="6">
+              <use data-c="36" xlink:href="#jpeg-fourier-basis-b-MJX-7-NCM-N-36"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-7" transform="translate(280.0,116.0) translate(-4.5,-0.0)">
+    <g id="jpeg-fourier-basis-b-__g-7">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: -0.400px" width="9.048px" height="12.632px" role="img" focusable="false" viewBox="0 -676 500 698" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-8-NCM-N-37" d="M475 604C482 613 485 626 485 644L243 644C174 644 135 648 128 657C125 660 122 667 120 676L89 676L55 464L88 464C98 520 106 550 112 555C115 558 146 560 205 560L401 560L295 410C214 295 174 171 174 36C174-3 190-22 223-22C256-22 272-3 272 36L272 87C272 239 296 349 343 416Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{7}" data-semantic-speech="7">
+              <use data-c="37" xlink:href="#jpeg-fourier-basis-b-MJX-8-NCM-N-37"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-8" transform="translate(19.0,185.0) translate(-15.1,-6.0)">
+    <g id="jpeg-fourier-basis-b-__g-8">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: 0.000px" width="15.080px" height="12.056px" role="img" focusable="false" viewBox="0 -666 833 666" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-9-NCM-N-2D" d="M11 187L276 187L276 245L11 245Z"/>
+          <path id="jpeg-fourier-basis-b-MJX-9-NCM-N-31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="text" data-semantic-role="unknown" data-semantic-font="normal" data-semantic-annotation="clearspeak:unit;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{-1}" data-semantic-speech="minus 1">
+              <use data-c="2D" xlink:href="#jpeg-fourier-basis-b-MJX-9-NCM-N-2D"/>
+              <use data-c="31" xlink:href="#jpeg-fourier-basis-b-MJX-9-NCM-N-31" transform="translate(333,0)"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <g id="jpeg-fourier-basis-b-__label-9" transform="translate(19.0,25.0) translate(-9.0,-6.0)">
+    <g id="jpeg-fourier-basis-b-__g-9">
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" style="vertical-align: 0.000px" width="9.048px" height="12.056px" role="img" focusable="false" viewBox="0 -666 500 666" x="0.0" y="0.0">
+        <defs>
+          <path id="jpeg-fourier-basis-b-MJX-10-NCM-N-31" d="M269 666C228 624 168 603 89 603L89 564C141 564 184 572 217 588L217 82C217 64 213 52 204 47C195 42 170 39 130 39L95 39L95 0C120 2 174 3 257 3C340 3 394 2 419 0L419 39L384 39C343 39 318 42 310 47C302 52 297 64 297 82L297 636C297 660 295 666 269 666Z"/>
+        </defs>
+        <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+          <g data-mml-node="math">
+            <g data-mml-node="mtext" data-semantic-type="number" data-semantic-role="integer" data-semantic-font="normal" data-semantic-annotation="general:text;clearspeak:simple;nemeth:number;depth:1" data-semantic-id="0" data-semantic-attributes="latex:\text{1}" data-semantic-speech="1">
+              <use data-c="31" xlink:href="#jpeg-fourier-basis-b-MJX-10-NCM-N-31"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </g>
+  </g>
+  <path id="jpeg-fourier-basis-b-graph" stroke="#777" stroke-width="2" fill="none" d="M 30.0 26.5 L 32.5 27.0 L 35.0 27.5 L 37.5 28.1 L 40.0 28.7 L 42.5 29.4 L 45.0 30.2 L 47.5 31.0 L 50.0 31.8 L 52.5 32.7 L 55.0 33.7 L 57.5 34.7 L 60.0 35.8 L 62.5 37.0 L 65.0 38.1 L 67.5 39.4 L 70.0 40.6 L 72.5 42.0 L 75.0 43.4 L 77.5 44.8 L 80.0 46.3 L 82.5 47.8 L 85.0 49.3 L 87.5 50.9 L 90.0 52.6 L 92.5 54.2 L 95.0 56.0 L 97.5 57.7 L 100.0 59.5 L 102.5 61.3 L 105.0 63.2 L 107.5 65.1 L 110.0 67.0 L 112.5 69.0 L 115.0 70.9 L 117.5 72.9 L 120.0 75.0 L 122.5 77.0 L 125.0 79.1 L 127.5 81.2 L 130.0 83.3 L 132.5 85.4 L 135.0 87.5 L 137.5 89.7 L 140.0 91.9 L 142.5 94.0 L 145.0 96.2 L 147.5 98.4 L 150.0 100.6 L 152.5 102.8 L 155.0 105.0 L 157.5 107.2 L 160.0 109.4 L 162.5 111.6 L 165.0 113.8 L 167.5 116.0 L 170.0 118.1 L 172.5 120.3 L 175.0 122.5 L 177.5 124.6 L 180.0 126.7 L 182.5 128.8 L 185.0 130.9 L 187.5 133.0 L 190.0 135.0 L 192.5 137.1 L 195.0 139.1 L 197.5 141.0 L 200.0 143.0 L 202.5 144.9 L 205.0 146.8 L 207.5 148.7 L 210.0 150.5 L 212.5 152.3 L 215.0 154.0 L 217.5 155.8 L 220.0 157.4 L 222.5 159.1 L 225.0 160.7 L 227.5 162.2 L 230.0 163.7 L 232.5 165.2 L 235.0 166.6 L 237.5 168.0 L 240.0 169.4 L 242.5 170.6 L 245.0 171.9 L 247.5 173.0 L 250.0 174.2 L 252.5 175.3 L 255.0 176.3 L 257.5 177.3 L 260.0 178.2 L 262.5 179.0 L 265.0 179.8 L 267.5 180.6 L 270.0 181.3 L 272.5 181.9 L 275.0 182.5 L 277.5 183.0 L 280.0 183.5" clip-path="url(#jpeg-fourier-basis-b-__clipPath-1)"/>
+  <g id="jpeg-fourier-basis-b-components">
+    <circle id="jpeg-fourier-basis-b-point-k_0" cx="30.0" cy="26.5" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_1" cx="65.7" cy="38.5" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_2" cx="101.4" cy="60.6" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_3" cx="137.1" cy="89.4" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_4" cx="172.9" cy="120.6" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_5" cx="208.6" cy="149.4" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_6" cx="244.3" cy="171.5" r="4" stroke="black" stroke-width="2" fill="blue"/>
+    <circle id="jpeg-fourier-basis-b-point-k_7" cx="280.0" cy="183.5" r="4" stroke="black" stroke-width="2" fill="blue"/>
+  </g>
+</svg>
