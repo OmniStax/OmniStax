@@ -1,0 +1,987 @@
+{
+  "id": "6.1",
+  "module": "sec-dot-product",
+  "chapter": "6",
+  "title": "The dot product",
+  "lead": "The <span data-concept=\"dot-product\">dot product</span> combines two <span data-concept=\"vector\">vectors</span> into a single number. This section asks what that number says about the vectors’ lengths and the angle between them, and then puts it to work comparing vectors and grouping data points into clusters with the <span data-concept=\"k-means-clustering\">$k$-means algorithm</span>.",
+  "objectives": [],
+  "summary_html": "<p>This section introduced the <span data-concept=\"dot-product\">dot product</span> and the ability to investigate geometric relationships between <span data-concept=\"vector\">vectors</span>.</p><ul><li><p>The <span data-concept=\"dot-product\">dot product</span> of two <span data-concept=\"vector\">vectors</span> $\\kvecv$ and $\\kvecw$ satisfies these properties:</p>$$ \\begin{array}{rcl} \\kvecv\\cdot\\kvecv & {}={} & \\left|\\kvecv\\right|^2 \\\\ \\kvecv\\cdot\\kvecw & {}={} & \\left|\\kvecv\\right|\\left|\\kvecw\\right|\\cos\\theta \\\\ \\end{array} $$<p>where $\\theta$ is the <span data-concept=\"angle-between-two-vectors\">angle between $\\kvecv$ and $\\kvecw$</span>.</p></li><li>The <span data-concept=\"vector\">vectors</span> $\\kvecv$ and $\\kvecw$ are <span data-concept=\"orthogonal-vectors\">orthogonal</span> when $\\kvecv\\cdot\\kvecw= 0$.</li><li>We explored some applications of the <span data-concept=\"dot-product\">dot product</span> to the <span data-concept=\"vector-similarity-by-angle\">similarity of vectors</span>, correlation of time series, and <span data-concept=\"k-means-clustering\">$k$-means clustering</span>.</li></ul>",
+  "notes": "The section’s Sage cells are not live: the eight with code stand in Activities 6.1.3 and 6.1.5 as code blocks, and the three empty cells are left out, as are the empty grids and axes the book gives for sketching (Figures 6.1.1, 6.1.6, 6.1.11 and 6.1.15).",
+  "ai": {
+    "text": [
+      {
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      }
+    ],
+    "figures": [
+      {
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      }
+    ]
+  },
+  "built": "2026-11-02",
+  "exercises_lead": "",
+  "exercise_notes": "The book’s own answers and solutions key every activity and exercise of the section; the preview activity and the four activities stand in the text as cards, the Sage code of Activities 6.1.3 and 6.1.5 in their cards, and the author’s sketches of Activities 6.1.2, 6.1.4 and 6.1.5 and of Exercise 6.1.5 in the answers. Every keyed number was checked by computation. Four slips are kept as printed and noted under their cards: the angle of Activity 6.1.2 c, the centroid of Activity 6.1.4 d, the unit-vector length of Exercise 6.1.2 b and a denominator in Exercise 6.1.9’s solution. Exercise 6.1.11 keeps Figure 6.1.16. Bloom levels and concept tags are AI-judged.",
+  "figures": [
+    {
+      "id": "sim-vector-length",
+      "kind": "sim",
+      "number": "6.1.4",
+      "originals": [
+        "/media/ch06/dot-length.svg"
+      ],
+      "original_caption": "The vector v = [3, 2].",
+      "widths": [],
+      "draws": [
+        "vector"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    },
+    {
+      "id": "sim-dot-product-angle",
+      "kind": "sim",
+      "number": "6.1.5",
+      "originals": [
+        "/media/ch06/dot-angle.svg"
+      ],
+      "original_caption": "The dot product v·w measures the angle θ.",
+      "widths": [],
+      "draws": [
+        "vector"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    },
+    {
+      "id": "sim-dot-product-shadow",
+      "kind": "sim",
+      "draws": [
+        "vector"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    },
+    {
+      "id": "sim-similar-vectors",
+      "kind": "sim",
+      "number": "6.1.8",
+      "originals": [
+        "/media/ch06/similar-vectors.svg"
+      ],
+      "original_caption": "Which of the vectors are most similar?",
+      "widths": [],
+      "draws": [
+        "vector"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    },
+    {
+      "id": "sim-correlation-series",
+      "kind": "sim",
+      "number": "6.1.9",
+      "originals": [
+        "/media/ch06/correlation-pos.svg",
+        "/media/ch06/correlation-neg.svg"
+      ],
+      "original_caption": "On the left, the demeaned time series are positive scalar multiples of one another. On the right, they are negative scalar multiples.",
+      "widths": [],
+      "draws": [
+        "vector"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    },
+    {
+      "id": "sim-k-means-data",
+      "kind": "sim",
+      "number": "6.1.10",
+      "originals": [
+        "/media/ch06/cluster-plot.svg"
+      ],
+      "original_caption": "A set of 177 data points.",
+      "widths": [],
+      "draws": [
+        "point"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    },
+    {
+      "id": "sim-k-means-four-points",
+      "kind": "sim",
+      "number": "6.1.12",
+      "folds": [
+        "6.1.13",
+        "6.1.14"
+      ],
+      "originals": [
+        "/media/ch06/kmeans-data.svg",
+        "/media/ch06/kmeans-data.svg",
+        "/media/ch06/kmeans-data.svg"
+      ],
+      "original_caption": "(Figure 6.1.12) We will group this set of four points into two clusters. (Figure 6.1.13) Indicate the new centroids and clusters. (Figure 6.1.14) Indicate the new centroids and clusters.",
+      "widths": [],
+      "draws": [
+        "point",
+        "vector"
+      ],
+      "ai": [
+        {
+          "model": "claude-opus-5-5",
+          "effort": "high",
+          "part": "built"
+        }
+      ]
+    }
+  ],
+  "referents": [
+    {
+      "id": "series-1",
+      "label": "the time series t₁",
+      "figures": [
+        "sim-correlation-series"
+      ]
+    },
+    {
+      "id": "series-2",
+      "label": "the time series t₂",
+      "figures": [
+        "sim-correlation-series"
+      ]
+    },
+    {
+      "id": "cluster-1",
+      "label": "the cluster C₁",
+      "figures": [
+        "sim-k-means-data",
+        "sim-k-means-four-points"
+      ]
+    },
+    {
+      "id": "cluster-2",
+      "label": "the cluster C₂",
+      "figures": [
+        "sim-k-means-data",
+        "sim-k-means-four-points"
+      ]
+    },
+    {
+      "id": "cluster-3",
+      "label": "the cluster C₃",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    },
+    {
+      "id": "cluster-4",
+      "label": "the cluster C₄",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    },
+    {
+      "id": "cluster-5",
+      "label": "the cluster C₅",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    },
+    {
+      "id": "cluster-6",
+      "label": "the cluster C₆",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    },
+    {
+      "id": "cluster-7",
+      "label": "the cluster C₇",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    },
+    {
+      "id": "cluster-8",
+      "label": "the cluster C₈",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    },
+    {
+      "id": "cluster-9",
+      "label": "the cluster C₉",
+      "figures": [
+        "sim-k-means-data"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "span": "dot-product-intro",
+      "concept": "dot-product",
+      "verb": "introduces"
+    },
+    {
+      "span": "dot-product-intro",
+      "concept": "vector",
+      "verb": "uses"
+    },
+    {
+      "span": "dot-product-intro",
+      "concept": "linear-system-of-equations",
+      "verb": "uses"
+    },
+    {
+      "span": "two-dimensional",
+      "concept": "dot-product",
+      "verb": "reinforces"
+    },
+    {
+      "span": "dot-product-general",
+      "concept": "dot-product",
+      "verb": "reinforces"
+    },
+    {
+      "span": "produces-scalar",
+      "concept": "scalar",
+      "verb": "uses"
+    },
+    {
+      "span": "example-6-1-2",
+      "concept": "dot-product",
+      "verb": "reinforces"
+    },
+    {
+      "span": "assemblage-dot-properties",
+      "concept": "properties-of-the-dot-product",
+      "verb": "introduces"
+    },
+    {
+      "span": "assemblage-dot-properties",
+      "concept": "linear-combination",
+      "verb": "uses"
+    },
+    {
+      "span": "example-6-1-3",
+      "concept": "properties-of-the-dot-product",
+      "verb": "reinforces"
+    },
+    {
+      "span": "sim-vector-length",
+      "concept": "magnitude-of-a-vector",
+      "verb": "reinforces"
+    },
+    {
+      "span": "length",
+      "concept": "magnitude-of-a-vector",
+      "verb": "introduces"
+    },
+    {
+      "span": "true-in-general",
+      "concept": "magnitude-of-a-vector",
+      "verb": "reinforces"
+    },
+    {
+      "span": "law-of-cosines",
+      "concept": "magnitude-of-a-vector",
+      "verb": "uses"
+    },
+    {
+      "span": "law-of-cosines",
+      "concept": "properties-of-the-dot-product",
+      "verb": "uses"
+    },
+    {
+      "span": "upshot",
+      "concept": "angle-between-two-vectors",
+      "verb": "introduces"
+    },
+    {
+      "span": "assemblage-geometric",
+      "concept": "angle-between-two-vectors",
+      "verb": "reinforces"
+    },
+    {
+      "span": "assemblage-geometric",
+      "concept": "magnitude-of-a-vector",
+      "verb": "reinforces"
+    },
+    {
+      "span": "sim-dot-product-shadow",
+      "concept": "angle-between-two-vectors",
+      "verb": "reinforces"
+    },
+    {
+      "span": "perpendicular",
+      "concept": "angle-between-two-vectors",
+      "verb": "uses"
+    },
+    {
+      "span": "definition-6-1-7",
+      "concept": "orthogonal-vectors",
+      "verb": "introduces"
+    },
+    {
+      "span": "zero-vector",
+      "concept": "orthogonal-vectors",
+      "verb": "reinforces"
+    },
+    {
+      "span": "zero-vector",
+      "concept": "zero-vector",
+      "verb": "uses"
+    },
+    {
+      "span": "compare-vectors",
+      "concept": "vector-similarity-by-angle",
+      "verb": "introduces"
+    },
+    {
+      "span": "compare-vectors",
+      "concept": "angle-between-two-vectors",
+      "verb": "uses"
+    },
+    {
+      "span": "sim-correlation-series",
+      "concept": "vector-similarity-by-angle",
+      "verb": "reinforces"
+    },
+    {
+      "span": "clustering",
+      "concept": "clustering",
+      "verb": "introduces"
+    },
+    {
+      "span": "distance",
+      "concept": "distance-between-vectors",
+      "verb": "introduces"
+    },
+    {
+      "span": "distance",
+      "concept": "vectors-as-points",
+      "verb": "uses"
+    },
+    {
+      "span": "distance",
+      "concept": "magnitude-of-a-vector",
+      "verb": "uses"
+    },
+    {
+      "span": "algorithm",
+      "concept": "centroid-of-a-set-of-vectors",
+      "verb": "introduces"
+    },
+    {
+      "span": "algorithm",
+      "concept": "k-means-clustering",
+      "verb": "introduces"
+    },
+    {
+      "span": "depends-on-start",
+      "concept": "k-means-clustering",
+      "verb": "reinforces"
+    },
+    {
+      "span": "objective",
+      "concept": "clustering-objective",
+      "verb": "introduces"
+    },
+    {
+      "span": "objective",
+      "concept": "distance-between-vectors",
+      "verb": "uses"
+    },
+    {
+      "span": "objective-value",
+      "concept": "clustering-objective",
+      "verb": "reinforces"
+    },
+    {
+      "span": "sim-k-means-data",
+      "concept": "k-means-clustering",
+      "verb": "reinforces"
+    },
+    {
+      "span": "reasonable-k",
+      "concept": "choosing-the-number-of-clusters",
+      "verb": "introduces"
+    }
+  ],
+  "exercises": [
+    {
+      "id": "a1",
+      "source_id": "6.1.1",
+      "source_number": "6.1.1",
+      "kind": "preview",
+      "bloom": "Apply",
+      "place": {
+        "at": "inline",
+        "after": "for-instance"
+      },
+      "cite": "two-dimensional",
+      "changes": "The book’s empty grid for sketching, Figure 6.1.1, is left out; Figure 6.1.4 draws a vector with its length.",
+      "prompt": "<ol type=\"a\"><li><p>Compute the dot product</p>$$ \\left[\\begin{array}{r}3 \\\\ 4 \\end{array}\\right]\\cdot\\left[\\begin{array}{r}2 \\\\ -2 \\end{array}\\right]\\text{.} $$</li><li><p>Sketch the vector $\\kvecv=\\left[\\begin{array}{r}3 \\\\ 4 \\end{array}\\right]$ below. Then use the Pythagorean theorem to find the length of $\\kvecv$.</p></li><li>Compute the dot product $\\kvecv\\cdot\\kvecv$. How is the dot product related to the length of $\\kvecv$?</li><li>Remember that the matrix $\\left[\\begin{array}{rr}0 & -1 \\\\ 1 & 0 \\\\ \\end{array}\\right]$ represents the matrix transformation that rotates vectors counterclockwise by $90^\\circ$. Beginning with the vector $\\kvecv = \\left[\\begin{array}{r}3 \\\\ 4 \\end{array}\\right]$, find $\\kvecw$, the result of rotating $\\kvecv$ by $90^\\circ$, and sketch it above.</li><li>What is the dot product $\\kvecv\\cdot\\kvecw$?</li><li>Suppose that $\\kvecv=\\left[\\begin{array}{r}a \\\\ b \\end{array}\\right]$. Find the vector $\\kvecw$ that results from rotating $\\kvecv$ by $90^\\circ$ and find the dot product $\\kvecv\\cdot\\kvecw$.</li><li>Suppose that $\\kvecv$ and $\\kvecw$ are two perpendicular vectors. What do you think their dot product $\\kvecv\\cdot\\kvecw$ is?</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{r}3 \\\\ 4 \\end{array}\\right]\\cdot\\left[\\begin{array}{r}2 \\\\ -2 \\end{array}\\right] = 3\\cdot2+4\\cdot(-2) = -2$.</li><li>The length of $\\kvecv$ is 5.</li><li>$\\kvecv\\cdot\\kvecv = 25$, which is the square of the length of $\\kvecv$.</li><li>$\\kvecw=\\left[\\begin{array}{r}-4 \\\\ 3 \\end{array}\\right]$</li><li>$\\kvecv\\cdot\\kvecw=0$.</li><li>$\\kvecv\\cdot\\kvecw=0$.</li><li>The dot product should be zero.</li></ol>"
+      }
+    },
+    {
+      "id": "a2",
+      "source_id": "6.1.2",
+      "source_number": "6.1.2",
+      "kind": "activity",
+      "bloom": "Apply",
+      "place": {
+        "at": "inline",
+        "after": "sim-dot-product-shadow"
+      },
+      "cite": "assemblage-geometric",
+      "changes": "The book’s empty grid for sketching, Figure 6.1.6, and the empty Sage cell of part (g) are left out; the answer keeps the author’s sketch.",
+      "prompt": "<ol type=\"a\"><li><p>Sketch the vectors $\\kvecv=\\left[\\begin{array}{r}3 \\\\ 2 \\end{array}\\right]$ and $\\kvecw=\\left[\\begin{array}{r}-1 \\\\ 3 \\end{array}\\right]$ using Figure 6.1.6.</p></li><li>Find the lengths $\\left|\\kvecv\\right|$ and $\\left|\\kvecw\\right|$ using the dot product.</li><li>Find the dot product $\\kvecv\\cdot\\kvecw$ and use it to find the angle between $\\kvecv$ and $\\kvecw$.</li><li>Consider the vector $\\kvecx = \\left[\\begin{array}{r}-2 \\\\ 3 \\end{array}\\right]$. Include it in your sketch in Figure 6.1.6 and find the angle between $\\kvecv$ and $\\kvecx$.</li><li>If two vectors are perpendicular, what can you say about their dot product? Explain your thinking.</li><li>For what value of $k$ is the vector $\\left[\\begin{array}{r}6 \\\\ k \\end{array}\\right]$ perpendicular to $\\kvecw$?</li><li><p>Sage can be used to find lengths of vectors and their dot products. For instance, if <code>v</code> and <code>w</code> are vectors, then <code>v.norm()</code> gives the length of <code>v</code> and <code>v * w</code> gives $\\kvecv\\cdot\\kvecw$.</p><p>Suppose that</p>$$ \\kvecv=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 3 \\\\ -2 \\end{array}\\right], \\hspace{24pt} \\kvecw=\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 4 \\\\ 1 \\end{array}\\right]\\text{.} $$<p>Use the Sage cell below to find $\\left|\\kvecv\\right|$, $\\left|\\kvecw\\right|$, $\\kvecv\\cdot\\kvecw$, and the angle between $\\kvecv$ and $\\kvecw$. You may use <code>arccos</code> to find the angle's measure expressed in radians.</p></li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><img src=\"/media/ch06/ex-6-1-1-plot.svg\" alt=\"The vectors v = [3, 2], w = [−1, 3] and x = [−2, 3] sketched on a grid.\" width=\"250\"></li><li>$\\left|\\kvecv\\right| = \\sqrt{13}$ and $\\left|\\kvecw\\right| = \\sqrt{10}$.</li><li>$\\theta = = 52.1^\\circ.$<sup class=\"fn\" data-note=\"a2-angle\"></sup></li><li>$\\theta = = 90^\\circ.$</li><li>Their dot product must be zero.</li><li>$k=2$.</li><li>$55.9^\\circ$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><img src=\"/media/ch06/ex-6-1-1-plot.svg\" alt=\"The vectors v = [3, 2], w = [−1, 3] and x = [−2, 3] sketched on a grid.\" width=\"250\"></li><li><p>We find that</p>$$ \\begin{aligned} \\kvecv\\cdot\\kvecv {}={} 13 \\\\ \\kvecw\\cdot\\kvecw {}={} 10 \\end{aligned} $$<p>so that $\\left|\\kvecv\\right| = \\sqrt{13}$ and $\\left|\\kvecw\\right| = \\sqrt{10}$.</p></li><li><p>$\\kvecv\\cdot\\kvecw = 3$ so that</p>$$ \\theta = \\arccos\\left(\\frac{\\kvecv\\cdot\\kvecw}{\\left|\\kvecv\\right|\\left|\\kvecw\\right|}\\right) = 52.1^\\circ. $$</li><li><p>$\\kvecv\\cdot\\kvecx = 0$ so that</p>$$ \\theta = \\arccos\\left(\\frac{\\kvecv\\cdot\\kvecx}{\\left|\\kvecv\\right|\\left|\\kvecx\\right|}\\right) = 90^\\circ. $$</li><li>If two vectors are perpendicular, then the angle between them is $90^\\circ$. Since $\\cos(90^\\circ) = 0$, their dot product must be zero.</li><li>The dot product is $-6 + 3k = 0$ so $k=2$.</li><li>We find that $\\left|\\kvecv\\right| = \\sqrt{17}$, $\\left|\\kvecw\\right| = 3\\sqrt{3}$, $\\kvecv\\cdot\\kvecw = 12$, and the angle between these vectors is $55.9^\\circ$.</li></ol>"
+      }
+    },
+    {
+      "id": "a3",
+      "source_id": "6.1.3",
+      "source_number": "6.1.3",
+      "kind": "activity",
+      "bloom": "Analyze",
+      "place": {
+        "at": "inline",
+        "after": "sim-correlation-series"
+      },
+      "cite": "compare-vectors",
+      "changes": "The two empty Sage cells of parts (a)(3) and (b)(2) are left out; Figure 6.1.9 stands in the text before the activity.",
+      "prompt": "<p>This activity explores two further uses of the dot product beginning with the similarity of vectors.</p><ol type=\"a\"><li><p>Our first task is to assess the similarity between various Wikipedia articles by forming vectors from each of five articles. In particular, one may download the text from a Wikipedia article, remove common words, such as “the” and “and”, count the number of times the remaining words appear in the article, and represent these counts in a vector.</p><p>For example, evaluate the following cell that loads some special commands along with the vectors constructed from the Wikipedia articles on Veteran’s Day, Memorial Day, Labor Day, the Golden Globe Awards, and the Super Bowl. For each of the five articles, you will see a list of the number of times 10 words appear in these articles. For instance, the word “act” appears 3 times in the Veteran’s Day article and 0 times in the Labor Day article.</p><pre class=\"sage\"><code>sage.repl.load.load(\"https://raw.githubusercontent.com/davidaustinm/ula_modules/master/dot_similarity.py\", globals())\nevents.head(int(10))\n</code></pre><p>For each of the five articles, we obtain 604-dimensional vectors, which are named <code>veterans</code>, <code>memorial</code>, <code>labor</code>, <code>golden</code>, and <code>super</code>.</p><ol><li>Suppose that two articles have no words in common. What is the value of the dot product between their corresponding vectors? What does this say about the angle between these vectors?</li><li>Suppose there are two articles on the same subject, yet one article is twice as long. What approximate relationship would you expect to hold between the two vectors? What does this say about the angle between them?</li><li><p>Use the Sage cell below to find the angle between the vector <code>veterans</code> and the other four vectors. To express the angle in degrees, use the <code>degrees(x)</code> command, which gives the number of degrees in <code>x</code> radians.</p></li><li>Compare the four angles you have found and discuss what they mean about the similarity between the Veteran’s Day article and the other four. How do your findings reflect the nature of these five events?</li></ol></li><li><p>Vectors are often used to represent how a quantity changes over time. For instance, the vector $\\kvecs=\\left[\\begin{array}{r}78.3 \\\\ 81.2 \\\\ 82.1 \\\\ 79.0 \\end{array}\\right]$ might represent the value of a company’s stock on four consecutive days. When interpreted in this way, we call the vector a <em>time series.</em> Evaluate the Sage cell below to see a representation of two time series $\\kvecsone$, in blue, and $\\kvecstwo$, in orange, which we imagine represent the value of two stocks over a period of time. (This cell relies on some data loaded by the first cell in this activity.)</p><pre class=\"sage\"><code>series_plot(s1, 'blue') + series_plot(s2, 'orange')\n</code></pre><p>Even though one stock has a higher value than the other, the two appear to be related since they seem to rise and fall at roughly similar ways. We often say that they are <em>correlated</em>, and we would like to measure the degree to which they are correlated.</p><ol><li><p>In order to compare the ways in which they rise and fall, we will first <em>demean</em> the time series; that is, for each time series, we will subtract its average value to obtain a new time series. There is a command, <code>demean(s)</code>, that returns the demeaned time series of <code>s</code>. Use the Sage cell below to demean the series $\\kvecsone$ and $\\kvecstwo$ and plot.</p><pre class=\"sage\"><code>ds1 = demean(s1)\nds2 = demean(s2)\nseries_plot(ds1, 'blue') + series_plot(ds2, 'orange')\n</code></pre></li><li><p>If the demeaned series are $\\kvecsonetilde$ and $\\kvecstwotilde$, then the correlation between $\\kvecsone$ and $\\kvecstwo$ is defined to be</p>$$ \\text{corr}(\\kvecsone, \\kvecstwo) = \\frac{\\kvecsonetilde\\cdot\\kvecstwotilde} {\\left|\\kvecsonetilde\\right|\\left|\\kvecstwotilde\\right|}. $$<p>Given the geometric interpretation of the dot product, the correlation equals the cosine of the angle between the demeaned time series, and therefore $\\text{corr}(\\kvecsone,\\kvecstwo)$ is between -1 and 1.</p><p>Find the correlation between $\\kvecsone$ and $\\kvecstwo$.</p></li><li><p>Suppose that two time series are such that their demeaned time series are scalar multiples of one another, as in Figure 6.1.9</p><p>For instance, suppose we have time series $\\kvectone$ and $\\kvecttwo$ whose demeaned time series $\\kvectonetilde$ and $\\kvecttwotilde$ are positive scalar multiples of one another. What is the angle between the demeaned vectors? What does this say about the correlation $\\text{corr}(\\kvectone, \\kvecttwo)$?</p></li><li>Suppose the demeaned time series $\\kvectonetilde$ and $\\kvecttwotilde$ are negative scalar multiples of one another, what is the angle between the demeaned vectors? What does this say about the correlation $\\text{corr}(\\kvectone, \\kvecttwo)$?</li><li><p>Use the Sage cell below to plot the time series $\\kvecsone$ and $\\kvecsthree$ and find their correlation.</p><pre class=\"sage\"><code>series_plot(s1, 'blue') + series_plot(s3, 'orange')\n</code></pre></li><li><p>Use the Sage cell below to plot the time series $\\kvecsone$ and $\\kvecsfour$ and find their correlation.</p><pre class=\"sage\"><code>series_plot(s1, 'blue') + series_plot(s4, 'orange')\n</code></pre></li></ol></li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><ol><li>They are perpendicular.</li><li>The angle should be close to 0.</li><li>The angle <code>veterans</code> makes with <code>memorial</code> is $46.4^\\circ$, with <code>labor</code> is $59.2^\\circ$, with <code>golden</code> is $86.2^\\circ$, and with <code>super</code> is $86.4^\\circ$.</li><li>The articles on Veteran’s Day and Memorial Day are most similar.</li></ol></li><li><ol><li>The graphs are now lowered so that their averages are zero.</li><li>$0.98$</li><li>$1$</li><li>$-1$</li><li>$-0.87$</li><li>$-0.10$</li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><ol><li>If there are no words in common, then the dot product between the two vectors will be zero. This means that they are perpendicular to one another.</li><li>The vectors should be, at least approximately, scalar multiples of one another, which means that the angle between them is zero.</li><li>The angle <code>veterans</code> makes with <code>memorial</code> is $46.4^\\circ$, with <code>labor</code> is $59.2^\\circ$, with <code>golden</code> is $86.2^\\circ$, and with <code>super</code> is $86.4^\\circ$.</li><li>It appears that the articles on Veteran’s Day and Memorial Day are most similar. This makes sense because both are U.S. national holidays that honor military service. The second most similar article is Labor Day, which is also a national holiday. The other two are quite dissimilar as they are entertainment events.</li></ol></li><li><ol><li>The graphs are now lowered so that their averages are zero.</li><li>The correlation is $0.98$, which is quite close to 1.</li><li>The angle should be zero, which means that the correlation will be $1$.</li><li>The angle should be $180^\\circ$, which means that the correlation should be $-1$.</li><li>The correlation is $-0.87$.</li><li>The correlation is $-0.10$.</li></ol></li></ol>"
+      }
+    },
+    {
+      "id": "a4",
+      "source_id": "6.1.4",
+      "source_number": "6.1.4",
+      "kind": "activity",
+      "bloom": "Apply",
+      "place": {
+        "at": "inline",
+        "after": "sim-k-means-four-points"
+      },
+      "cite": "distance",
+      "changes": "The book’s empty grid for sketching, Figure 6.1.11, is left out; Figures 6.1.12, 6.1.13 and 6.1.14 are one figure in the text before the activity, whose steps are the parts (b) to (e).",
+      "prompt": "<p>To begin, we identify the <em>centroid</em>, or the average, of a set of vectors $\\kvecvone, \\kvecvtwo, \\ldots,\\kvecv_n$ as</p>$$ \\frac1n\\left(\\kvecvone+\\kvecvtwo+\\ldots+\\kvecv_n\\right). $$<ol type=\"a\"><li><p>Find the centroid of the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r}4 \\\\ 1 \\end{array}\\right], \\kvecvthree=\\left[\\begin{array}{r}4 \\\\ 4 \\end{array}\\right]. $$<p>and sketch the vectors and the centroid using Figure 6.1.11. You may wish to simply plot the points represented by the tips of the vectors rather than drawing the vectors themselves.</p><p>Notice that the centroid lies in the center of the points defined by the vectors.</p></li><li><p>Now we'll illustrate an algorithm that forms clusterings. To begin, consider the following points, represented as vectors,</p>$$ \\kvecvone=\\left[\\begin{array}{r}-2 \\\\ 1 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right], \\kvecvthree=\\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right], \\kvecvfour=\\left[\\begin{array}{r}3 \\\\ 2 \\end{array}\\right], $$<p>which are shown in Figure 6.1.12.</p><p>Suppose that we would like to group these points into $k=2$ clusters. (Later on, we'll see how to choose an appropriate value for $k$, the number of clusters.) We begin by choosing two points $c_1$ and $c_2$ at random and declaring them to be the “centers”' of the two clusters.</p><p>For example, suppose we randomly choose $c_1=\\kvecvtwo$ and $c_2=\\kvecvthree$ as the center of two clusters. The cluster centered on $c_1=\\kvecvtwo$ will be the set of points that are closer to $c_1=\\kvecvtwo$ than to $c_2=\\kvecvthree$. Determine which of the four data points are in this cluster, which we denote by $C_1$, and circle them in Figure 6.1.12.</p></li><li>The second cluster will consist of the data points that are closer to $c_2=\\kvecvthree$ than $c_1=\\kvecvtwo$. Determine which of the four points are in this cluster, which we denote by $C_2$, and circle them in Figure 6.1.12.</li><li><p>We now have a clustering with two clusters, but we will try to improve upon it in the following way. First, find the centroids of the two clusters; that is, redefine $c_1$ to be the centroid of cluster $C_1$ and $c_2$ to be the centroid of $C_2$. Find those centroids and indicate them in Figure 6.1.13</p><p>Now update the cluster $C_1$ to be the set of points closer to $c_1$ than $c_2$. Update the cluster $C_2$ in a similar way and indicate the clusters in Figure 6.1.13.</p></li><li><p>Let's perform this last step again. That is, update the centroids $c_1$ and $c_2$ from the new clusters and then update the clusters $C_1$ and $C_2$. Indicate your centroids and clusters in Figure 6.1.14.</p><p>Notice that this last step produces the same set of clusters so there is no point in repeating it. We declare this to be our final clustering.</p></li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li><p>The centroid is $c = \\left[\\begin{array}{r}3 \\\\ 2 \\end{array}\\right]$.</p><img src=\"/media/ch06/k-means-6-1.svg\" alt=\"The points v₁ = (1, 1), v₂ = (4, 1), v₃ = (4, 4) and their centroid c = (3, 2).\" width=\"250\"></li><li>$C_1 = \\{\\kvecvone, \\kvecvtwo\\}$.</li><li>$C_2=\\{\\kvecvthree,\\kvecvfour\\}$.</li><li><p>$c_1 = \\left[\\begin{array}{r}-1/2 \\\\ 0 \\end{array}\\right]$<sup class=\"fn\" data-note=\"a4-centroid\"></sup> and $c_2 = \\left[\\begin{array}{r}2 \\\\ 2 \\end{array}\\right]$</p><p>$C_1 = \\{\\kvecvone\\}$ and $C_2=\\{\\kvecvtwo, \\kvecvthree, \\kvecvfour\\}$.</p></li><li>$c_1 = \\left[\\begin{array}{r}-2 \\\\ 1 \\end{array}\\right]$ and $c_2 = \\left[\\begin{array}{r}5/3 \\\\ 5/3 \\end{array}\\right]$. The clusters $C_1$ and $C_2$ are unchanged.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The centroid is $c = \\left[\\begin{array}{r}3 \\\\ 2 \\end{array}\\right]$.</p><img src=\"/media/ch06/k-means-6-1.svg\" alt=\"The points v₁ = (1, 1), v₂ = (4, 1), v₃ = (4, 4) and their centroid c = (3, 2).\" width=\"250\"></li><li>The first cluster is $C_1 = \\{\\kvecvone, \\kvecvtwo\\}$.</li><li>The second cluster is $C_2=\\{\\kvecvthree,\\kvecvfour\\}$.</li><li>We redefine $c_1 = \\left[\\begin{array}{r}-1/2 \\\\ 0 \\end{array}\\right]$ and $c_2 = \\left[\\begin{array}{r}2 \\\\ 2 \\end{array}\\right]$. This leads to new clusters $C_1 = \\{\\kvecvone\\}$ and $C_2=\\{\\kvecvtwo, \\kvecvthree, \\kvecvfour\\}$.</li><li>We have new centroids $c_1 = \\left[\\begin{array}{r}-2 \\\\ 1 \\end{array}\\right]$ and $c_2 = \\left[\\begin{array}{r}5/3 \\\\ 5/3 \\end{array}\\right]$, and the clusters $C_1$ and $C_2$ are unchanged.</li></ol>"
+      }
+    },
+    {
+      "id": "a5",
+      "source_id": "6.1.5",
+      "source_number": "6.1.5",
+      "kind": "activity",
+      "bloom": "Evaluate",
+      "place": {
+        "at": "inline",
+        "after": "objective-value"
+      },
+      "cite": "objective",
+      "changes": "The book’s empty axes for the elbow plot, Figure 6.1.15, are left out, and the answer keeps the author’s plot; Figure 6.1.10 runs the algorithm on the same data for every k from 2 to 9.",
+      "prompt": "<p>We'll now use the objective to compare clusterings and to choose an appropriate value of $k$.</p><ol type=\"a\"><li><p>In the previous activity, one initial choice of $c_1$ and $c_2$ led to the clustering:</p>$$ \\begin{array}{rcl} C_1 & {}={} & \\{\\kvecvone\\} \\\\ C_2 & {}={} & \\{\\kvecvtwo, \\kvecvthree,\\kvecvfour\\} \\end{array} $$<p>with centroids $c_1=\\kvecvone$ and $c_2=\\left[\\begin{array}{r}5/3 \\\\ 5/3 \\end{array}\\right]$. Find the objective of this clustering.</p></li><li>We have now seen two clusterings and computed their objectives. Recall that our dataset is shown in Figure 6.1.12. Which of the two clusterings feels like the better fit? How is this fit reflected in the values of the objectives?</li><li><p>Evaluating the following cell will load and display a dataset consisting of 177 data points. This dataset has the name <code>data</code>.</p><pre class=\"sage\"><code>sage.repl.load.load(\"https://raw.githubusercontent.com/davidaustinm/ula_modules/master/k_means.py\", globals())\nlist_plot(data, color='blue', size=20, aspect_ratio=1)\n</code></pre><p>Given this plot of the data, what would seem like a reasonable number of clusters?</p></li><li><p>In the following cell, you may choose a value of $k$ and then run the algorithm to determine and display a clustering and its objective. If you run the algorithm a few times with the same value of $k$, you will likely see different clusterings having different objectives. This is natural since our algorithm starts by making a random choice of points $c_1,c_2,\\ldots,c_k$, and a different choices may lead to different clusterings. Choose a value of $k$ and run the algorithm a few times. Notice that clusterings having lower objectives seem to fit the data better. Repeat this experiment with a few different values of $k$.</p><pre class=\"sage\"><code>k = 2  # you may change the value of k here\nclusters, centroids, objective = kmeans(data, k)\nprint('Objective =', objective)\nplotclusters(clusters, centroids)\n</code></pre></li><li><p>For a given value of $k$, our strategy is to run the algorithm several times and choose the clustering with the smallest objective. After choosing a value of $k$, the following cell will run the algorithm 10 times and display the clustering having the smallest objective.</p><pre class=\"sage\"><code>k = 2  # you may change the value of k here\nclusters, centroids, objective = minimalobjective(data, k)\nprint('Objective =', objective)\nplotclusters(clusters, centroids)\n</code></pre><p>For each value of $k$ between 2 and 9, find the clustering having the smallest objective and plot your findings in Figure 6.1.15.</p><p>This plot is called an <em>elbow plot</em> due to its shape. Notice how the objective decreases sharply when $k$ is small and then flattens out. This leads to a location, called the elbow, where the objective transitions from being sharply decreasing to relatively flat. This means that increasing $k$ beyond the elbow does not significantly decrease the objective, which makes the elbow a good choice for $k$.</p><p>Where does the elbow occur in your plot above? How does this compare to the best value of $k$ that you estimated by simply looking at the data in Item c.</p></li></ol><p>Of course, we could increase $k$ until each data point is its own cluster. However, this defeats the point of the technique, which is to group together nearby data points in the hope that they share common features, thus providing insight into the structure of the data.</p>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>The objective is $5/6$.</li><li>The clustering $C_1=\\{\\kvecvone\\}$ and $C_2 = \\{\\kvecvtwo, \\kvecvthree, \\kvecvfour\\}$ has a smaller objective.</li><li>$k=6$ or $k=7$.</li><li>With a fixed value of $k$, running the algorithm several times leads to different clusterings with different objectives. If we increase $k$, the objective generally decreases.</li><li><p>The elbow occurs around $k=6$ or $k=7$.</p><img src=\"/media/ch06/clustering-elbow-plot.svg\" alt=\"The smallest objective plotted against k from 2 to 9: 3.9, 1.87, 1.09, 0.66, 0.416, 0.32, 0.28, 0.245.\" width=\"420\"></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The objective is</p>$$ \\frac14\\left(\\left|(\\kvecvone - c_1)\\right|^2 + \\left|(\\kvecvtwo - c_2)\\right|^2 + \\left|(\\kvecvthree - c_2)\\right|^2 + \\left|(\\kvecvfour - c_2)\\right|^2\\right) = \\frac56\\text{.} $$</li><li>The clustering with $C_1=\\{\\kvecvone\\}$ and $C_2 = \\{\\kvecvtwo, \\kvecvthree, \\kvecvfour\\}$ appears to be a tighter clustering and has a smaller objective.</li><li>It appears that the best clustering is either $k=6$ or $k=7$.</li><li>With a fixed value of $k$, running the algorithm several times leads to different clusterings with different objectives. If we increase $k$, the objective generally decreases.</li><li><p>The elbow occurs around $k=6$ or $k=7$, which are the values that we felt led to the best clusterings.</p><img src=\"/media/ch06/clustering-elbow-plot.svg\" alt=\"The smallest objective plotted against k from 2 to 9: 3.9, 1.87, 1.09, 0.66, 0.416, 0.32, 0.28, 0.245.\" width=\"420\"></li></ol>"
+      }
+    },
+    {
+      "id": "e1",
+      "source_id": "6.1.1",
+      "source_number": "6.1.1",
+      "kind": "exercise",
+      "bloom": "Apply",
+      "place": {
+        "at": "end"
+      },
+      "cite": "assemblage-geometric",
+      "prompt": "<p>Consider the vectors</p>$$ \\kvecv=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 3 \\\\ -2 \\end{array}\\right], \\hspace{24pt} \\kvecw=\\left[\\begin{array}{r}1 \\\\ -3 \\\\ 4 \\\\ 1 \\end{array}\\right]. $$<ol type=\"a\"><li>Find the lengths of the vectors, $\\left|\\kvecv\\right|$ and $\\left|\\kvecw\\right|$.</li><li>Find the dot product $\\kvecv\\cdot\\kvecw$ and use it to find the angle $\\theta$ between $\\kvecv$ and $\\kvecw$.</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecv\\cdot\\kvecv=17$, $\\kvecw\\cdot\\kvecw = 27$, $\\left|\\kvecv\\right| = \\sqrt{17}$, and $\\left|\\kvecw\\right| = 3\\sqrt{3}$.</li><li>$\\kvecv\\cdot\\kvecw=12$ and $\\theta = 55.9^\\circ$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>We have $\\kvecv\\cdot\\kvecv=17$ and $\\kvecw\\cdot\\kvecw = 27$ so that $\\left|\\kvecv\\right| = \\sqrt{17}$ and $\\left|\\kvecw\\right| = 3\\sqrt{3}$.</li><li>Since $\\kvecv\\cdot\\kvecw=12$, we find that $\\theta = \\arccos(4/(\\sqrt{17}\\sqrt{3})) = 55.9^\\circ$.</li></ol>"
+      }
+    },
+    {
+      "id": "e2",
+      "source_id": "6.1.2",
+      "source_number": "6.1.2",
+      "kind": "exercise",
+      "bloom": "Apply",
+      "place": {
+        "at": "end"
+      },
+      "cite": "assemblage-dot-properties",
+      "prompt": "<p>Consider the three vectors</p>$$ \\kvecu = \\left[\\begin{array}{r}1 \\\\ -2 \\\\ 2 \\end{array}\\right], \\hspace{24pt} \\kvecv = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ 1 \\end{array}\\right], \\hspace{24pt} \\kvecw = \\left[\\begin{array}{r}0 \\\\ 2 \\\\ -1 \\end{array}\\right]. $$<ol type=\"a\"><li>Find the dot products $\\kvecu\\cdot\\kvecu$, $\\kvecu\\cdot\\kvecv$, and $\\kvecu\\cdot\\kvecw$.</li><li><p>Use the dot products you just found to evaluate:</p><ol><li>$\\left|\\kvecu\\right|$.</li><li>$(-5\\kvecu)\\cdot\\kvecv$.</li><li>$\\kvecu\\cdot(-3\\kvecv+2\\kvecw)$.</li><li>$\\left|\\frac1{\\left|\\kvecu\\right|} \\kvecu\\right|$.</li></ol></li><li>For what value of $k$ is $\\kvecu$ orthogonal to $k\\kvecv+5\\kvecw$?</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecu\\cdot\\kvecu=9$, $\\kvecu\\cdot\\kvecv=1$, and $\\kvecu\\cdot\\kvecw=-6$.</li><li><ol><li>$3$</li><li>$-5$</li><li>$-15$</li><li>$\\left[\\begin{array}{r}1/3 \\\\ -2/3 \\\\ 2/3 \\end{array}\\right]$<sup class=\"fn\" data-note=\"e2-unit-length\"></sup></li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecu\\cdot\\kvecu=9$, $\\kvecu\\cdot\\kvecv=1$, and $\\kvecu\\cdot\\kvecw=-6$.</li><li><ol><li>$\\left|\\kvecu\\right| = \\sqrt{\\kvecu\\cdot\\kvecu} = 3$</li><li>$(-5\\kvecu)\\cdot\\kvecv = -5(1) = -5$</li><li>$\\kvecu\\cdot(-3\\kvecv+2\\kvecw) = -3(1) + 2(-6) = -15$</li><li>$\\frac1{\\left|\\kvecu\\right|} = \\left[\\begin{array}{r}1/3 \\\\ -2/3 \\\\ 2/3 \\end{array}\\right]$</li></ol></li></ol>"
+      }
+    },
+    {
+      "id": "e3",
+      "source_id": "6.1.3",
+      "source_number": "6.1.3",
+      "kind": "exercise",
+      "bloom": "Apply",
+      "place": {
+        "at": "end"
+      },
+      "cite": "assemblage-geometric",
+      "prompt": "<p>Suppose that $\\kvecv$ and $\\kvecw$ are vectors where</p>$$ \\kvecv\\cdot\\kvecv = 4, \\hspace{24pt} \\kvecw\\cdot\\kvecw = 20,\\hspace{24pt} \\kvecv\\cdot\\kvecw=8. $$<ol type=\"a\"><li>What is $\\left|\\kvecv\\right|$?</li><li>What is the angle between $\\kvecv$ and $\\kvecw$?</li><li>Suppose that $t$ is a scalar. Find the value of $t$ for which $\\kvecv$ is orthogonal to $\\kvecw+t\\kvecv$?</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$2$</li><li>$\\theta = 26.6^\\circ$</li><li>$t=-2$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left|\\kvecv\\right| = \\sqrt{\\kvecv\\cdot\\kvecv} = 2$</li><li>$\\theta = \\arccos\\left(\\frac{\\kvecv\\cdot\\kvecw}{\\left|\\kvecv\\right|\\left|\\kvecw\\right|}\\right) = 26.6^\\circ$</li><li>$(\\kvecw+t\\kvecv)\\cdot\\kvecv = 8 + 4t = 0$ so $t=-2$.</li></ol>"
+      }
+    },
+    {
+      "id": "e4",
+      "source_id": "6.1.4",
+      "source_number": "6.1.4",
+      "kind": "exercise",
+      "bloom": "Understand",
+      "place": {
+        "at": "end"
+      },
+      "cite": "true-in-general",
+      "prompt": "<p>Suppose that $\\kvecv=3\\kvecw$.</p><ol type=\"a\"><li>What is the relationship between $\\kvecv\\cdot\\kvecv$ and $\\kvecw\\cdot\\kvecw$?</li><li>What is the relationship between $\\left|\\kvecv\\right|$ and $\\left|\\kvecw\\right|$?</li><li>If $\\kvecv=s\\kvecw$ for some scalar $s$, what is the relationship between $\\kvecv\\cdot\\kvecv$ and $\\kvecw\\cdot\\kvecw$? What is the relationship between $\\left|\\kvecv\\right|$ and $\\left|\\kvecw\\right|$?</li><li>Suppose that $\\kvecv=\\left[\\begin{array}{r}3 \\\\ -2 \\\\ 2 \\end{array}\\right]$. Find a scalar $s$ so that $s\\kvecv$ has length 1.</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecv\\cdot\\kvecv = 9\\kvecw\\cdot\\kvecw$</li><li>$\\left|\\kvecv\\right| = 3\\left|\\kvecw\\right|$</li><li>$\\left|\\kvecv\\right| = |s|\\left|\\kvecw\\right|$</li><li>$s=1/\\sqrt{17}$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecv\\cdot\\kvecv = (3\\kvecw)\\cdot(3\\kvecw) = 9\\kvecw\\cdot\\kvecw$</li><li>$\\left|\\kvecv\\right| = \\sqrt{\\kvecv\\cdot\\kvecv} = 3\\sqrt{\\kvecw\\cdot\\kvecw} = 3\\left|\\kvecw\\right|$</li><li>$\\kvecv\\cdot\\kvecv = s^2\\kvecw\\cdot\\kvecw$ so that $\\left|\\kvecv\\right| = |s|\\left|\\kvecw\\right|$</li><li>We know $\\left|s\\kvecv\\right| = s\\left|\\kvecv\\right| = s\\sqrt{17} = 1$ so $s=1/\\sqrt{17}$</li></ol>"
+      }
+    },
+    {
+      "id": "e5",
+      "source_id": "6.1.5",
+      "source_number": "6.1.5",
+      "kind": "exercise",
+      "bloom": "Analyze",
+      "place": {
+        "at": "end"
+      },
+      "cite": "true-in-general",
+      "prompt": "<p>Given vectors $\\kvecv$ and $\\kvecw$, explain why</p>$$ \\left|\\kvecv+\\kvecw\\right|^2 + \\left|\\kvecv-\\kvecw\\right|^2 = 2\\left|\\kvecv\\right|^2 + 2\\left|\\kvecw\\right|^2. $$<p>Sketch two vectors $\\kvecv$ and $\\kvecw$ and explain why this fact is called the <em>parallelogram law</em>.</p>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><p>Use the relationship $\\left|\\kvecu\\right|^2 = \\kvecu\\cdot\\kvecu$.</p><img src=\"/media/ch06/parallelogram-law.svg\" alt=\"The parallelogram spanned by v and w, with its diagonals v + w and v − w.\" width=\"250\"><p><strong>Solution.</strong></p>$$ \\begin{aligned} \\left|\\kvecv+\\kvecw\\right|^2 + \\left|\\kvecv-\\kvecw\\right|^2 {}={} & (\\kvecv+\\kvecw)\\cdot(\\kvecv+\\kvecw) + (\\kvecv-\\kvecw)\\cdot(\\kvecv-\\kvecw) \\\\ {}={} & \\kvecv\\cdot\\kvecv+2\\kvecv\\cdot\\kvecw + \\kvecw\\cdot\\kvecw + \\kvecv\\cdot\\kvecv-2\\kvecv\\cdot\\kvecw + \\kvecw\\cdot\\kvecw \\\\ {}={} & 2\\kvecv\\cdot\\kvecv + 2\\kvecw\\cdot\\kvecw \\\\ {}={} & 2\\left|\\kvecv\\right|^2 + 2\\left|\\kvecw\\right|^2 \\end{aligned} $$<img src=\"/media/ch06/parallelogram-law.svg\" alt=\"The parallelogram spanned by v and w, with its diagonals v + w and v − w.\" width=\"250\">"
+      }
+    },
+    {
+      "id": "e6",
+      "source_id": "6.1.6",
+      "source_number": "6.1.6",
+      "kind": "exercise",
+      "bloom": "Apply",
+      "place": {
+        "at": "end"
+      },
+      "cite": "definition-6-1-7",
+      "prompt": "<p>Consider the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}2 \\\\ 0 \\\\ 4 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}-1 \\\\ 2 \\\\ -4 \\end{array}\\right]. $$<p>and a general vector $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\\\ z \\end{array}\\right]$.</p><ol type=\"a\"><li>Write an equation in terms of $x$, $y$, and $z$ that describes all the vectors $\\kvecx$ orthogonal to $\\kvecvone$.</li><li>Write a linear system that describes all the vectors $\\kvecx$ orthogonal to both $\\kvecvone$ and $\\kvecvtwo$.</li><li>Write the solution set to this linear system in parametric form. What type of geometric object does this solution set represent? Indicate with a rough sketch why this makes sense.</li><li>Give a parametric description of all vectors orthogonal to $\\kvecvone$. What type of geometric object does this represent? Indicate with a rough sketch why this makes sense.</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$2x + 4z = 0$</li><li>$$ \\begin{aligned} 2x + 4z {}={} 0 \\\\ -x+2y-4z {}={} 0 \\end{aligned} $$</li><li>$\\kvecx = x_3\\left[\\begin{array}{r}-2 \\\\ 1 \\\\ 1 \\end{array}\\right]$</li><li>$\\kvecx = x_2\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 0 \\end{array}\\right] + x_3\\left[\\begin{array}{r}-2 \\\\ 0 \\\\ 1 \\end{array}\\right]$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kvecv\\cdot\\kvecx = 2x + 4z = 0$</li><li>$$ \\begin{aligned} 2x + 4z {}={} 0 \\\\ -x+2y-4z {}={} 0 \\end{aligned} $$</li><li>$\\kvecx = x_3\\left[\\begin{array}{r}-2 \\\\ 1 \\\\ 1 \\end{array}\\right]$, which describes a line</li><li>$\\kvecx = x_2\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 0 \\end{array}\\right] + x_3\\left[\\begin{array}{r}-2 \\\\ 0 \\\\ 1 \\end{array}\\right]$, which describes a plane.</li></ol>"
+      }
+    },
+    {
+      "id": "e7",
+      "source_id": "6.1.7",
+      "source_number": "6.1.7",
+      "kind": "exercise",
+      "bloom": "Understand",
+      "place": {
+        "at": "end"
+      },
+      "cite": "definition-6-1-7",
+      "prompt": "<p>Explain your responses to these questions.</p><ol type=\"a\"><li>Suppose that $\\kvecv$ is orthogonal to both $\\kvecwone$ and $\\kvecwtwo$. Can you guarantee that $\\kvecv$ is also orthogonal to any linear combination $c_1\\kvecwone+c_2\\kvecwtwo$?</li><li>Suppose that $\\kvecv$ is orthogonal to itself. What can you say about $\\kvecv$?</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Yes</li><li>$\\kvecv=\\kveczero$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Yes, because $\\kvecv\\cdot(c_1\\kvecwone+c_2\\kvecwtwo) = c_1\\kvecv\\cdot\\kvecwone + c_2\\kvecv\\cdot\\kvecwtwo = 0$</li><li>$\\kvecv\\cdot\\kvecv = \\left|\\kvecv\\right|^2 = 0$ so $\\kvecv=\\kveczero$</li></ol>"
+      }
+    },
+    {
+      "id": "e8",
+      "source_id": "6.1.8",
+      "source_number": "6.1.8",
+      "kind": "exercise",
+      "bloom": "Analyze",
+      "place": {
+        "at": "end"
+      },
+      "cite": "assemblage-dot-properties",
+      "prompt": "<p>Suppose that $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ form a basis for ${\\mathbb R}^3$ and that each vector is orthogonal to the other two. Suppose also that $\\kvecv$ is another vector in ${\\mathbb R}^3$.</p><ol type=\"a\"><li>Explain why $\\kvecv=c_1\\kvecvone+c_2\\kvecvtwo+c_3\\kvecvthree$ for some scalars $c_1$, $c_2$, and $c_3$.</li><li><p>Beginning with the expression</p>$$ \\kvecv\\cdot\\kvecvone = (c_1\\kvecvone+c_2\\kvecvtwo+c_3\\kvecvthree)\\cdot\\kvecvone, $$<p>apply the distributive property of dot products to explain why</p>$$ c_1=\\frac{\\kvecv\\cdot\\kvecvone}{\\kvecvone\\cdot\\kvecvone}. $$<p>Find similar expressions for $c_2$ and $c_3$.</p></li><li><p>Verify that</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 2 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvtwo=\\left[\\begin{array}{r}1 \\\\ -1 \\\\ 1 \\end{array}\\right],\\hspace{24pt} \\kvecvthree=\\left[\\begin{array}{r}1 \\\\ 0 \\\\ -1 \\end{array}\\right] $$<p>form a basis for ${\\mathbb R}^3$ and that each vector is orthogonal to the other two. Use what you've discovered in this problem to write the vector $\\kvecv=\\left[\\begin{array}{r}3 \\\\ 5 \\\\ -1 \\end{array}\\right]$ as a linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$.</p></li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Since $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ form a basis for ${\\mathbb R}^3$, any vector in ${\\mathbb R}^3$ can be written as a linear combination of them.</li><li><p>Apply the distributive property.</p><p>$c_2 = \\frac{\\kvecv\\cdot\\kvecvtwo}{\\kvecvtwo\\cdot\\kvecvtwo}$ and $c_3 = \\frac{\\kvecv\\cdot\\kvecvthree}{\\kvecvthree\\cdot\\kvecvthree}$</p></li><li>$\\kvecv = 2\\kvecvone - \\kvecvtwo + 2\\kvecvthree$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Since $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ form a basis for ${\\mathbb R}^3$, any vector in ${\\mathbb R}^3$ can be written as a linear combination of them.</li><li><p>$\\kvecv\\cdot\\kvecvone = c_1\\kvecvone\\cdot\\kvecvone$ so that $c_1 = \\frac{\\kvecv\\cdot\\kvecvone}{\\kvecvone\\cdot\\kvecvone}$.</p><p>In the same way, $c_2 = \\frac{\\kvecv\\cdot\\kvecvtwo}{\\kvecvtwo\\cdot\\kvecvtwo}$ and $c_3 = \\frac{\\kvecv\\cdot\\kvecvthree}{\\kvecvthree\\cdot\\kvecvthree}$</p></li><li>Check that the vectors are orthogonal by computing their dot products. Then $\\kvecv = 2\\kvecvone - \\kvecvtwo + 2\\kvecvthree$ by computing the ratios of dot products.</li></ol>"
+      }
+    },
+    {
+      "id": "e9",
+      "source_id": "6.1.9",
+      "source_number": "6.1.9",
+      "kind": "exercise",
+      "bloom": "Analyze",
+      "place": {
+        "at": "end"
+      },
+      "cite": "definition-6-1-7",
+      "prompt": "<p>Suppose that $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ are three nonzero vectors that are pairwise orthogonal; that is, each vector is orthogonal to the other two.</p><ol type=\"a\"><li>Explain why $\\kvecvthree$ cannot be a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</li><li>Explain why this set of three vectors is linearly independent.</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>If $\\kvecvthree = c_1\\kvecvone + c_2\\kvecvtwo$, then $c_1=0$ and $c_2=0$.</li><li>None of the vectors is a linear combination of the others.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>If $\\kvecvthree = c_1\\kvecvone + c_2\\kvecvtwo$, then $c_1 = \\frac{\\kvecvthree\\cdot\\kvecvone}{\\kvecvone\\cdot\\kvecvtwo} = 0$<sup class=\"fn\" data-note=\"e9-denominator\"></sup>. In the same way, $c_2=0$ so $\\kvecvthree$ must be the zero vector. We're told, however, that $\\kvecvthree$ is nonzero.</li><li>We've seen that $\\kvecvthree$ is not a linear combination of $\\kvecvone$ and $\\kvecvtwo$. The same thinking shows that none of the vectors is a linear combination of the others so they form a linearly independent set.</li></ol>"
+      }
+    },
+    {
+      "id": "e10",
+      "source_id": "6.1.10",
+      "source_number": "6.1.10",
+      "kind": "exercise",
+      "bloom": "Apply",
+      "place": {
+        "at": "end"
+      },
+      "cite": "dot-product-general",
+      "prompt": "<p>In the next chapter, we will consider certain $n\\times n$ matrices $A$ and define a function</p>$$ q(\\kvecx) = \\kvecx\\cdot(A\\kvecx), $$<p>where $\\kvecx$ is a vector in ${\\mathbb R}^n$.</p><ol type=\"a\"><li>Suppose that $A=\\begin{bmatrix} 1 & 2 \\\\ 2 & 1 \\\\ \\end{bmatrix}$ and $\\kvecx=\\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right]$. Evaluate $q(\\kvecx) = \\kvecx\\cdot(A\\kvecx)$.</li><li>For a general vector $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$, evaluate $q(\\kvecx) = \\kvecx\\cdot(A\\kvecx)$ as an expression involving $x$ and $y$.</li><li>Suppose that $\\kvecv$ is an eigenvector of a matrix $A$ with associated eigenvalue $\\lambda$ and that $\\kvecv$ has length 1. What is the value of the function $q(\\kvecv)$?</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$q(\\kvecx) = 13$</li><li>$q(\\kvecx) = x^2 + 4xy + y^2$</li><li>$q(\\kvecv) = \\lambda$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$q(\\kvecx) = 13$</li><li>$q(\\kvecx) = x^2 + 4xy + y^2$</li><li>$q(\\kvecv) = \\kvecv\\cdot(A\\kvecv) = \\lambda\\kvecv\\cdot\\kvecv = \\lambda$.</li></ol>"
+      }
+    },
+    {
+      "id": "e11",
+      "source_id": "6.1.11",
+      "source_number": "6.1.11",
+      "kind": "exercise",
+      "bloom": "Analyze",
+      "place": {
+        "at": "end"
+      },
+      "cite": "definition-6-1-7",
+      "figure": {
+        "src": "/media/ch06/ex-eq-line.svg",
+        "alt": "The line y = 3 − x/2 with the point p = (2, 2) on it and the vector n = (1, 2) perpendicular to it.",
+        "caption": "Figure 6.1.16 A line, a point p on the line, and a vector n perpendicular to the line."
+      },
+      "prompt": "<p>Back in <a href=\"/understanding-linear-algebra/ch01/1.1/\">Section 1.1</a>, we saw that equations of the form $Ax+By = C$ represent lines in the plane. In this exercise, we will see how this expression arises geometrically.</p><ol type=\"a\"><li>Find the slope and vertical intercept of the line shown in Figure 6.1.16. Then write an equation for the line in the form $y=mx+b$.</li><li>Suppose that $\\kvecp$ is a point on the line, that $\\kvecn$ is a vector perpendicular to the line, and that $\\kvecx=\\left[\\begin{array}{r}x \\\\ y \\end{array}\\right]$ is a general point on the line. Sketch the vector $\\kvecx-\\kvecp$ and describe the angle between this vector and the vector $\\kvecn$.</li><li>What is the value of the dot product $\\kvecn\\cdot(\\kvecx - \\kvecp)$?</li><li>Explain why the equation of the line can be written in the form $\\kvecn\\cdot\\kvecx = \\kvecn\\cdot\\kvecp$.</li><li>Identify the vectors $\\kvecp$ and $\\kvecn$ for the line illustrated in Figure 6.1.16 and use them to write the equation of the line in terms of $x$ and $y$. Verify that this expression is algebraically equivalent to the equation $y=mx+b$ that you earlier found for this line.</li><li>Explain why any line in the plane can be described by an equation having the form $Ax+By = C$. What is the significance of the vector $\\left[\\begin{array}{r}A \\\\ B \\end{array}\\right]$?</li></ol>",
+      "answer": {
+        "type": "open",
+        "generated_by": "source",
+        "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$y=3-x/2$.</li><li>$\\kvecx-\\kvecp$ is orthogonal to $\\kvecn$.</li><li>$0$</li><li>Apply the distributive property</li><li>$x+2y = 6$</li><li>$\\kvecn=\\left[\\begin{array}{r}A \\\\ B \\end{array}\\right]$ is perpendicular to the line.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The slope $m=-1/2$ and the intercept $b=3$ so $y=3-x/2$.</li><li>The vector $\\kvecx-\\kvecp$ is in the direction of the line so it is orthogonal to $\\kvecn$.</li><li>Since these vectors are orthogonal, their dot product is $0$.</li><li>Since $\\kvecn\\cdot(\\kvecx-\\kvecp) = 0$, we have $\\kvecn\\cdot\\kvecx - \\kvecn\\cdot\\kvecp = 0$, which implies that $\\kvecn\\cdot\\kvecx = \\kvecn\\cdot\\kvecp$.</li><li>$\\kvecp=\\left[\\begin{array}{r}2 \\\\ 2 \\end{array}\\right]$ and $\\kvecn=\\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right]$. This gives $x+2y = 6$. We can rearrange this to have the form $y=3-x/2$.</li><li>If we choose a vector $\\kvecn=\\left[\\begin{array}{r}A \\\\ B \\end{array}\\right]$ that is perpendicular to the line and a point $\\kvecp$ on the line, we have $\\kvecn\\cdot\\kvecx = Ax + By = \\kvecn\\cdot\\kvecp = C$.</li></ol>"
+      }
+    }
+  ],
+  "exercise_concepts": [
+    {
+      "exercise": "a1",
+      "concept": "dot-product"
+    },
+    {
+      "exercise": "a1",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "a1",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "a2",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "a2",
+      "concept": "angle-between-two-vectors"
+    },
+    {
+      "exercise": "a2",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "a3",
+      "concept": "vector-similarity-by-angle"
+    },
+    {
+      "exercise": "a3",
+      "concept": "angle-between-two-vectors"
+    },
+    {
+      "exercise": "a4",
+      "concept": "centroid-of-a-set-of-vectors"
+    },
+    {
+      "exercise": "a4",
+      "concept": "k-means-clustering"
+    },
+    {
+      "exercise": "a4",
+      "concept": "distance-between-vectors"
+    },
+    {
+      "exercise": "a5",
+      "concept": "clustering-objective"
+    },
+    {
+      "exercise": "a5",
+      "concept": "choosing-the-number-of-clusters"
+    },
+    {
+      "exercise": "a5",
+      "concept": "k-means-clustering"
+    },
+    {
+      "exercise": "e1",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "e1",
+      "concept": "angle-between-two-vectors"
+    },
+    {
+      "exercise": "e2",
+      "concept": "properties-of-the-dot-product"
+    },
+    {
+      "exercise": "e2",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "e2",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e3",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "e3",
+      "concept": "angle-between-two-vectors"
+    },
+    {
+      "exercise": "e3",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e4",
+      "concept": "properties-of-the-dot-product"
+    },
+    {
+      "exercise": "e4",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "e5",
+      "concept": "magnitude-of-a-vector"
+    },
+    {
+      "exercise": "e5",
+      "concept": "properties-of-the-dot-product"
+    },
+    {
+      "exercise": "e6",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e6",
+      "concept": "parametric-description"
+    },
+    {
+      "exercise": "e7",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e7",
+      "concept": "properties-of-the-dot-product"
+    },
+    {
+      "exercise": "e8",
+      "concept": "properties-of-the-dot-product"
+    },
+    {
+      "exercise": "e8",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e9",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e9",
+      "concept": "linear-independence-of-vectors"
+    },
+    {
+      "exercise": "e10",
+      "concept": "dot-product"
+    },
+    {
+      "exercise": "e10",
+      "concept": "eigenvector"
+    },
+    {
+      "exercise": "e11",
+      "concept": "orthogonal-vectors"
+    },
+    {
+      "exercise": "e11",
+      "concept": "linear-equation"
+    },
+    {
+      "exercise": "e11",
+      "concept": "properties-of-the-dot-product"
+    }
+  ],
+  "footnotes": [
+    {
+      "id": "a2-angle",
+      "kind": "correction",
+      "html": "For $\\kvecv\\cdot\\kvecw = 3$ and $\\left|\\kvecv\\right|\\left|\\kvecw\\right| = \\sqrt{13}\\sqrt{10} = \\sqrt{130}$, the angle is $\\theta = \\arccos(3/\\sqrt{130}) = 74.7^\\circ$; the book’s answer and solution print $52.1^\\circ$ (the answer with a doubled equals sign)."
+    },
+    {
+      "id": "a4-centroid",
+      "kind": "correction",
+      "html": "The centroid of $C_1 = \\{\\kvecvone, \\kvecvtwo\\}$ is $\\tfrac12\\left(\\left[\\begin{array}{r}-2 \\\\ 1 \\end{array}\\right] + \\left[\\begin{array}{r}1 \\\\ 1 \\end{array}\\right]\\right) = \\left[\\begin{array}{r}-1/2 \\\\ 1 \\end{array}\\right]$; the book’s answer and solution print a second entry of $0$. The clusters that follow are unchanged."
+    },
+    {
+      "id": "e2-unit-length",
+      "kind": "correction",
+      "html": "The part asks for the length $\\left|\\frac{1}{\\left|\\kvecu\\right|}\\kvecu\\right|$, which is $1$; the book’s answer and solution give the vector $\\frac{1}{\\left|\\kvecu\\right|}\\kvecu$ itself, which the solution writes as $\\frac{1}{\\left|\\kvecu\\right|}$."
+    },
+    {
+      "id": "e9-denominator",
+      "kind": "correction",
+      "html": "The weight is $c_1 = \\frac{\\kvecvthree\\cdot\\kvecvone}{\\kvecvone\\cdot\\kvecvone}$, as in Exercise 6.1.8; the book prints $\\kvecvone\\cdot\\kvecvtwo$ in the denominator, which is $0$ here."
+    },
+    {
+      "id": "count-177",
+      "kind": "correction",
+      "html": "The data set the figure plots, the author’s <code>clusters_data.csv</code>, holds 178 points."
+    },
+    {
+      "id": "fig-count-177",
+      "kind": "correction",
+      "figure": "sim-k-means-data",
+      "html": "The caption’s count is the book’s; the data set the figure plots holds 178 points."
+    }
+  ],
+  "derivations": [
+    {
+      "id": "dot-product-angle",
+      "what": "the dot product and the angle between vectors",
+      "source": "Understanding Linear Algebra, 6.1 The dot product",
+      "nodes": [
+        {
+          "assumes": [
+            {
+              "text": "The Law of Cosines: in a triangle with sides of lengths $a$, $b$ and $c$, where $\\theta$ is the angle between the sides $a$ and $b$, $c^2 = a^2 + b^2 - 2ab\\cos\\theta$.",
+              "src": "6.1, The geometry of the dot product"
+            },
+            {
+              "tex": "\\kvecv\\cdot\\kvecv = \\left|\\kvecv\\right|^2",
+              "src": "6.1, Figure 6.1.4"
+            },
+            {
+              "text": "The dot product is commutative and distributes across linear combinations: $\\kvecv\\cdot\\kvecw = \\kvecw\\cdot\\kvecv$ and $(c_1\\kvecvone+c_2\\kvecvtwo)\\cdot\\kvecw = c_1\\kvecvone\\cdot\\kvecw + c_2\\kvecvtwo\\cdot\\kvecw$.",
+              "src": "6.1, Properties of dot products"
+            }
+          ],
+          "then": {
+            "tex": "\\mk{L}{\\left|\\kvecw-\\kvecv\\right|^2} = \\mk{a}{\\left|\\kvecv\\right|^2} + \\mk{b}{\\left|\\kvecw\\right|^2} - \\mk{c}{2\\left|\\kvecv\\right|\\left|\\kvecw\\right|\\cos\\theta}",
+            "uses": [
+              0
+            ],
+            "why": "The vectors $\\kvecv$, $\\kvecw$ and $\\kvecw - \\kvecv$ are the sides of a triangle, and $\\theta$ is the angle between $\\kvecv$ and $\\kvecw$ (Figure 6.1.5)."
+          },
+          "steps": [
+            {
+              "tex": "\\mk{L}{(\\kvecw-\\kvecv)\\cdot(\\kvecw-\\kvecv)} = \\mk{a}{\\kvecv\\cdot\\kvecv} + \\mk{b}{\\kvecw\\cdot\\kvecw} - \\mk{c}{2\\left|\\kvecv\\right|\\left|\\kvecw\\right|\\cos\\theta}",
+              "uses": [
+                1
+              ]
+            },
+            {
+              "tex": "\\mk{ww}{\\kvecw\\cdot\\kvecw} + \\mk{vv}{\\kvecv\\cdot\\kvecv} - \\mk{vw}{2\\kvecv\\cdot\\kvecw} = \\mk{a}{\\kvecv\\cdot\\kvecv} + \\mk{b}{\\kvecw\\cdot\\kvecw} - \\mk{c}{2\\left|\\kvecv\\right|\\left|\\kvecw\\right|\\cos\\theta}",
+              "uses": [
+                2
+              ],
+              "map": {
+                "L": [
+                  "ww",
+                  "vv",
+                  "vw"
+                ]
+              },
+              "cap": "Distributing the dot product of $\\kvecw - \\kvecv$ with itself gives four terms, and the two cross terms $\\kvecw\\cdot\\kvecv$ and $\\kvecv\\cdot\\kvecw$ are equal, so they combine into $2\\kvecv\\cdot\\kvecw$."
+            },
+            {
+              "tex": "-\\mk{vw}{2\\kvecv\\cdot\\kvecw} = -\\mk{c}{2\\left|\\kvecv\\right|\\left|\\kvecw\\right|\\cos\\theta}",
+              "uses": []
+            },
+            {
+              "tex": "\\mk{vw}{\\kvecv\\cdot\\kvecw} = \\mk{c}{\\left|\\kvecv\\right|\\left|\\kvecw\\right|\\cos\\theta}",
+              "uses": []
+            }
+          ],
+          "src": "6.1, The geometry of the dot product"
+        }
+      ]
+    }
+  ]
+}
