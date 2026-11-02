@@ -1,0 +1,1208 @@
+{
+ "id": "2.3",
+ "module": "sec-span",
+ "chapter": "2",
+ "title": "The span of a set of vectors",
+ "lead": "The existence question for $\\kA\\kvecx = \\kvecb$ turns into a question about the <span data-concept=\"span\">span</span> of the columns of $\\kA$, the set of every <span data-concept=\"linear-combination\">linear combination</span> they can form: what that set looks like in the plane and in space, and how the <span data-concept=\"pivot\">pivot positions</span> of the matrix tell its shape.",
+ "objectives": [],
+ "summary_html": "<ul><li>The span of a set of vectors $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n$ is the set of linear combinations of the vectors. We denote the span by $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\}$.</li><li>A vector $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\}$ if and only if the linear system $$ \\left[\\begin{array}{rrrr} \\kvecvone&\\kvecvtwo&\\ldots{\\mathbf v}_n \\end{array}\\right] ~\\kvecx = \\kvecb $$ is consistent.</li><li>If the $m\\times n$ matrix $$ \\left[\\begin{array}{rrrr} \\kvecvone&\\kvecvtwo&\\ldots{\\mathbf v}_n \\end{array}\\right] $$ has a pivot position in every row, then the span of these vectors is ${\\mathbb R}^m$; that is, $$ \\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\} = {\\mathbb R}^m. $$</li><li>Any set of vectors that spans ${\\mathbb R}^m$ must have at least $m$ vectors.</li></ul>",
+ "notes": "The eight Sage cells of the activities and exercises, every one an empty cell for the reader to type into, are left out, and Figures 2.3.10 and 2.3.11, the blank three-dimensional axes for sketching, are not drawn; the preview activity and the two activities stand in the text as cards.",
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the two activities stand in the text as cards, and Activity 2.3.3’s sketching parts cite the span figure in three dimensions whose presets carry their vectors. Bloom levels and concept tags are AI-judged.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "figures": [
+  {
+   "id": "sim-span",
+   "kind": "sim",
+   "number": "2.3.3",
+   "folds": [
+    "2.3.4"
+   ],
+   "originals": [
+    "/media/ch02/span1-preview.png",
+    "/media/ch02/span2-preview.png"
+   ],
+   "original_caption": "(Figure 2.3.3) An interactive diagram for constructing linear combinations of the vectors v and w. (Figure 2.3.4) An interactive diagram for constructing linear combinations of the vectors v and w.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-span-plane",
+   "kind": "sim",
+   "number": "2.3.6",
+   "originals": [
+    "/media/ch02/span-linear-indep.svg"
+   ],
+   "original_caption": "The vectors v and w and some linear combinations they create.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-span-line",
+   "kind": "sim",
+   "number": "2.3.8",
+   "originals": [
+    "/media/ch02/span-linear-dep.svg"
+   ],
+   "original_caption": "The vectors v and w and some linear combinations they create.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-span-in-space",
+   "kind": "sim",
+   "number": "2.3.12",
+   "folds": [
+    "2.3.13"
+   ],
+   "originals": [
+    "/media/ch02/3d-line.svg",
+    "/media/ch02/3d-plane-nonstd.svg"
+   ],
+   "original_caption": "(Figure 2.3.12) The span of a single nonzero vector is a line. (Figure 2.3.13) The span of these two vectors in ℝ³ is a plane.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "region",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [
+  {
+   "id": "v-1",
+   "label": "the vector v₁",
+   "figures": [
+    "sim-span-in-space"
+   ]
+  },
+  {
+   "id": "v-2",
+   "label": "the vector v₂",
+   "figures": [
+    "sim-span-in-space"
+   ]
+  },
+  {
+   "id": "v-3",
+   "label": "the vector v₃",
+   "figures": [
+    "sim-span-in-space"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "matrix-form",
+   "concept": "matrix-product-as-linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-form",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-form",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-form",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-form",
+   "concept": "existence-and-uniqueness-questions",
+   "verb": "uses"
+  },
+  {
+   "span": "two-questions",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "two-questions",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "existence-focus",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "span-motivation",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "span-motivation",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "span-motivation",
+   "concept": "solution-of-a-linear-system",
+   "verb": "uses"
+  },
+  {
+   "span": "span-motivation",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-columns",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "matrix-columns",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "the-span-of-a-set-of-vectors",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "the-span-of-a-set-of-vectors",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "the-span-of-a-set-of-vectors",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-3-1",
+   "concept": "span",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-2-3-1",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-3-1",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-3-1",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-2-3-1",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "deciding-membership-in-a-span",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "example-2-3-2",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walking",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walking",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "walking",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "walking",
+   "concept": "span-as-reachable-points",
+   "verb": "introduces"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-plane",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-plane",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "coefficient-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "matrix-equation",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "pivot-in-every-row-gives-consistency",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-indep",
+   "concept": "span-as-reachable-points",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-line",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-line",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "augmented-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "inconsistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "coefficient-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "inconsistency-and-the-rightmost-pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "scalar-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "vector-equation-of-a-line",
+   "verb": "uses"
+  },
+  {
+   "span": "example-span-linear-dep",
+   "concept": "span-as-reachable-points",
+   "verb": "reinforces"
+  },
+  {
+   "span": "convention-2-3-9",
+   "concept": "span-notation",
+   "verb": "introduces"
+  },
+  {
+   "span": "convention-2-3-9",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "two-spans",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-define-a-matrix",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-define-a-matrix",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-define-a-matrix",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-define-a-matrix",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-define-a-matrix",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-link",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "pivot-link",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "types-of-spans",
+   "concept": "spans-in-three-dimensions",
+   "verb": "introduces"
+  },
+  {
+   "span": "types-of-spans",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "scalar-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-span-in-space",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-span-in-space",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-in-space",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-in-space",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-span-in-space",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "pivot-in-every-row-gives-consistency",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "linear-system-of-equations",
+   "verb": "uses"
+  },
+  {
+   "span": "spans-in-r3",
+   "concept": "consistent-system",
+   "verb": "uses"
+  },
+  {
+   "span": "summarize",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "summarize",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "summarize",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "summarize",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "summarize",
+   "concept": "describing-a-span-geometrically",
+   "verb": "introduces"
+  },
+  {
+   "span": "pivot-count",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "pivot-count",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "return-later",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "return-later",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "applies-generally",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "applies-generally",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "applies-generally",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "applies-generally",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-pivot-row",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-pivot-row",
+   "concept": "pivot-rows-and-span",
+   "verb": "introduces"
+  },
+  {
+   "span": "number-needed",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "number-needed",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "number-needed",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "number-needed",
+   "concept": "pivot",
+   "verb": "uses"
+  },
+  {
+   "span": "number-needed",
+   "concept": "reduced-row-echelon-form",
+   "verb": "uses"
+  },
+  {
+   "span": "at-least",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "at-least",
+   "concept": "pivots-per-row-and-column",
+   "verb": "uses"
+  },
+  {
+   "span": "at-least",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "at-least",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "prop-span-bound",
+   "concept": "vectors-needed-to-span",
+   "verb": "introduces"
+  },
+  {
+   "span": "walk-directions",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "walk-directions",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "walk-directions",
+   "concept": "span-as-reachable-points",
+   "verb": "reinforces"
+  },
+  {
+   "span": "walk-directions",
+   "concept": "vectors-needed-to-span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "terminology",
+   "concept": "span",
+   "verb": "reinforces"
+  },
+  {
+   "span": "terminology",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "terminology",
+   "concept": "span-notation",
+   "verb": "reinforces"
+  },
+  {
+   "span": "terminology",
+   "concept": "matrix",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "2.3.1",
+   "source_number": "2.3.1",
+   "kind": "preview",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "introduction"
+   },
+   "cite": "existence-focus",
+   "prompt": "<p><strong>The existence of solutions.</strong></p><ol type=\"a\"><li>If the equation $\\kA\\kvecx = \\kvecb$ is inconsistent, what can we say about the pivot positions of the augmented matrix $\\left[\\begin{array}{r|r} \\kA & \\kvecb \\end{array}\\right]$?</li><li><p>Consider the matrix $\\kA$</p>$$ \\kA = \\left[ \\begin{array}{rrr} 1 & 0 & -2 \\\\ -2 & 2 & 2 \\\\ 1 & 1 & -3 \\end{array}\\right] $$<p>. If $\\kvecb=\\left[\\begin{array}{r}2 \\\\ 2 \\\\ 5 \\end{array}\\right]$, is the equation $\\kA\\kvecx = \\kvecb$ consistent? If so, find a solution.</p></li><li>If $\\kvecb=\\left[\\begin{array}{r}2 \\\\ 2 \\\\ 6 \\end{array}\\right]$, is the equation $\\kA\\kvecx = \\kvecb$ consistent? If so, find a solution.</li><li>Identify the pivot positions of $\\kA$.</li><li>For our two choices of the vector $\\kvecb$, one equation $\\kA\\kvecx = \\kvecb$ has a solution and the other does not. What feature of the pivot positions of the matrix $\\kA$ tells us to expect this?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>We know there must be a pivot position in the rightmost column of the augmented matrix.</li><li>$\\kvecx=\\left[\\begin{array}{r}2 \\\\ 3 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 1 \\end{array}\\right]$</li><li>The equation $\\kA\\kvecx=\\kvecb$ is inconsistent.</li><li>There are two pivot positions.</li><li>There is a row of $\\kA$ without a pivot position.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>We know there must be a pivot position in the rightmost column of the augmented matrix.</li><li><p>We construct the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 1 & 0 & -2 & 2 \\\\ -2 & 2 & 2 & 2 \\\\ 1 & 1 & -3 & 5 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & -2 & 2 \\\\ 0 & 1 & -1 & 3 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right]\\text{,} $$<p>which shows that the system is consistent. The solution space is described parametrically as</p>$$ \\kvecx=\\left[\\begin{array}{r}2 \\\\ 3 \\\\ 0 \\end{array}\\right]+x_3\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 1 \\end{array}\\right] $$<p>.</p></li><li><p>Now the augmented matrix is</p>$$ \\left[\\begin{array}{rrr|r} 1 & 0 & -2 & 2 \\\\ -2 & 2 & 2 & 2 \\\\ 1 & 1 & -3 & 6 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 0 & -2 & 0 \\\\ 0 & 1 & -1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right] $$<p>showing that the equation $\\kA\\kvecx=\\kvecb$ is inconsistent.</p></li><li><p>There are two pivot positions in $\\kA$, as shown.</p>$$ \\left[\\begin{array}{rrr} {\\mathbf 1} & 0 & -2 \\\\ -2 & {\\mathbf 2} & 2 \\\\ 1 & 1 & -3 \\\\ \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} {\\mathbf 1} & 0 & -2 \\\\ 0 & {\\mathbf 1} & -1 \\\\ 0 & 0 & 0 \\\\ \\end{array}\\right]\\text{.} $$</li><li>Since there is a row of $\\kA$ that does not have a pivot position, it is possible to augment $\\kA$ by a vector $\\kvecb$ so that we obtain a pivot position in the rightmost column of the augmented matrix. In this case, we have an inconsistent system.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "2.3.2",
+   "source_number": "2.3.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "example-2-3-2"
+   },
+   "cite": "definition-2-3-1",
+   "prompt": "<p>Let’s look at two examples to develop some intuition for the concept of span.</p><ol type=\"a\"><li><p>First, we will consider the set of vectors</p>$$ \\kvecv = \\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right], ~~~\\kvecw = \\left[\\begin{array}{r}-2 \\\\ -4 \\end{array}\\right] $$<p>. Figure 2.3.3 is an interactive diagram for constructing linear combinations of the vectors $\\kvecv$ and $\\kvecw$.</p><ol><li><p>What vector is the linear combination of $\\kvecv$ and $\\kvecw$ with weights:</p><ul><li>$c = 2$ and $d=0$?</li><li>$c = 1$ and $d=1$?</li><li>$c = 0$ and $d=-1$?</li></ul></li><li>Can the vector $\\left[\\begin{array}{r}2 \\\\ 4 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? Is the vector $\\left[\\begin{array}{r}2 \\\\ 4 \\end{array}\\right]$ in the span of $\\kvecv$ and $\\kvecw$?</li><li>Can the vector $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? Is the vector $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$ in the span of $\\kvecv$ and $\\kvecw$?</li><li>Describe the set of vectors in the span of $\\kvecv$ and $\\kvecw$.</li><li><p>For what vectors $\\kvecb$ does the equation</p>$$ \\left[\\begin{array}{rr} 1 & -2 \\\\ 2 & -4 \\end{array}\\right] \\kvecx = \\kvecb $$<p>have a solution?</p></li></ol></li><li><p>We will now look at an example where</p>$$ \\kvecv = \\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right], ~~~\\kvecw = \\left[\\begin{array}{r}1 \\\\ 2 \\end{array}\\right] $$<p>. Figure 2.3.4 is an interactive diagram for constructing linear combinations of the vectors $\\kvecv$ and $\\kvecw$.</p><ol><li><p>What vector is the linear combination of $\\kvecv$ and $\\kvecw$ with weights:</p><ul><li>$c = 2$ and $d=0$?</li><li>$c = 1$ and $d=1$?</li><li>$c = 0$ and $d=-1$?</li></ul></li><li>Can the vector $\\left[\\begin{array}{r}-2 \\\\ 2 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? Is the vector $\\left[\\begin{array}{r}-2 \\\\ 2 \\end{array}\\right]$ in the span of $\\kvecv$ and $\\kvecw$?</li><li>Can the vector $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$ be expressed as a linear combination of $\\kvecv$ and $\\kvecw$? Is the vector $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$ in the span of $\\kvecv$ and $\\kvecw$?</li><li>Describe the set of vectors in the span of $\\kvecv$ and $\\kvecw$.</li><li><p>For what vectors $\\kvecb$ does the equation</p>$$ \\left[\\begin{array}{rr} 2 & 1 \\\\ 1 & 2 \\end{array}\\right] \\kvecx = \\kvecb $$<p>have a solution?</p></li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>For the first set of vectors, we find:</p><ol><li><p>We can form the linear combinations:</p><ul><li>When $c = 2$ and $d=0$, the linear combination is $\\left[\\begin{array}{r}2 \\\\ 4 \\end{array}\\right]$.</li><li>When $c = 1$ and $d=1$, the linear combination is $\\left[\\begin{array}{r}-1 \\\\ -2 \\end{array}\\right]$.</li><li>When $c = 0$ and $d=-1$, the linear combination is $\\left[\\begin{array}{r}2 \\\\ 4 \\end{array}\\right]$.</li></ul></li><li>Yes, we saw that there are at least two ways. For instance, when the weights are $c=2$ and $d=0$. This means that $\\left[\\begin{array}{r}2 \\\\ 4 \\end{array}\\right]$ is in the span of $\\kvecv$ and $\\kvecw$.</li><li>No. No matter how we change the weights, the linear combination lies on the line through $\\kvecv$ and $\\kvecw$. This means that $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$ is not in the span of $\\kvecv$ and $\\kvecw$.</li><li>The span of $\\kvecv$ and $\\kvecw$ is the set of all vectors on the line through $\\kvecv$.</li><li>If the equation has a solution, $\\kvecb$ must lie on the line defined by $\\kvecv$.</li></ol></li><li><p>For the second set of vectors, we have:</p><ol><li><p>We can form the linear combinations:</p><ul><li>When $c = 2$ and $d=0$, the linear combination is $\\left[\\begin{array}{r}4 \\\\ 2 \\end{array}\\right]$.</li><li>When $c = 1$ and $d=1$, the linear combination is $\\left[\\begin{array}{r}3 \\\\ 3 \\end{array}\\right]$.</li><li>When $c = 0$ and $d=-1$, the linear combination is $\\left[\\begin{array}{r}-1 \\\\ -2 \\end{array}\\right]$.</li></ul></li><li>Yes. Using the diagram, we see that $\\left[\\begin{array}{r}-2 \\\\ 2 \\end{array}\\right]=-2\\kvecv + 2\\kvecw$. This means that $\\left[\\begin{array}{r}-2 \\\\ 2 \\end{array}\\right]$ is in the span of $\\kvecv$ and $\\kvecw$.</li><li>Yes. Using the diagram, we see that $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]=2\\kvecv-1\\kvecw$. This means that $\\left[\\begin{array}{r}3 \\\\ 0 \\end{array}\\right]$ is in the span of $\\kvecv$ and $\\kvecw$.</li><li>Every two-dimensional vector is in the span of $\\kvecv$ and $\\kvecw$.</li><li>The equation has a solution for every $\\kvecb$.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "2.3.3",
+   "source_number": "2.3.3",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "pivot-link"
+   },
+   "cite": "sim-span-in-space",
+   "prompt": "<p>In this activity, we will look at the span of sets of vectors in ${\\mathbb R}^3$.</p><ol type=\"a\"><li>Suppose $\\kvecv=\\left[\\begin{array}{r}1 \\\\ 2 \\\\ 1 \\end{array}\\right]$. Give a geometric description of $\\kSpan\\left\\{\\kvecv\\right\\}$ and a rough sketch of $\\kvecv$ and its span in Figure 2.3.10.</li><li><p>Now consider the two vectors</p>$$ \\kveceone = \\left[\\begin{array}{r}1 \\\\ 0 \\\\ 0 \\end{array}\\right],~~~ \\kvecetwo = \\left[\\begin{array}{r}0 \\\\ 1 \\\\ 0 \\end{array}\\right] $$<p>. Sketch the vectors below. Then give a geometric description of $\\kSpan\\left\\{\\kveceone,\\kvecetwo\\right\\}$ and a rough sketch of the span in Figure 2.3.11.</p></li><li><p>Let’s now look at this situation algebraically by writing write $\\kvecb = \\left[\\begin{array}{r}b_1 \\\\ b_2 \\\\ b_3 \\end{array}\\right]$. Determine the conditions on $b_1$, $b_2$, and $b_3$ so that $\\kvecb$ is in $\\kSpan\\left\\{\\kveceone,\\kvecetwo\\right\\}$ by considering the linear system</p>$$ \\left[\\begin{array}{rr} \\kveceone & \\kvecetwo \\\\ \\end{array}\\right] ~\\kvecx = \\kvecb $$<p>or</p>$$ \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ 0 & 0 \\\\ \\end{array}\\right] \\kvecx = \\left[\\begin{array}{r}b_1 \\\\ b_2 \\\\ b_3 \\end{array}\\right] $$<p>. Explain how this relates to your sketch of $\\kSpan\\left\\{\\kveceone,\\kvecetwo\\right\\}$.</p></li><li><p>Consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\end{array}\\right],~~ \\kvecvtwo = \\left[\\begin{array}{r}0 \\\\ 2 \\\\ 1 \\end{array}\\right]. $$<ol><li>Is the vector $\\kvecb=\\left[\\begin{array}{r}1 \\\\ -2 \\\\ 4 \\end{array}\\right]$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$?</li><li>Is the vector $\\kvecb=\\left[\\begin{array}{r}-2 \\\\ 0 \\\\ 3 \\end{array}\\right]$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$?</li><li>Give a geometric description of $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$.</li></ol></li><li><p>Consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r}1 \\\\ 1 \\\\ -1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r}0 \\\\ 2 \\\\ 1 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r}1 \\\\ -2 \\\\ 4 \\end{array}\\right] $$<p>. Form the matrix $\\left[\\begin{array}{rrrr} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{array}\\right]$ and find its reduced row echelon form.</p><p>What does this tell you about $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$?</p></li><li>If the span of a set of vectors $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n$ is ${\\mathbb R}^3$, what can you say about the pivot positions of the matrix $\\left[\\begin{array}{rrrr} \\kvecvone&\\kvecvtwo&\\ldots&{\\mathbf v}_n \\end{array}\\right]$?</li><li>What is the smallest number of vectors such that $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\} = {\\mathbb R}^3$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kSpan\\left\\{\\kvecv\\right\\}$ is the line defined by $\\kvecv$.</li><li>$\\kSpan\\left\\{\\kveceone,\\kvecetwo\\right\\}$ is the $xy$-plane.</li><li>For the linear system to be consistent, we need $b_3=0$, which means that the third coordinate of the vector $\\kvecb$ must be 0 for $\\kvecb$ to be in $\\kSpan\\left\\{\\kveceone,\\kvecetwo\\right\\}$. In other words, $\\kvecb$ must lie in the $xy$-plane.</li><li><p>We consider the two cases.</p><ol><li><p>We have the augmented matrix</p>$$ \\left[\\begin{array}{rr|r} 1 & 0 & 1 \\\\ 1 & 2 & -2 \\\\ -1 & 1 & 4 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right]\\text{,} $$<p>which shows that the system is inconsistent. Therefore, $\\kvecb$ is not in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$.</p></li><li><p>We have the augmented matrix</p>$$ \\left[\\begin{array}{rr|r} 1 & 0 & -2 \\\\ 1 & 2 & 0 \\\\ -1 & 1 & 3 \\end{array}\\right] \\sim \\left[\\begin{array}{rr|r} 1 & 0 & -2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\end{array}\\right]\\text{,} $$<p>which shows that the system is consistent. Therefore, $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$.</p></li><li>The span is the plane in ${\\mathbb R}^3$ defined by $\\kvecvone$ and $\\kvecvtwo$.</li></ol></li><li><p>We have the reduced row echelon form</p>$$ \\left[\\begin{array}{rrr} 1 & 0 & 1 \\\\ 1 & 2 & -2 \\\\ -1 & 1 & 4 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right]\\text{.} $$<p>Since there is a pivot position in every row, this says that every equation $\\kA\\kvecx=\\kvecb$ is consistent. The $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$ is therefore ${\\mathbb R}^3$.</p></li><li>There must be a pivot position in every row.</li><li>If a set of vectors spans ${\\mathbb R}^3$, its corresponding matrix must have a pivot position in every row. Because there can be at most one pivot position in a column, there must be at least three columns. Therefore, the smallest number of vectors that span ${\\mathbb R}^3$ is three.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "2.3.1",
+   "source_number": "2.3.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "summarize",
+   "prompt": "<p>In this exercise, we will consider the span of some sets of two- and three-dimensional vectors.</p><ol type=\"a\"><li><p>Consider the vectors</p>$$ \\kvecvone = \\left[\\begin{array}{r}1 \\\\ -2 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r}4 \\\\ 3 \\end{array}\\right] $$<p>.</p><ol><li>Is $\\kvecb = \\left[\\begin{array}{r}2 \\\\ 1 \\end{array}\\right]$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$?</li><li>Give a geometric description of $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$.</li></ol></li><li><p>Consider the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 3 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r}-2 \\\\ 0 \\\\ 2 \\end{array}\\right], \\kvecvthree=\\left[\\begin{array}{r}6 \\\\ 1 \\\\ -1 \\end{array}\\right] $$<p>.</p><ol><li>Is the vector $\\kvecb=\\left[\\begin{array}{r}-10 \\\\ -1 \\\\ 5 \\end{array}\\right]$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$?</li><li>Is the vector $\\kvecvthree$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$?</li><li>Is the vector $\\kvecb=\\left[\\begin{array}{r}3 \\\\ 3 \\\\ -1 \\end{array}\\right]$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$?</li><li>Give a geometric description of $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</li></ol></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\} = {\\mathbb R}^2$.</li><li><p>For the following vectors,</p><ol><li>$\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</li><li>$\\kvecvthree$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</li><li>$\\kvecb$ is not in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</li><li>$\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$ is a plane in ${\\mathbb R}^3$.</li></ol></li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The equation $\\left[\\begin{array}{rr} \\kvecvone & \\kvecvtwo \\end{array}\\right] ~\\kvecx = \\kvecb$ is consistent so $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$. Since $\\left[\\begin{array}{rr} \\kvecvone & \\kvecvtwo \\end{array}\\right]$ has a pivot position in every row, $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$ is ${\\mathbb R}^2$.</li><li><p>Let’s consider the following vectors.</p><ol><li>The equation $\\left[\\begin{array}{rrr}\\kvecvone & \\kvecvtwo & \\kvecvthree \\end{array}\\right]~\\kvecx = \\kvecb$ is consistent so $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</li><li>The vector $\\kvecvthree$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$ because $\\kvecvthree = \\kvecvone-2\\kvecvtwo$.</li><li>The equation $\\left[\\begin{array}{rrr}\\kvecvone & \\kvecvtwo & \\kvecvthree \\end{array}\\right]~\\kvecx = \\kvecb$ is not consistent so $\\kvecb$ is not in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</li><li>$\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$ is the plane defined by $\\kvecvone$ and $\\kvecvtwo$.</li></ol></li></ol>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "2.3.2",
+   "source_number": "2.3.2",
+   "kind": "exercise",
+   "bloom": "Understand",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-3-1",
+   "prompt": "<p>Provide a justification for your response to the following questions.</p><ol type=\"a\"><li>Suppose you have a set of vectors $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n$. Can you guarantee that $\\kveczero$ is in $\\kSpan\\left\\{\\kvecvone\\,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\}$?</li><li>Suppose that $\\kA$ is an $m \\times n$ matrix. Can you guarantee that the equation $\\kA\\kvecx = \\kveczero$ is consistent?</li><li>What is $\\kSpan\\left\\{\\kveczero,\\kveczero,\\ldots,\\kveczero\\right\\}$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Yes</li><li>Yes</li><li>$\\kSpan\\left\\{\\kveczero,\\kveczero,\\ldots,\\kveczero\\right\\}$ consists only of the vector $\\kveczero$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Yes, because $\\kveczero = 0\\kvecvone+0\\kvecvtwo+\\ldots+0{\\mathbf v}_n$.</li><li>Yes, $\\kvecx=\\kveczero$ is a solution to the equation $\\kA\\kvecx=\\kveczero$.</li><li>$\\kSpan\\left\\{\\kveczero,\\kveczero,\\ldots,\\kveczero\\right\\}$ consists only of the vector $\\kveczero$.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "2.3.3",
+   "source_number": "2.3.3",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "example-span-linear-dep",
+   "prompt": "<p>For both parts of this exercise, give a geometric description of sets of the vectors $\\kvecb$ and include a sketch.</p><ol type=\"a\"><li><p>For which vectors $\\kvecb$ in ${\\mathbb R}^2$ is the equation</p>$$ \\left[\\begin{array}{rr} 3 & -6 \\\\ -2 & 4 \\\\ \\end{array}\\right] \\kvecx = \\kvecb $$<p>consistent?</p></li><li><p>For which vectors $\\kvecb$ in ${\\mathbb R}^2$ is the equation</p>$$ \\left[\\begin{array}{rr} 3 & -6 \\\\ -2 & 2 \\\\ \\end{array}\\right] \\kvecx = \\kvecb $$<p>consistent?</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kvecb$ must be a scalar multiple of $\\left[\\begin{array}{r}3 \\\\ -2 \\end{array}\\right]$.</li><li>$\\kvecb$ can be any vector in ${\\mathbb R}^2$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\left[\\begin{array}{rr} 3 & -6 \\\\ -2 & 4 \\\\ \\end{array}\\right] \\sim \\left[\\begin{array}{rr} 1 & -2 \\\\ 0 & 0 \\\\ \\end{array}\\right]$ so $\\kvecb$ must be on the line defined by $\\left[\\begin{array}{r}3 \\\\ -2 \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rr} 3 & -6 \\\\ -2 & 2 \\\\ \\end{array}\\right] \\sim \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 1 \\\\ \\end{array}\\right]$ so $\\kvecb$ can be any vector in ${\\mathbb R}^2$.</li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "2.3.4",
+   "source_number": "2.3.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-pivot-row",
+   "prompt": "<p>Consider the following matrices:</p>$$ \\kA = \\left[\\begin{array}{rrrr} 3 & 0 & -1 & 1 \\\\ 1 & -1 & 3 & 7 \\\\ 3 & -2 & 1 & 5 \\\\ -1 & 2 & 2 & 3 \\\\ \\end{array}\\right],~~~ \\kB = \\left[\\begin{array}{rrrr} 3 & 0 & -1 & 4 \\\\ 1 & -1 & 3 & -1 \\\\ 3 & -2 & 1 & 3 \\\\ -1 & 2 & 2 & 1 \\\\ \\end{array}\\right] $$<p>. Do the columns of $\\kA$ span ${\\mathbb R}^4$? Do the columns of $\\kB$ span ${\\mathbb R}^4$?</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><p>The columns of $\\kA$ do not span ${\\mathbb R}^4$. The columns of $\\kB$ do.</p><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The reduced row echelon form of $\\kA$ is</p>$$ \\left[\\begin{array}{rrrr} 3 & 0 & -1 & 1 \\\\ 1 & -1 & 3 & 7 \\\\ 3 & -2 & 1 & 5 \\\\ -1 & 2 & 2 & 3 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} 1 & 0 & 0 & 1 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 2 \\\\ 0 & 0 & 0 & 0 \\end{array}\\right] $$<p>so the columns of $\\kA$ do not span ${\\mathbb R}^4$.</p></li><li><p>The reduced row echelon form of $\\kB$ is</p>$$ \\left[\\begin{array}{rrrr} 3 & 0 & -1 & 4 \\\\ 1 & -1 & 3 & -1 \\\\ 3 & -2 & 1 & 3 \\\\ -1 & 2 & 2 & 1 \\end{array}\\right] \\sim \\left[\\begin{array}{rrrr} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\end{array}\\right] $$<p>so the columns of $\\kB$ span ${\\mathbb R}^4$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "2.3.5",
+   "source_number": "2.3.5",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-3-1",
+   "prompt": "<p>Determine whether the following statements are true or false and provide a justification for your response. Throughout, we will assume that the matrix $\\kA$ has columns $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n$; that is,</p>$$ \\kA = \\left[\\begin{array}{rrrr} \\kvecvone&\\kvecvtwo&\\ldots&{\\mathbf v}_n \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>If the equation $\\kA\\kvecx = \\kvecb$ is consistent, then $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\}$.</li><li>The equation $\\kA\\kvecx = \\kvecvone$ is consistent.</li><li>If $\\kvecvone$, $\\kvecvtwo$, $\\kvecvthree$, and ${\\mathbf v}_4$ are vectors in ${\\mathbb R}^3$, then their span is ${\\mathbb R}^3$.</li><li>If $\\kvecb$ is a linear combination of $\\kvecvone, \\kvecvtwo,\\ldots,{\\mathbf v}_n$, then $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n\\right\\}$.</li><li>If $\\kA$ is an $8032\\times 427$ matrix, then the span of the columns of $\\kA$ is a set of vectors in ${\\mathbb R}^{427}$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>True</li><li>True</li><li>False</li><li>True</li><li>False</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>True. If $\\kvecx$ is a solution to $\\kA\\kvecx=\\kvecb$, then the components of $\\kvecx$ are weights whose linear combination is $\\kvecb$.</li><li>True, because $x=\\left[\\begin{array}{r}1 \\\\ 0 \\\\ \\vdots \\\\ 0 \\end{array}\\right]$ is a solution.</li><li>False. The span could be a smaller set.</li><li>True. This is the definition of the span.</li><li>False. The span is a set of vectors in ${\\mathbb R}^{8032}$.</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "2.3.6",
+   "source_number": "2.3.6",
+   "kind": "exercise",
+   "bloom": "Create",
+   "place": {
+    "at": "end"
+   },
+   "cite": "summarize",
+   "prompt": "<p>This exercise asks you to construct some matrices whose columns span a given set.</p><ol type=\"a\"><li>Construct a $3\\times3$ matrix whose columns span ${\\mathbb R}^3$.</li><li>Construct a $3\\times3$ matrix whose columns span a plane in ${\\mathbb R}^3$.</li><li>Construct a $3\\times3$ matrix whose columns span a line in ${\\mathbb R}^3$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><p>We will choose matrices in reduced row echelon form.</p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 0 & -2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 3 & -1 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\\\ \\end{array}\\right]$.</li></ol><p><strong>Solution.</strong></p><p>We will choose matrices in reduced row echelon form.</p><ol type=\"a\"><li>$\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 0 & -2 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\\\ \\end{array}\\right]$.</li><li>$\\left[\\begin{array}{rrr} 1 & 3 & -1 \\\\ 0 & 0 & 0 \\\\ 0 & 0 & 0 \\\\ \\end{array}\\right]$.</li></ol>"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "2.3.7",
+   "source_number": "2.3.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-span-bound",
+   "prompt": "<p>Provide a justification for your response to the following questions.</p><ol type=\"a\"><li>Suppose that we have vectors in ${\\mathbb R}^8$, $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_{10}$, whose span is ${\\mathbb R}^8$. Can every vector $\\kvecb$ in ${\\mathbb R}^8$ be written as a linear combination of $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_{10}$?</li><li>Suppose that we have vectors in ${\\mathbb R}^8$, $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_{10}$, whose span is ${\\mathbb R}^8$. Can every vector $\\kvecb$ in ${\\mathbb R}^8$ be written <em>uniquely</em> as a linear combination of $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_{10}$?</li><li><p>Do the vectors</p>$$ \\kveceone=\\left[\\begin{array}{r}1 \\\\ 0 \\\\ 0 \\end{array}\\right], \\kvecetwo=\\left[\\begin{array}{r}0 \\\\ 1 \\\\ 0 \\end{array}\\right], \\kvecethree=\\left[\\begin{array}{r}0 \\\\ 0 \\\\ 1 \\end{array}\\right] $$<p>span ${\\mathbb R}^3$?</p></li><li>Suppose that $\\kvecvone,\\kvecvtwo,\\ldots,{\\mathbf v}_n$ span ${\\mathbb R}^{438}$. What can you guarantee about the value of $n$?</li><li>Can 17 vectors in ${\\mathbb R}^{20}$ span ${\\mathbb R}^{20}$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Yes</li><li>No</li><li>Yes</li><li>$n\\geq 438$</li><li>No</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Yes. Because the span is ${\\mathbb R}^8$, every vector in ${\\mathbb R}^8$ can be written as a linear combination of the vectors.</li><li>No. The matrix $\\kA=\\left[\\begin{array}{rrrr} \\kvecvone & \\kvecvtwo & \\ldots & {\\mathbf v}_{10} \\end{array} \\right]$ must have a column without a pivot position. Therefore, any equation $\\kA\\kvecx=\\kvecb$ has infinitely many solutions.</li><li>Yes, because $\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ 0 & 0 & 1 \\\\ \\end{array}\\right]$ has a pivot position in every row.</li><li>There must be at least 438 vectors so $n\\geq438$.</li><li>No, because we need at least 20 vectors to span ${\\mathbb R}^{20}$.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "2.3.8",
+   "source_number": "2.3.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-pivot-row",
+   "prompt": "<p>The following observation will be helpful in this exercise. If we want to find a solution to the equation $\\kA\\kB\\kvecx = \\kvecb$, we could first find a solution to the equation $\\kA{\\mathbf y} = \\kvecb$ and then find a solution to the equation $\\kB\\kvecx = {\\mathbf y}$.</p><p>Suppose that $\\kA$ is a $3\\times 4$ matrix whose columns span ${\\mathbb R}^3$ and $\\kB$ is a $4\\times 5$ matrix. In this case, we can form the product $\\kA\\kB$.</p><ol type=\"a\"><li>What is the shape of the product $\\kA\\kB$?</li><li>Can you guarantee that the columns of $\\kA\\kB$ span ${\\mathbb R}^3$?</li><li>If you know additionally that the span of the columns of $\\kB$ is ${\\mathbb R}^4$, can you guarantee that the columns of $\\kA\\kB$ span ${\\mathbb R}^3$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$3\\times5$</li><li>No</li><li>Yes</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\kA\\kB$ is a $3\\times5$ matrix.</li><li>No. Since the columns of $\\kA$ span ${\\mathbb R}^3$, then the equation $\\kA{\\mathbf y}=\\kvecb$ has a solution ${\\mathbf y}$ for every vector $\\kvecb$. However, we may not be able to solve the equation $\\kB\\kvecx={\\mathbf y}$ if the columns of $\\kB$ do not span ${\\mathbb R}^4$.</li><li>Yes. If we are given a vector $\\kvecb$ in ${\\mathbb R}^3$, we can find a vector ${\\mathbf y}$ such that $\\kA{\\mathbf y} = \\kvecb$ since the columns of $\\kA$ span ${\\mathbb R}^3$. Since the columns of $\\kB$ span ${\\mathbb R}^4$, we can find a vector $\\kvecx$ such that $\\kB\\kvecx={\\mathbf y}$. Then $\\kA\\kB\\kvecx = \\kvecb$, which means that $\\kB$ is the span of the columns of $\\kA\\kB$.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "2.3.9",
+   "source_number": "2.3.9",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-pivot-row",
+   "prompt": "<p>Suppose that $\\kA$ is a $12\\times12$ matrix and that, for some vector $\\kvecb$, the equation $\\kA\\kvecx=\\kvecb$ has a unique solution.</p><ol type=\"a\"><li>What can you say about the pivot positions of $\\kA$?</li><li>What can you say about the span of the columns of $\\kA$?</li><li>If ${\\mathbf c}$ is some other vector in ${\\mathbb R}^{12}$, what can you conclude about the equation $\\kA\\kvecx = {\\mathbf c}$?</li><li>What can you say about the solution space to the equation $\\kA\\kvecx =\\kveczero$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>There is a pivot position in each row and each column.</li><li>The span is ${\\mathbb R}^{12}$.</li><li>There is a unique solution.</li><li>There is a unique solution $\\kvecx=\\kveczero.$</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Since the solution is unique, each column of $\\kA$ must have a pivot position. Since there are also 12 rows, each row must have a pivot position as well. This means that the row reduced echelon form of $\\kA$ is the identity matrix.</li><li>Since there is a pivot position in every row, the span of the columns of $\\kA$ is ${\\mathbb R}^{12}$.</li><li>There is a unique solution to the equation because $\\kA$ has a pivot position in every row and every column.</li><li>There is a unique solution $\\kvecx=\\kveczero$.</li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "2.3.10",
+   "source_number": "2.3.10",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-2-3-1",
+   "prompt": "<p>Suppose that</p>$$ \\kvecvone = \\left[\\begin{array}{r}3 \\\\ 1 \\\\ 3 \\\\ -1 \\end{array}\\right], \\kvecvtwo = \\left[\\begin{array}{r}0 \\\\ -1 \\\\ -2 \\\\ 2 \\end{array}\\right], \\kvecvthree = \\left[\\begin{array}{r}-3 \\\\ -3 \\\\ -7 \\\\ 5 \\end{array}\\right] $$<p>.</p><ol type=\"a\"><li>Is $\\kvecvthree$ a linear combination of $\\kvecvone$ and $\\kvecvtwo$? If so, find weights such that $\\kvecvthree = a\\kvecvone+b\\kvecvtwo$.</li><li><p>Show that a linear combination</p>$$ a\\kvecvone + b\\kvecvtwo + c\\kvecvthree $$<p>can be rewritten as a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</p></li><li>Explain why $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\} = \\kSpan\\left\\{\\kvecvone,\\kvecvtwo\\right\\}$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Yes</li><li><p>We have</p>$$ \\begin{array}{rl} a\\kvecvone+b\\kvecvtwo+c\\kvecvthree & = a\\kvecvone + b\\kvecvtwo+c(-\\kvecvone+2\\kvecvtwo) \\\\ & = (a-c)\\kvecvone+(b+2c)\\kvecvtwo\\text{.} \\end{array} $$</li><li>As seen in the last part of this problem, every linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ can be rewritten as a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Yes, because $\\kvecvthree=-\\kvecvone+2\\kvecvtwo$.</li><li><p>We have</p>$$ \\begin{array}{rl} a\\kvecvone+b\\kvecvtwo+c\\kvecvthree & = a\\kvecvone + b\\kvecvtwo+c(-\\kvecvone+2\\kvecvtwo) \\\\ & = (a-c)\\kvecvone+(b+2c)\\kvecvtwo\\text{.} \\end{array} $$</li><li>As seen in the last part of this problem, every linear combination of $\\kvecvone$, $\\kvecvtwo$, and $\\kvecvthree$ can be rewritten as a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</li></ol>"
+   }
+  },
+  {
+   "id": "e11",
+   "source_id": "2.3.11",
+   "source_number": "2.3.11",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "types-of-spans",
+   "prompt": "<p>As defined in this section, the span of a set of vectors is generated by taking all possible linear combinations of those vectors. This exercise will demonstrate the fact that the span can also be realized as the solution space to a linear system.</p><p>We will consider the vectors</p>$$ \\kvecvone=\\left[\\begin{array}{r}1 \\\\ 0 \\\\ -2 \\end{array}\\right], \\kvecvtwo=\\left[\\begin{array}{r}2 \\\\ 1 \\\\ 0 \\end{array}\\right], \\kvecvthree=\\left[\\begin{array}{r}1 \\\\ 1 \\\\ 2 \\end{array}\\right] $$<ol type=\"a\"><li>Is every vector in ${\\mathbb R}^3$ in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$? If not, describe the span.</li><li><p>To describe $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$ as the solution space of a linear system, we will write</p>$$ \\kvecb=\\left[\\begin{array}{r}a \\\\ b \\\\ c \\end{array}\\right] $$<p>. If $\\kvecb$ is in $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$, then the linear system corresponding to the augmented matrix</p>$$ \\left[\\begin{array}{rrr|r} 1 & 2 & 1 & a \\\\ 0 & 1 & 1 & b \\\\ -2& 0 & 2 & c \\\\ \\end{array}\\right] $$<p>must be consistent. This means that a pivot cannot occur in the rightmost column. Perform row operations to put this augmented matrix into a triangular form. Now identify an equation in $a$, $b$, and $c$ that tells us when there is no pivot in the rightmost column. The solution space to this equation describes $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$.</p></li><li>In this example, the matrix formed by the vectors $\\left[\\begin{array}{rrr} \\kvecvone&\\kvecvtwo&\\kvecvthree \\\\ \\end{array}\\right]$ has two pivot positions. Suppose we were to consider another example in which this matrix had had only one pivot position. How would this have changed the linear system describing $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$ is the plane defined by $\\kvecvone$ and $\\kvecvtwo$.</li><li>$2a-4b+c=0$.</li><li>There would be two equations involving the variables $a$, $b$, and $c$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>Finding the reduced row echelon form</p>$$ \\left[\\begin{array}{rrr} 1 & 2 & 1 \\\\ 0 & 1 & 1 \\\\ -2 & 0 & 2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & 0 & -1 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 0 \\end{array}\\right] $$<p>shows that $\\kvecvthree$ is a linear combination of $\\kvecvone$ and $\\kvecvtwo$. Therefore, $\\kSpan\\left\\{\\kvecvone,\\kvecvtwo,\\kvecvthree\\right\\}$ is the plane defined by $\\kvecvone$ and $\\kvecvtwo$.</p></li><li><p>We see that</p>$$ \\left[\\begin{array}{rrr|r} 1 & 2 & 1 & a \\\\ 0 & 1 & 1 & b \\\\ -2 & 0 & 2 & c \\\\ \\end{array}\\right] \\sim \\left[\\begin{array}{rrr|r} 1 & 2 & 1 & a \\\\ 0 & 1 & 1 & b \\\\ 0 & 0 & 0 & 2a-4b+c \\\\ \\end{array}\\right]\\text{.} $$<p>If the equation is consistent, we must have $2a-4b+c=0$. The solution space is the plane defined by $\\kvecvone$ and $\\kvecvtwo$.</p></li><li>In that case, there would be two equations involving the variables $a$, $b$, and $c$, and the solution space would be a line.</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "inconsistency-and-the-rightmost-pivot"
+  },
+  {
+   "exercise": "a1",
+   "concept": "pivot"
+  },
+  {
+   "exercise": "a1",
+   "concept": "matrix-equation-as-a-linear-system"
+  },
+  {
+   "exercise": "a1",
+   "concept": "vector-form-of-the-solution-space"
+  },
+  {
+   "exercise": "a1",
+   "concept": "pivot-in-every-row-gives-consistency"
+  },
+  {
+   "exercise": "a2",
+   "concept": "span"
+  },
+  {
+   "exercise": "a2",
+   "concept": "span-as-reachable-points"
+  },
+  {
+   "exercise": "a2",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "a2",
+   "concept": "deciding-membership-in-a-span"
+  },
+  {
+   "exercise": "a3",
+   "concept": "spans-in-three-dimensions"
+  },
+  {
+   "exercise": "a3",
+   "concept": "deciding-membership-in-a-span"
+  },
+  {
+   "exercise": "a3",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "a3",
+   "concept": "vectors-needed-to-span"
+  },
+  {
+   "exercise": "a3",
+   "concept": "describing-a-span-geometrically"
+  },
+  {
+   "exercise": "e1",
+   "concept": "deciding-membership-in-a-span"
+  },
+  {
+   "exercise": "e1",
+   "concept": "describing-a-span-geometrically"
+  },
+  {
+   "exercise": "e1",
+   "concept": "spans-in-three-dimensions"
+  },
+  {
+   "exercise": "e2",
+   "concept": "span"
+  },
+  {
+   "exercise": "e2",
+   "concept": "zero-vector"
+  },
+  {
+   "exercise": "e2",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e3",
+   "concept": "describing-a-span-geometrically"
+  },
+  {
+   "exercise": "e3",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e3",
+   "concept": "span"
+  },
+  {
+   "exercise": "e4",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e4",
+   "concept": "reduced-row-echelon-form"
+  },
+  {
+   "exercise": "e5",
+   "concept": "span"
+  },
+  {
+   "exercise": "e5",
+   "concept": "deciding-membership-in-a-span"
+  },
+  {
+   "exercise": "e5",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e5",
+   "concept": "euclidean-space"
+  },
+  {
+   "exercise": "e6",
+   "concept": "describing-a-span-geometrically"
+  },
+  {
+   "exercise": "e6",
+   "concept": "spans-in-three-dimensions"
+  },
+  {
+   "exercise": "e7",
+   "concept": "vectors-needed-to-span"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e7",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e7",
+   "concept": "span"
+  },
+  {
+   "exercise": "e8",
+   "concept": "span"
+  },
+  {
+   "exercise": "e8",
+   "concept": "shape-of-a-matrix-product"
+  },
+  {
+   "exercise": "e8",
+   "concept": "matrix-product"
+  },
+  {
+   "exercise": "e8",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e9",
+   "concept": "pivot-rows-and-span"
+  },
+  {
+   "exercise": "e9",
+   "concept": "pivot-columns-and-uniqueness"
+  },
+  {
+   "exercise": "e9",
+   "concept": "pivots-per-row-and-column"
+  },
+  {
+   "exercise": "e9",
+   "concept": "span"
+  },
+  {
+   "exercise": "e10",
+   "concept": "span"
+  },
+  {
+   "exercise": "e10",
+   "concept": "linear-combination"
+  },
+  {
+   "exercise": "e10",
+   "concept": "writing-a-vector-as-a-linear-combination"
+  },
+  {
+   "exercise": "e11",
+   "concept": "spans-in-three-dimensions"
+  },
+  {
+   "exercise": "e11",
+   "concept": "describing-a-span-geometrically"
+  },
+  {
+   "exercise": "e11",
+   "concept": "inconsistency-and-the-rightmost-pivot"
+  },
+  {
+   "exercise": "e11",
+   "concept": "solution-space"
+  }
+ ],
+ "footnotes": []
+}
