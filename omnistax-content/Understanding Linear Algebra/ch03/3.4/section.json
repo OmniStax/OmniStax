@@ -1,0 +1,1592 @@
+{
+ "id": "3.4",
+ "module": "sec-determinants",
+ "chapter": "3",
+ "title": "Determinants",
+ "lead": "This section attaches a number, the <span data-concept=\"determinant\">determinant</span>, to a <span data-concept=\"square-matrix\">square matrix</span>: for a $2 \\times 2$ matrix the area of the parallelogram on its columns, with a sign from their <span data-concept=\"orientation-of-a-pair-of-vectors\">orientation</span>. It then asks how the determinant behaves under <span data-concept=\"elementary-row-operations\">row operations</span> and products, what it says about <span data-concept=\"invertible-matrix\">invertibility</span>, and how to compute it by row reduction and by <span data-concept=\"cofactor-expansion\">cofactor expansions</span>.",
+ "objectives": [],
+ "summary_html": "<p>In this section, we associated a numerical quantity, the determinant, to a square matrix and showed how it tells us whether the matrix is invertible.</p><ul><li>The determinant of a matrix has a geometric interpretation. In particular, when $n=2$, the determinant is the signed area of the parallelogram formed by the two columns of the matrix.</li><li>The determinant satisfies many properties. For instance, $\\det(\\kA\\kB) = \\det(\\kA) \\det(\\kB)$ and the determinant of a triangular matrix is equal to the product of its diagonal entries.</li><li>These properties helped us compute the determinant of a matrix using row operations. This also led to the important observation that the determinant of a matrix is nonzero if and only if the matrix is invertible.</li><li>Finally, we learned how to compute the determinant of a matrix using cofactor expansions, which will be a valuable tool for us in the next chapter.</li></ul><p>We have seen three ways to compute the determinant: by interpreting the determinant as a signed area or volume; by applying appropriate row operations; and by using a cofactor expansion. It’s worth spending a moment to think about the relative merits of these approaches.</p><p>The geometric definition of the determinant tells us that the determinant is measuring a natural geometric quantity, an insight that does not easily come through the other two approaches. The intuition we gain by thinking about the determinant geometrically makes it seem reasonable that the determinant should be zero for matrices that are not invertible: if the columns are linearly dependent, the vectors cannot create a positive volume.</p><p>Approaching the determinant through row operations provides an effective means of computing the determinant. In fact, this is what most computer programs do behind the scenes when they compute a determinant. This approach is also a useful theoretical tool for explaining why the determinant tells us whether a matrix is invertible.</p><p>The cofactor expansion method will be useful to us in the next chapter when we look at eigenvalues and eigenvectors. It is not, however, a practical way to compute a determinant. To see why, consider the fact that the determinant of a $2\\times2$ matrix, written as $ad-bc$, requires us to compute two terms, $ad$ and $bc$. To compute the determinant of a $3\\times3$ matrix, we need to compute three $2\\times2$ determinants, which involves $3\\cdot 2 = 6$ terms. For a $4\\times4$ matrix, we need to compute four $3\\times3$ determinants, which produces $4\\cdot3\\cdot2 = 24$ terms. Continuing in this way, we see that the cofactor expansion of a $10\\times10$ matrix would involve $10\\cdot9\\cdot8\\ldots3\\cdot2 = 10! = 3628800$ terms.</p><p>By contrast, we have seen that the number of steps required to perform Gaussian elimination on an $n\\times n$ matrix is proportional to $n^3$. When $n=10$, we have $n^3 = 1000$, which points to the fact that finding the determinant using Gaussian elimination is considerably less work.</p>",
+ "notes": "The empty Sage cell of Activity 3.4.4 is left out; nothing else is.",
+ "ai": {
+  "text": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ],
+  "figures": [
+   {
+    "model": "claude-fable-5-1",
+    "effort": "high"
+   }
+  ]
+ },
+ "built": "2026-11-02",
+ "exercises_lead": "",
+ "exercise_notes": "The book’s own answers and solutions key every exercise and activity of the section; the preview activity and the three activities stand in the text as cards, the preview’s drawings kept in its parts, and the empty Sage cell of Activity 3.4.4 is left out. Three slips in the book’s solutions (Activity 3.4.4 b, Exercises 3.4.10 a and 3.4.11) are kept as printed and corrected under their cards. Bloom levels and concept tags are AI-judged.",
+ "figures": [
+  {
+   "id": "sim-parallelogram-grid",
+   "kind": "sim",
+   "number": "3.4.1",
+   "originals": [
+    "/media/ch03/basis-1.svg"
+   ],
+   "original_caption": "Linear combinations of two vectors v₁ and v₂ form a collection of congruent parallelograms.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-parallelogram-area",
+   "kind": "sim",
+   "originals": [
+    "/media/ch03/parallelogram-area.svg"
+   ],
+   "original_caption": "Defining the base and height of a parallelogram.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-orientation",
+   "kind": "sim",
+   "number": "3.4.2",
+   "originals": [
+    "/media/ch03/det-orientation-a.svg",
+    "/media/ch03/det-orientation-b.svg"
+   ],
+   "original_caption": "The vectors on the left are positively oriented while the ones on the right are negatively oriented.",
+   "widths": [],
+   "draws": [
+    "vector"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-det-identity",
+   "kind": "sim",
+   "number": "3.4.5",
+   "originals": [
+    "/media/ch03/det-identity-a.svg",
+    "/media/ch03/det-identity-b.svg"
+   ],
+   "original_caption": "The determinant det(I) = 1, as seen on the left. On the right, we see that det(A) = −2 where A is the matrix whose columns are shown.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-determinant",
+   "kind": "sim",
+   "number": "3.4.6",
+   "originals": [
+    "/media/ch03/det-preview.png"
+   ],
+   "original_caption": "The geometric meaning of the determinant of a matrix.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-parallelepiped",
+   "kind": "sim",
+   "originals": [
+    "/media/ch03/det-3d.svg"
+   ],
+   "original_caption": "A set of three vectors in three dimensions and the parallelepiped they define.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-det-triangular",
+   "kind": "sim",
+   "number": "3.4.7",
+   "originals": [
+    "/media/ch03/parallelogram-f.svg",
+    "/media/ch03/parallelogram-g.svg"
+   ],
+   "original_caption": "The determinant of a triangular matrix equals the product of its diagonal entries.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-det-dependent",
+   "kind": "sim",
+   "number": "3.4.9",
+   "originals": [
+    "/media/ch03/parallelogram-h.svg"
+   ],
+   "original_caption": "When the columns of A are linearly dependent, we find that det(A) = 0.",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  },
+  {
+   "id": "sim-row-operations-area",
+   "kind": "sim",
+   "widths": [],
+   "draws": [
+    "vector",
+    "matrix"
+   ],
+   "ai": [
+    {
+     "model": "claude-fable-5-1",
+     "effort": "high",
+     "part": "built"
+    }
+   ]
+  }
+ ],
+ "referents": [
+  {
+   "id": "v-1",
+   "label": "the vector v₁",
+   "figures": [
+    "sim-parallelogram-grid",
+    "sim-orientation",
+    "sim-det-identity",
+    "sim-determinant",
+    "sim-parallelepiped",
+    "sim-det-triangular",
+    "sim-det-dependent"
+   ]
+  },
+  {
+   "id": "v-2",
+   "label": "the vector v₂",
+   "figures": [
+    "sim-parallelogram-grid",
+    "sim-orientation",
+    "sim-det-identity",
+    "sim-determinant",
+    "sim-parallelepiped",
+    "sim-det-triangular",
+    "sim-det-dependent"
+   ]
+  },
+  {
+   "id": "v-3",
+   "label": "the vector v₃",
+   "figures": [
+    "sim-parallelepiped"
+   ]
+  }
+ ],
+ "coverage": [
+  {
+   "span": "criterion",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "criterion",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "criterion",
+   "concept": "square-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "criterion",
+   "concept": "invertible-iff-row-equivalent-to-identity",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-and-parallelograms",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-and-parallelograms",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "columns-and-parallelograms",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-parallelogram-grid",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-parallelogram-grid",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-parallelogram-grid",
+   "concept": "area-of-a-parallelogram",
+   "verb": "reinforces"
+  },
+  {
+   "span": "congruent-parallelograms",
+   "concept": "linear-combination",
+   "verb": "uses"
+  },
+  {
+   "span": "congruent-parallelograms",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "congruent-parallelograms",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "congruent-parallelograms",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "area-formula",
+   "concept": "area-of-a-parallelogram",
+   "verb": "introduces"
+  },
+  {
+   "span": "sim-parallelogram-area",
+   "concept": "area-of-a-parallelogram",
+   "verb": "reinforces"
+  },
+  {
+   "span": "orientation",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "introduces"
+  },
+  {
+   "span": "orientation",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "orientation",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "orientation",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-orientation",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "definition-3-4-3",
+   "concept": "determinant",
+   "verb": "introduces"
+  },
+  {
+   "span": "definition-3-4-3",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-3-4-3",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "definition-3-4-3",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-det-identity",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-det-identity",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-det-identity",
+   "concept": "identity-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-det-identity",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "example-det-identity",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-det-identity",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-det-identity",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-determinant",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-determinant",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-determinant",
+   "concept": "determinant-as-area-scale",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-determinant",
+   "concept": "invertibility-and-the-determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-determinant",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "higher-determinants",
+   "concept": "determinant-as-volume",
+   "verb": "introduces"
+  },
+  {
+   "span": "higher-determinants",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "parallelepiped",
+   "concept": "determinant-as-volume",
+   "verb": "reinforces"
+  },
+  {
+   "span": "parallelepiped",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "parallelepiped",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "parallelepiped",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "parallelepiped",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-parallelepiped",
+   "concept": "determinant-as-volume",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-parallelepiped",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "properties-intro",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "properties-intro",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "triangular-property",
+   "concept": "determinant-of-a-triangular-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "triangular-property",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-det-triangular",
+   "concept": "determinant-of-a-triangular-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-det-triangular",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "interchange-property",
+   "concept": "orientation-of-a-pair-of-vectors",
+   "verb": "reinforces"
+  },
+  {
+   "span": "interchange-property",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "interchange-property",
+   "concept": "permutation-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "multiplicative-property",
+   "concept": "determinant-as-area-scale",
+   "verb": "introduces"
+  },
+  {
+   "span": "multiplicative-property",
+   "concept": "determinant-of-a-product",
+   "verb": "introduces"
+  },
+  {
+   "span": "multiplicative-property",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "multiplicative-property",
+   "concept": "linear-mapping",
+   "verb": "uses"
+  },
+  {
+   "span": "multiplicative-property",
+   "concept": "matrix-product-as-composition",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-det-properties",
+   "concept": "properties-of-the-determinant",
+   "verb": "introduces"
+  },
+  {
+   "span": "proposition-det-properties",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-det-properties",
+   "concept": "determinant-of-a-triangular-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-det-properties",
+   "concept": "determinant-of-a-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "proposition-det-properties",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-det-properties",
+   "concept": "permutation-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "dependent-columns",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "dependent-columns",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "dependent-columns",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "dependent-columns",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "dependent-columns",
+   "concept": "vector",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-det-dependent",
+   "concept": "invertibility-and-the-determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-det-dependent",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "not-invertible-iff",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "not-invertible-iff",
+   "concept": "matrix-as-columns",
+   "verb": "uses"
+  },
+  {
+   "span": "not-invertible-iff",
+   "concept": "linear-independence-of-vectors",
+   "verb": "uses"
+  },
+  {
+   "span": "not-invertible-iff",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-invertible-det",
+   "concept": "invertibility-and-the-determinant",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-invertible-det",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-invertible-det",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "row-equivalence-reminder",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "row-equivalence-reminder",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "row-equivalence-reminder",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "row-equivalence-reminder",
+   "concept": "invertible-iff-row-equivalent-to-identity",
+   "verb": "uses"
+  },
+  {
+   "span": "row-equivalence-reminder",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "row-operations-recalled",
+   "concept": "row-operations-as-matrix-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "row-operations-recalled",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "row-operations-recalled",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "scaling-effect",
+   "concept": "diagonal-matrix",
+   "verb": "introduces"
+  },
+  {
+   "span": "scaling-effect",
+   "concept": "determinant-of-a-triangular-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "scaling-effect",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "scaling-effect",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "interchange-effect",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "interchange-effect",
+   "concept": "permutation-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "replacement-effect",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "replacement-effect",
+   "concept": "determinant-of-a-triangular-matrix",
+   "verb": "reinforces"
+  },
+  {
+   "span": "replacement-effect",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "replacement-effect",
+   "concept": "elementary-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "replacement-effect",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-operations-area",
+   "concept": "effect-of-row-operations-on-the-determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-row-operations-area",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "sim-row-operations-area",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-operations-area",
+   "concept": "elementary-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-operations-area",
+   "concept": "row-operations-as-matrix-multiplication",
+   "verb": "uses"
+  },
+  {
+   "span": "sim-row-operations-area",
+   "concept": "determinant-of-a-product",
+   "verb": "uses"
+  },
+  {
+   "span": "proposition-det-row-operations",
+   "concept": "effect-of-row-operations-on-the-determinant",
+   "verb": "introduces"
+  },
+  {
+   "span": "proposition-det-row-operations",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "row-operations-compute",
+   "concept": "determinant-by-row-reduction",
+   "verb": "introduces"
+  },
+  {
+   "span": "row-operations-compute",
+   "concept": "gauss-jordan-elimination",
+   "verb": "uses"
+  },
+  {
+   "span": "row-operations-compute",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "row-operations-compute",
+   "concept": "triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "u-invertible-iff",
+   "concept": "invertibility-of-a-triangular-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "u-invertible-iff",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "det-a-nonzero",
+   "concept": "effect-of-row-operations-on-the-determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "det-a-nonzero",
+   "concept": "elementary-row-operations",
+   "verb": "uses"
+  },
+  {
+   "span": "det-a-nonzero",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "this-explains",
+   "concept": "invertibility-and-the-determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "this-explains",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "inverse-determinant",
+   "concept": "determinant-of-a-product",
+   "verb": "reinforces"
+  },
+  {
+   "span": "inverse-determinant",
+   "concept": "determinant-of-an-inverse",
+   "verb": "reinforces"
+  },
+  {
+   "span": "inverse-determinant",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-det-inverse-reciprocal",
+   "concept": "determinant-of-an-inverse",
+   "verb": "introduces"
+  },
+  {
+   "span": "prop-det-inverse-reciprocal",
+   "concept": "invertible-matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "prop-det-inverse-reciprocal",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "cofactor-intro",
+   "concept": "cofactor-expansion",
+   "verb": "introduces"
+  },
+  {
+   "span": "cofactor-intro",
+   "concept": "determinant-by-row-reduction",
+   "verb": "reinforces"
+  },
+  {
+   "span": "cofactor-intro",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "det-2x2-formula",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "det-2x2-formula",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "cofactor-example-intro",
+   "concept": "cofactor-expansion",
+   "verb": "reinforces"
+  },
+  {
+   "span": "cofactor-example-intro",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "cofactor-example-intro",
+   "concept": "matrix",
+   "verb": "uses"
+  },
+  {
+   "span": "example-3-4-13",
+   "concept": "cofactor-expansion",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-3-4-13",
+   "concept": "determinant",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-3-4-13",
+   "concept": "determinant-by-row-reduction",
+   "verb": "reinforces"
+  },
+  {
+   "span": "example-3-4-13",
+   "concept": "matrix",
+   "verb": "uses"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "a1",
+   "source_id": "3.4.1",
+   "source_number": "3.4.1",
+   "kind": "preview",
+   "bloom": "Understand",
+   "place": {
+    "at": "inline",
+    "after": "sim-parallelogram-area"
+   },
+   "cite": "area-formula",
+   "prompt": "<p>We will explore the area formula in this preview activity.</p><ol type=\"a\"><li><p>Find the area of the following parallelograms.</p><ol><li><p><img src=\"/media/ch03/parallelogram-a.svg\" alt=\"A one by one square\" width=\"150\"></p></li><li><p><img src=\"/media/ch03/parallelogram-b.svg\" alt=\"A rectangle having sides of length two and three\" width=\"150\"></p></li><li><p><img src=\"/media/ch03/parallelogram-c.svg\" alt=\"A square whose sides make 45 degree angles with the coordinate axes.\" width=\"150\"></p></li><li><p><img src=\"/media/ch03/parallelogram-d.svg\" alt=\"A parallelogram with horizontal sides.\" width=\"150\"></p></li><li><p><img src=\"/media/ch03/parallelogram-e.svg\" alt=\"A parallelogram with horizontal sides.\" width=\"150\"></p></li></ol></li><li><p>Explain why the area of the parallelogram formed by the vectors $\\kvecv$ and $\\kvecwone$ is the same as that formed by $\\kvecv$ and $\\kvecwtwo$.</p><p><img src=\"/media/ch03/area-shear.svg\" alt=\"A horizontal vector with two vectors ending on the same horizontal line.\" width=\"200\"></p></li></ol>",
+   "changes": "The eight parallelograms of the parts are the examples of the Sim above the card, which draws each with its base and height.",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We find the following areas.</p><ol><li>A $1\\times1$ square has area 1.</li><li>A $2\\times3$ rectangle has area 6.</li><li>The square has side length $\\sqrt{2}$ giving an area of 2.</li><li>If we consider the horizontal length as the base, we see that $b=h=2$ so that the area is 4.</li><li>In the same way, we can consider both the base and height to be 2 so that the area is 4.</li></ol></li><li>If we consider the base to be the length of $\\kvecv$, then the height, which is the perpendicular distance to its parallel side, is the same in both parallelograms.</li></ol>"
+   }
+  },
+  {
+   "id": "a2",
+   "source_id": "3.4.2",
+   "source_number": "3.4.2",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "sim-determinant"
+   },
+   "cite": "sim-determinant",
+   "prompt": "<p>In this activity, we will find the determinant of some simple $2\\times2$ matrices and discover some important properties of determinants.</p><ol type=\"a\"><li>Use the diagram to find the determinant of the matrix $\\left[\\begin{array}{rr} -\\frac12 & 0 \\\\ 0 & 2 \\end{array}\\right]$. Along with <a href=\"#example-det-identity\">Example 3.4.4</a>, what does this lead you to believe is generally true about the determinant of a diagonal matrix?</li><li>Use the diagram to find the determinant of the matrix $\\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\end{array}\\right]$. What is the geometric effect of the matrix transformation defined by this matrix?</li><li>Use the diagram to find the determinant of the matrix $\\left[\\begin{array}{rr} 2 & 1 \\\\ 0 & 1 \\end{array}\\right]$. More generally, what do you notice about the determinant of any matrix of the form $\\left[\\begin{array}{rr} 2 & k \\\\ 0 & 1 \\end{array}\\right]$? What does this say about the determinant of an upper triangular matrix?</li><li>Use the diagram to find the determinant of any matrix of the form $\\left[\\begin{array}{rr} 2 & 0 \\\\ k & 1 \\end{array}\\right]$. What does this say about the determinant of a lower triangular matrix?</li><li>Use the diagram to find the determinant of the matrix $\\left[\\begin{array}{rr} 1 & -1 \\\\ -2 & 2 \\end{array}\\right]$. In general, what is the determinant of a matrix whose columns are linearly dependent?</li><li><p>Consider the matrices</p>$$ \\kA = \\left[\\begin{array}{rr} 2 & 1 \\\\ 2 & -1 \\end{array}\\right],~~~ \\kB = \\left[\\begin{array}{rr} 1 & 0 \\\\ 0 & 2 \\end{array}\\right]. $$<p>Use the diagram to find the determinants of $\\kA$, $\\kB$, and $\\kA\\kB$. What does this suggest is generally true about the relationship of $\\det(\\kA\\kB)$ to $\\det(\\kA)$ and $\\det(\\kB)$?</p></li></ol>",
+   "changes": "The diagram the parts refer to is Figure 3.4.6, which stands above this card; its examples include every matrix of the parts.",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>The determinant is $-1$ because the vectors are negatively oriented and the rectangle has sides of length $\\frac12$ and $2$. The determinant of a diagonal matrix seems to be the product of the diagonal entries.</li><li>The matrix transformation is a reflection over the line $y=x$ and we see that the determinant is $-1$.</li><li>The determinant will continue to be $2$ for any value of $k$. This illustrates the fact that the determinant of an upper triangular matrix equals the product of its diagonal entries.</li><li>The same reasoning tells us that this determinant is $2$ and, in fact, the determinant of a lower triangular matrix equals the product of its diagonal entries.</li><li>The determinant of this matrix is $0$ because the parallelogram formed by the vector has no area. This suggests that the determinant of a matrix whose columns are linearly dependent is $0$.</li><li>We find that $\\det(\\kA) = -4$, $\\det(\\kB) = 2$, and $\\det(\\kA\\kB) = -8$. This suggests that $\\det(\\kA\\kB) = \\det(\\kA) \\det(\\kB)$.</li></ol>"
+   }
+  },
+  {
+   "id": "a3",
+   "source_id": "3.4.3",
+   "source_number": "3.4.3",
+   "kind": "activity",
+   "bloom": "Analyze",
+   "place": {
+    "at": "inline",
+    "after": "proposition-det-row-operations"
+   },
+   "cite": "proposition-det-row-operations",
+   "prompt": "<p>We will investigate the connection between the determinant of a matrix and its invertibility using Gaussian elimination.</p><ol type=\"a\"><li><p>Consider the two upper triangular matrices</p>$$ U_1 = \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 2 & 4 \\\\ 0 & 0 & -2 \\end{array}\\right],~~~ U_2 = \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 2 & 4 \\\\ 0 & 0 & 0 \\end{array}\\right]. $$<p>Remembering <a href=\"/understanding-linear-algebra/ch03/3.1/#proposition-triangular-invertibility\">Proposition 3.1.9</a>, which of the matrices $U_1$ and $U_2$ are invertible? What are the determinants $\\det(U_1)$ and $\\det(U_2)$?</p></li><li>Explain why an upper triangular matrix is invertible if and only if its determinant is not zero.</li><li><p>Let’s now consider the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ -2 & 2 & -6 \\\\ 3 & -1 & 10 \\end{array}\\right] $$<p>and begin the Gaussian elimination process with a row replacement operation</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ -2 & 2 & -6 \\\\ 3 & -1 & 10 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 0 & -2 \\\\ 3 & -1 & 10 \\end{array}\\right] = A_1. $$<p>What is the relationship between $\\det(\\kA)$ and $\\det(A_1)$?</p></li><li><p>Next we perform another row replacement operation:</p>$$ A_1= \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 0 & -2 \\\\ 3 & -1 & 10 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 0 & -2 \\\\ 0 & 2 & 4 \\end{array}\\right] = A_2. $$<p>What is the relationship between $\\det(\\kA)$ and $\\det(A_2)$?</p></li><li><p>Finally, we perform an interchange:</p>$$ A_2 = \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 0 & -2 \\\\ 0 & 2 & 4 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & -1 & 2 \\\\ 0 & 2 & 4 \\\\ 0 & 0 & -2 \\end{array}\\right] = \\kU $$<p>to arrive at an upper triangular matrix $\\kU$. What is the relationship between $\\det(\\kA)$ and $\\det(\\kU)$?</p></li><li>Since $\\kU$ is upper triangular, we can compute its determinant, which allows us to find $\\det(\\kA)$. What is $\\det(\\kA)$? Is $\\kA$ invertible?</li><li><p>Now consider the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} 1 & -1 & 3 \\\\ 0 & 2 & -2 \\\\ 2 & 1 & 3 \\end{array}\\right]. $$<p>Perform a sequence of row operations to find an upper triangular matrix $\\kU$ that is row equivalent to $\\kA$. Use this to determine $\\det(\\kA)$ and whether $\\kA$ is invertible.</p></li><li>Suppose we apply a sequence of row operations on a matrix $\\kA$ to obtain $\\kAprime$. Explain why $\\det(\\kA) \\neq 0$ if and only if $\\det(\\kAprime) \\neq 0$.</li><li>Explain why an $n\\times n$ matrix $\\kA$ is invertible if and only if $\\det(\\kA) \\neq 0$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li>The matrix $U_1$ is invertible because we see there is a pivot position in every row and column. The matrix $U_2$, however, is not invertible because there is not a pivot position in the third row. Also, $\\det(U_1)=-4$ and $\\det(U_2)=0$.</li><li>The determinant of an upper triangular matrix equals the product of its diagonal entries. Consequently, if the determinant of an upper triangular matrix is not zero, then each of its diagonal entries must be nonzero. In this case, there is a pivot position in every row and every column so that the matrix is invertible.</li><li>Row replacement operations do not change the determinant so $\\det(\\kA) = \\det(A_1)$.</li><li>In the same way, $\\det(\\kA) = \\det(A_2)$.</li><li>Interchanges change the sign of the determinant so $\\det(\\kA) = -\\det(\\kU)$.</li><li>The determinant $\\det(\\kU) = -4$ since it is the product of the diagonal entries of $\\kU$. This means that $\\det(\\kA) = 4$. We see that $\\kA$ is invertible because $\\kU$, which has a pivot position in every row and every column, is invertible.</li><li><p>Beginning with a row replacement operation, we arrive at</p>$$ A_1=\\left[\\begin{array}{rrr} 1 & -1 & 3 \\\\ 0 & 2 & -2 \\\\ 0 & -3 & 3 \\end{array}\\right]. $$<p>We next scale the second row by $\\frac12$ to obtain</p>$$ A_2=\\left[\\begin{array}{rrr} 1 & -1 & 3 \\\\ 0 & 1 & -1 \\\\ 0 & -3 & 3 \\end{array}\\right]. $$<p>Another row replacement operation gives</p>$$ A_3=\\left[\\begin{array}{rrr} 1 & -1 & 3 \\\\ 0 & 1 & -1 \\\\ 0 & 0 & 0 \\end{array}\\right]. $$<p>Putting these operations together, we see that $\\det(\\kA) = 2\\det(\\kU) = 0$. In this case, $\\kA$ is not invertible because $\\kU$, which has a row without a pivot position, is not invertible.</p></li><li>Performing one of the three row operations either leaves the determinant unchanged (row replacement), changes its sign (interchange), or multiplies it by a nonzero number (scaling). Therefore, if we begin with a matrix whose determinant is not zero, the determinant remains nonzero after any row operation is applied.</li><li>If we apply a sequence of row operations to $\\kA$ to find a row equivalent matrix $\\kU$ that is upper triangular, we know that $\\det(\\kA)\\neq0$ if and only if $\\det(\\kU) \\neq 0$. We also know that $\\kA$ is invertible if and only if $\\kU$ is invertible. Putting these facts together, we conclude that $\\det(\\kA)\\neq 0$ if and only if $\\kA$ is invertible.</li></ol>"
+   }
+  },
+  {
+   "id": "a4",
+   "source_id": "3.4.4",
+   "source_number": "3.4.4",
+   "kind": "activity",
+   "bloom": "Apply",
+   "place": {
+    "at": "inline",
+    "after": "example-3-4-13"
+   },
+   "cite": "example-3-4-13",
+   "prompt": "<p>We will explore cofactor expansions through some examples.</p><ol type=\"a\"><li><p>Using a cofactor expansion, show that the determinant of the following matrix</p>$$ \\det \\left[\\begin{array}{rrr} 2 & 0 & -1 \\\\ 3 & 1 & 2 \\\\ -2 & 4 & -3 \\end{array}\\right] = -36. $$<p>Remember that you can choose any row or column to create the expansion, but the choice of a particular row or column may simplify the computation.</p></li><li><p>Use a cofactor expansion to find the determinant of</p>$$ \\left[\\begin{array}{rrrr} -3 & 0 & 0 & 0 \\\\ 4 & 1 & 0 & 0 \\\\ -1 & 4 & -4 & 0 \\\\ 0 & 3 & 2 & 3 \\end{array}\\right]. $$<p>Explain how the cofactor expansion technique shows that the determinant of a triangular matrix is equal to the product of its diagonal entries.</p></li><li><p>Use a cofactor expansion to determine whether the following vectors form a basis of ${\\mathbb R}^3$:</p>$$ \\left[\\begin{array}{r} 2 \\\\ -1 \\\\ -2 \\end{array}\\right], \\left[\\begin{array}{r} 1 \\\\ -1 \\\\ 2 \\end{array}\\right], \\left[\\begin{array}{r} 1 \\\\ 0 \\\\ -4 \\end{array}\\right]. $$</li><li><p>Sage will compute the determinant of a matrix <code>A</code> with the command <code>A.det()</code>. Use Sage to find the determinant of the matrix</p>$$ \\left[\\begin{array}{rrrr} 2 & 1 & -2 & -3 \\\\ 3 & 0 & -1 & -2 \\\\ -3 & 4 & 1 & 2 \\\\ 1 & 3 & 3 & -1 \\end{array}\\right]. $$</li></ol>",
+   "changes": "The book’s empty Sage cell for part (d) is left out.",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Solution.</strong></p><ol type=\"a\"><li><p>We will using a cofactor expanion along the first row so that</p>$$ \\begin{array}{rl} \\det\\left[\\begin{array}{rrr} 2 & 0 & -1 \\\\ 3 & 1 & 2 \\\\ -2 & 4 & -3 \\end{array}\\right] = & (-1)^{1+1}\\cdot 2 \\det\\left[\\begin{array}{rr} 1 & 2 \\\\ 4 & -3 \\end{array}\\right] \\\\ & + (-1)^{1+3}\\cdot (-1) \\det\\left[\\begin{array}{rr} 3 & 1 \\\\ -2 & 4 \\end{array}\\right] \\\\ = & 2(-11) - 14 = -36\\text{.} \\end{array} $$</li><li><p>Expanding along the first row gives</p>$$ \\begin{array}{rl} \\det \\left[\\begin{array}{rrrr} -3 & 0 & 0 & 0 \\\\ 4 & 1 & 0 & 0 \\\\ -1 & 4 & -4 & 0 \\\\ 0 & 3 & 2 & 3 \\end{array}\\right] & = 3\\det \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 4 & -4 & 0 \\\\ 3 & 2 & 3 \\end{array}\\right]<sup class=\"fn\" data-note=\"activity-3-4-4-sign\"></sup> \\\\ & =-3(1)\\det \\left[\\begin{array}{rr} -4 & 0 \\\\ 2 & 3 \\end{array}\\right] \\\\ & =-3(1)(-4)(3) = 36\\text{.} \\end{array} $$</li><li>We form the matrix $\\kA$ whose columns are the three given vectors. Expanding along either the second row or third column to take advantage of the zero in the $(2,3)$ entry, we see that $\\det(\\kA) = 0$, which means that $\\kA$ is not invertible. Therefore, the vectors do not form a basis for ${\\mathbb R}^3$.</li><li>Sage tells us that $\\det(\\kA) = 72$.</li></ol>"
+   }
+  },
+  {
+   "id": "e1",
+   "source_id": "3.4.1",
+   "source_number": "3.4.1",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "row-operations-compute",
+   "prompt": "<p>Consider the matrices</p>$$ \\kA = \\left[\\begin{array}{rrr} 2 & 1 & 0 \\\\ -4 & -4 & 3 \\\\ 2 & 1 & -3 \\end{array}\\right], \\qquad \\kB = \\left[\\begin{array}{rrrr} -2 & 3 & 0 & 0 \\\\ 0 & 4 & 2 & 0 \\\\ 4 & -6 & -1 & 2 \\\\ 0 & 4 & 2 & -3 \\end{array}\\right]. $$<ol type=\"a\"><li>Find the determinants of $\\kA$ and $\\kB$ using row operations.</li><li>Now find the determinants of $\\kA$ and $\\kB$ using cofactor expansions to verify your results</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong> $\\det(\\kA) = 12$ and $\\det(\\kB) = -24$.</p><p><strong>Solution.</strong></p><p>We find that $\\det(\\kA) = 12$ and $\\det(\\kB) = -24$.</p>"
+   }
+  },
+  {
+   "id": "e2",
+   "source_id": "3.4.2",
+   "source_number": "3.4.2",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "definition-3-4-3",
+   "prompt": "<p>This exercise concerns rotations and reflections in ${\\mathbb R}^2$.</p><ol type=\"a\"><li>Suppose that $\\kA$ is the matrix that performs a counterclockwise rotation in ${\\mathbb R}^2$. Draw a typical picture of the vectors that form the columns of $\\kA$ and use the geometric definition of the determinant to determine $\\det(\\kA)$.</li><li>Suppose that $\\kB$ is the matrix that performs a reflection in a line passing through the origin. Draw a typical picture of the columns of $\\kB$ and use the geometric definition of the determinant to determine $\\det(\\kB)$.</li><li><p>As we saw in <a href=\"/understanding-linear-algebra/ch02/2.6/\">Section 2.6</a>, the matrices have the form</p>$$ \\kA = \\left[\\begin{array}{rr} \\cos \\theta & -\\sin\\theta \\\\ \\sin \\theta & \\cos \\theta \\end{array}\\right], \\qquad \\kB = \\left[\\begin{array}{rr} \\cos(2\\theta) & \\sin(2\\theta) \\\\ \\sin(2\\theta) & -\\cos(2\\theta) \\end{array}\\right]. $$<p>Compute the determinants of $\\kA$ and $\\kB$ and verify that they agree with what you found in the earlier parts of this exercise.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = 1$.</li><li>$\\det(\\kB) = -1$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>The vectors $\\kvecvone$ and $\\kvecvtwo$ that form the columns of $\\kA$ are found by rotating the standard basis vectors $\\kveceone$ and $\\kvecetwo$. Consequently, they are positively oriented and form a $1\\times1$ square. This says that $\\det(\\kA) = 1$.</li><li>The vectors $\\kvecvone$ and $\\kvecvtwo$ that form the columns of $\\kB$ are found by reflecting the standard basis vectors $\\kveceone$ and $\\kvecetwo$. Consequently, they are negatively oriented and form a $1\\times1$ square. This says that $\\det(\\kB) = -1$.</li><li>We see that $\\det(\\kA) =\\cos^2\\theta + \\sin^2\\theta = 1$ and $\\det(\\kB) = -\\cos^2(2\\theta) -\\sin^2(2\\theta) = -1$.</li></ol>"
+   }
+  },
+  {
+   "id": "e3",
+   "source_id": "3.4.3",
+   "source_number": "3.4.3",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-det-properties",
+   "prompt": "<p>In the next chapter, we will say that matrices $\\kA$ and $\\kB$ are <em>similar</em> if there is a matrix $\\kP$ such that $\\kA= \\kP\\kB\\kP^{-1}$.</p><ol type=\"a\"><li>Suppose that $\\kA$ and $\\kB$ are matrices and that there is a matrix $\\kP$ such that $\\kA=\\kP\\kB\\kP^{-1}$. Explain why $\\det(\\kA) = \\det(\\kB)$.</li><li><p>Suppose that $\\kA$ is a $3\\times3$ matrix and that there is a matrix $\\kP$ such that</p>$$ \\kA = \\kP \\left[\\begin{array}{rrr} 2 & 0 & 0 \\\\ 0 & -5 & 0 \\\\ 0 & 0 & -3 \\end{array}\\right] \\kP^{-1}. $$<p>Find $\\det(\\kA)$.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = \\det(\\kB)$ because $\\det(\\kP) \\det(\\kP^{-1}) = 1$.</li><li>$\\det(\\kA) = 30$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = \\det(\\kP) \\det(\\kB) \\det(\\kP^{-1}) = \\det(\\kB)$.</li><li>$\\det(\\kA) = (\\det(\\kP)) (2)(-5)(-3) (\\det(\\kP^{-1})) = 30$ since $\\det(\\kP) \\det(\\kP^{-1}) = 1$.</li></ol>"
+   }
+  },
+  {
+   "id": "e4",
+   "source_id": "3.4.4",
+   "source_number": "3.4.4",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-invertible-det",
+   "prompt": "<p>Consider the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} -2 & 1 & k \\\\ 2 & 3 & 0 \\\\ 1 & 2 & 2 \\end{array}\\right] $$<p>where $k$ is a parameter.</p><ol type=\"a\"><li>Find an expression for $\\det(\\kA)$ in terms of the parameter $k$.</li><li><p>Use your expression for $\\det(\\kA)$ to determine the values of $k$ for which the vectors</p>$$ \\left[\\begin{array}{r} -2 \\\\ 2 \\\\ 1 \\end{array}\\right], \\left[\\begin{array}{r} 1 \\\\ 3 \\\\ 2 \\end{array}\\right], \\left[\\begin{array}{r} k \\\\ 0 \\\\ 2 \\end{array}\\right] $$<p>are linearly independent.</p></li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = k-16$</li><li>$k\\neq 16$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>We see that $\\det(\\kA) = k-16$.</li><li>The vectors are linearly independent when the matrix $\\kA$ is invertible, which means that $\\det(\\kA)\\neq 0$. Therefore, the vectors are linearly independent when $k\\neq 16$.</li></ol>"
+   }
+  },
+  {
+   "id": "e5",
+   "source_id": "3.4.5",
+   "source_number": "3.4.5",
+   "kind": "exercise",
+   "bloom": "Evaluate",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-det-row-operations",
+   "prompt": "<p>Determine whether the following statements are true or false and explain your response.</p><ol type=\"a\"><li>If we have a square matrix $\\kA$ and multiply the first row by $5$ and add it to the third row to obtain $\\kAprime$, then $\\det(\\kAprime) = 5\\det(\\kA)$.</li><li>If we interchange two rows of a matrix, then the determinant is unchanged.</li><li>If we scale a row of the matrix $\\kA$ by $17$ to obtain $\\kAprime$, then $\\det(\\kAprime) = 17\\det(\\kA)$.</li><li>If $\\kA$ and $\\kAprime$ are row equivalent and $\\det(\\kAprime) = 0$, then $\\det(\\kA) = 0$ also.</li><li>If $\\kA$ is row equivalent to the identity matrix, then $\\det(\\kA) = \\det(\\kI) = 1$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>False</li><li>False</li><li>True</li><li>True</li><li>False</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>False. This is a row replacement operation, which leaves the determinant unchanged.</li><li>False. Applying an interchange operation changes the sign of the determinant.</li><li>True. Scaling a row of $\\kA$ by $r$ multiplies the determinant by $r$.</li><li>True. Row operations either leave the determinant unchanged, change its sign, or multiply it by a nonzero number. Therefore, if $\\det(\\kAprime)=0$ and $\\kA$ and $\\kAprime$ are related through a sequence of row operations, then $\\det(\\kA) = 0$.</li><li>False. It is true that $\\det(\\kI) = 1$, but a sequence of row operations that cause $\\kA$ and $\\kI$ to be row equivalent may multiply the determinant by a nonzero number or change its sign. We do know, however, that $\\det(\\kA)\\neq 0$ and so $\\kA$ is invertible.</li></ol>"
+   }
+  },
+  {
+   "id": "e6",
+   "source_id": "3.4.6",
+   "source_number": "3.4.6",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-det-properties",
+   "prompt": "<p>Suppose that $\\kA$ and $\\kB$ are $5\\times5$ matrices such that $\\det(\\kA) = -2$ and $\\det(\\kB) = 5$. Find the following determinants:</p><ol type=\"a\"><li>$\\det(2\\kA)$.</li><li>$\\det(\\kA^3)$.</li><li>$\\det(\\kA\\kB)$.</li><li>$\\det(-\\kA)$.</li><li>$\\det(\\kA\\kBinv)$.</li></ol>",
+   "answer": {
+    "type": "multi",
+    "parts": [
+     {
+      "part": "a",
+      "value": -64
+     },
+     {
+      "part": "b",
+      "value": -8
+     },
+     {
+      "part": "c",
+      "value": -10
+     },
+     {
+      "part": "d",
+      "value": 2
+     },
+     {
+      "part": "e",
+      "value": -0.4
+     }
+    ],
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(2\\kA) = -64$.</li><li>$\\det(\\kA^3) = -8$.</li><li>$\\det(\\kA\\kB) = -10$.</li><li>$\\det(-\\kA) = 2$.</li><li>$\\det (\\kA\\kBinv) = -\\frac 25$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Multiplying the entire matrix by $2$ scales each row by $2$. Therefore, $\\det(2\\kA) = 2^5\\det(\\kA) = -64$.</li><li>We have $\\det(\\kA^3) = (\\det(\\kA))^3 = -8$.</li><li>We know that $\\det(\\kA\\kB) = \\det(\\kA) \\det(\\kB) = -10$.</li><li>Multiplying the matrix by $-1$ scales each row by $-1$ so we have $\\det(-\\kA) = (-1)^5\\det(\\kA) = 2$.</li><li>$\\det(\\kA\\kBinv) = \\det(\\kA) \\det(\\kBinv) = \\det(\\kA)/\\det(\\kB) = -\\frac 25$.</li></ol>",
+    "generated_by": "source"
+   }
+  },
+  {
+   "id": "e7",
+   "source_id": "3.4.7",
+   "source_number": "3.4.7",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-invertible-det",
+   "prompt": "<p>Suppose that $\\kA$ and $\\kB$ are $n\\times n$ matrices.</p><ol type=\"a\"><li>If $\\kA$ and $\\kB$ are both invertible, use determinants to explain why $\\kA\\kB$ is invertible.</li><li>If $\\kA\\kB$ is invertible, use determinants to explain why both $\\kA$ and $\\kB$ are invertible.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>If $\\kA$ and $\\kB$ are invertible, then $\\det(\\kA) \\neq 0$ and $\\det(\\kB) \\neq 0$. Therefore, $\\det(\\kA\\kB) = \\det(\\kA)\\det(\\kB) \\neq 0$, which shows that $\\kA\\kB$ is invertible.</li><li>If $\\kA\\kB$ is invertible, then $\\det (\\kA\\kB) = \\det(\\kA) \\det(\\kB) \\neq 0$. This implies that $\\det(\\kA)\\neq0$ and $\\det(\\kB) \\neq 0$, from which we conclude that both $\\kA$ and $\\kB$ are invertible.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>If $\\kA$ and $\\kB$ are invertible, then $\\det(\\kA) \\neq 0$ and $\\det(\\kB) \\neq 0$. Therefore, $\\det(\\kA\\kB) = \\det(\\kA)\\det(\\kB) \\neq 0$, which shows that $\\kA\\kB$ is invertible.</li><li>If $\\kA\\kB$ is invertible, then $\\det (\\kA\\kB) = \\det(\\kA) \\det(\\kB) \\neq 0$. This implies that $\\det(\\kA)\\neq0$ and $\\det(\\kB) \\neq 0$, from which we conclude that both $\\kA$ and $\\kB$ are invertible.</li></ol>"
+   }
+  },
+  {
+   "id": "e8",
+   "source_id": "3.4.8",
+   "source_number": "3.4.8",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-invertible-det",
+   "prompt": "<p>Provide a justification for your responses to the following questions.</p><ol type=\"a\"><li>If every entry in one row of a matrix is zero, what can you say about the determinant?</li><li>If two rows of a square matrix are identical, what can you say about the determinant?</li><li>If two columns of a square matrix are identical, what can you say about the determinant?</li><li>If one column of a matrix is a linear combination of the others, what can you say about the determinant?</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong> In all four cases, the determinant must be zero.</p><p><strong>Solution.</strong></p><ol type=\"a\"><li>The determinant must be zero. This is because the matrix cannot be invertible since there is a row without a pivot. Also, applying a cofactor expansion along that row will produce zero for the determinant.</li><li>The determinant is zero again. If we multiply one of the rows by $-1$ and add it to the other row, we obtain a row whose entries are all zero. This operation does not change the determinant, but we know that the determinant of the new matrix is zero by the previous part of this problem.</li><li>The determinant must be zero. This is because the columns are not linearly independent, which means that the matrix cannot be invertible. Hence, the determinant is zero.</li><li>The determinant must be zero. This is because the columns are not linearly independent, which means that the matrix cannot be invertible. Hence, the determinant is zero.</li></ol>"
+   }
+  },
+  {
+   "id": "e9",
+   "source_id": "3.4.9",
+   "source_number": "3.4.9",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "prop-invertible-det",
+   "prompt": "<p>Consider the matrix</p>$$ \\kA = \\left[\\begin{array}{rrr} 0 & 1 & x \\\\ 2 & 2 & y \\\\ -1 & 0 & z \\end{array}\\right]. $$<ol type=\"a\"><li>Assuming that $\\det(\\kA) = 0$, rewrite the equation in terms of $x$, $y$, and $z$.</li><li>Explain why $\\kvecvone$ and $\\kvecvtwo$, the first two columns of $\\kA$, satisfy the equation you found in the previous part.</li><li>Explain why the solution space of this equation is the plane spanned by $\\kvecvone$ and $\\kvecvtwo$.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = 2x-y-2z = 0$.</li><li>If we replace the third column by either $\\kvecvone$ or $\\kvecvtwo$, we obtain a matrix whose columns are linearly dependent.</li><li>If $\\det(\\kA)=0$ for a vector $\\left[\\begin{array}{r} x \\\\ y \\\\ z \\end{array}\\right]$, then $\\left[\\begin{array}{r} x \\\\ y \\\\ z \\end{array}\\right]$ is a linear combination of $\\kvecvone$ and $\\kvecvtwo$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>Using a cofactor expansion, we have $\\det(\\kA) = 2x-y-2z = 0$.</li><li>If we replace the third column by either $\\kvecvone$ or $\\kvecvtwo$, we obtain a matrix whose columns are linearly dependent. Therefore, the determinant of the matrix must be zero.</li><li>If $\\det(\\kA) = 0$ for some vector $\\left[\\begin{array}{r} x \\\\ y \\\\ z \\end{array}\\right]$, then the columns of $\\kA$ must be linear dependent. Therefore, $\\left[\\begin{array}{r} x \\\\ y \\\\ z \\end{array}\\right]$ is a linear combination of $\\kvecvone$ and $\\kvecvtwo$ and lies in the plane that is their span.</li></ol>"
+   }
+  },
+  {
+   "id": "e10",
+   "source_id": "3.4.10",
+   "source_number": "3.4.10",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-det-row-operations",
+   "prompt": "<p>In this section, we studied the effect of row operations on the matrix $\\kA$. In this exercise, we will study the effect of analogous <em>column</em> operations.</p><p>Suppose that $\\kA$ is the $3\\times3$ matrix $\\kA= \\left[\\begin{array}{rrr} \\kvecvone & \\kvecvtwo & \\kvecvthree \\end{array}\\right]$. Also consider elementary matrices</p>$$ \\kR = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 1 & 0 \\\\ -3 & 0 & 1 \\end{array}\\right],~~~ \\kS = \\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 0 & 3 & 0 \\\\ 0 & 0 & 1 \\end{array}\\right],~~~ \\kP = \\left[\\begin{array}{rrr} 0 & 0 & 1 \\\\ 0 & 1 & 0 \\\\ 1 & 0 & 0 \\end{array}\\right]. $$<ol type=\"a\"><li>Explain why the matrix $\\kA\\kR$ is obtained from $\\kA$ by replacing the first column $\\kvecvone$ by $\\kvecvone - 3\\kvecvthree$. We call this a column replacement operation. Explain why column replacement operations do not change the determinant.</li><li>Explain why the matrix $\\kA\\kS$ is obtained from $\\kA$ by multiplying the second column by $3$. Explain the effect that scaling a column has on the determinant of a matrix.</li><li>Explain why the matrix $\\kA\\kP$ is obtained from $\\kA$ by interchanging the first and third columns. What is the effect of this operation on the determinant?</li><li><p>Use column operations to compute the determinant of</p>$$ \\kA=\\left[\\begin{array}{rrr} 0 & -3 & 1 \\\\ 1 & 1 & 4 \\\\ 1 & 1 & 0 \\end{array}\\right]. $$</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Column replacements do not change the determinant because $\\det(\\kR)=1$.</li><li>Scaling a column by $r$ multiplies the determinant by $r$ because $\\det(\\kS)=r$.</li><li>Interchanges change the sign of the determinant because $\\det(\\kP)=-1$.</li><li>$\\det(\\kA) = -12$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>The columns of $\\kA\\kR$ are found by multiplying the columns of $\\kR$ by $\\kA$. If we remember that a vector multiplied by a matrix forms a linear combination of the columns of $\\kA$, we see that the first column of $\\kA\\kR$ is $\\kvecvone-3\\kvecvtwo$<sup class=\"fn\" data-note=\"exercise-3-4-10-column\"></sup> and that the other two columns are unchanged.</p><p>Since $\\det(\\kR) = 1$, we have $\\det(\\kA\\kR) = \\det(\\kA)$, which says that this operation does not change the determinant.</p></li><li>Multiplying by $\\kS$ multiplies the determinant by $3$ since $\\det(\\kS)=3$.</li><li>Multiplying by $\\kP$ changes the sign of the determinant since $\\det(\\kP) = -1$.</li><li><p>If we interchange the first and third columns of $\\kA$, we have</p>$$ A_1=\\left[\\begin{array}{rrr} 1 & -3 & 0 \\\\ 4 & 1 & 1 \\\\ 0 & 1 & 1 \\end{array}\\right] $$<p>and $\\det(\\kA) = -\\det(A_1)$. Now we will multiply the first column by $3$ and add to the second column to obtain</p>$$ A_2=\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 4 & 13 & 1 \\\\ 0 & 1 & 1 \\end{array}\\right] $$<p>and $\\det(\\kA) = -\\det(A_2)$. Let’s interchange the second and third columns so that</p>$$ A_3=\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 4 & 1 & 13 \\\\ 0 & 1 & 1 \\end{array}\\right] $$<p>so that $\\det(\\kA) = \\det(A_3)$ and then multiply the second column by $-13$ and add to the third column so that</p>$$ A_4=\\left[\\begin{array}{rrr} 1 & 0 & 0 \\\\ 4 & 1 & 0 \\\\ 0 & 1 & -12 \\end{array}\\right]\\text{.} $$<p>This gives $\\det(\\kA) = \\det(A_4) = -12$.</p></li></ol>"
+   }
+  },
+  {
+   "id": "e11",
+   "source_id": "3.4.11",
+   "source_number": "3.4.11",
+   "kind": "exercise",
+   "bloom": "Apply",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-det-row-operations",
+   "prompt": "<p>Consider the matrices</p>$$ \\kA = \\left[\\begin{array}{rrrr} 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 1 & 0 & 0 & 0 \\end{array}\\right],~~~ \\kB = \\left[\\begin{array}{rrrr} 0 & 1 & 0 & 0 \\\\ 1 & 0 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 1 & 0 \\end{array}\\right],~~~ \\kC = \\left[\\begin{array}{rrrr} 0 & 0 & 0 & a \\\\ 0 & 0 & b & 0 \\\\ 0 & c & 0 & 0 \\\\ d & 0 & 0 & 0 \\end{array}\\right]. $$<p>Use row operations to find the determinants of these matrices.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong> $\\det(\\kA) = -1$, $\\det(\\kB) = 1$, and $\\det(\\kC) = abcd$.</p><p><strong>Solution.</strong></p><p>It takes three interchanges to see that $\\kA\\sim \\kI$, which implies that $\\det(\\kA) = -1$.</p><p>Two interchanges show us that $\\kA\\sim \\kI$<sup class=\"fn\" data-note=\"exercise-3-4-11-matrix\"></sup> and hence $\\det(\\kB) = 1$.</p><p>Two interchanges produce a diagonal matrix so that $\\det(\\kC) = abcd$.</p>"
+   }
+  },
+  {
+   "id": "e12",
+   "source_id": "3.4.12",
+   "source_number": "3.4.12",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "proposition-det-row-operations",
+   "prompt": "<p>Consider the matrices</p>$$ \\begin{aligned} \\kA = \\left[\\begin{array}{rr} 0 & 1 \\\\ 1 & 0 \\end{array}\\right], \\qquad & \\kB = \\left[\\begin{array}{rrr} 0 & 1 & 0 \\\\ 1 & 0 & 1 \\\\ 0 & 1 & 0 \\end{array}\\right], \\\\ \\\\ \\kC = \\left[\\begin{array}{rrrr} 0 & 1 & 0 & 0 \\\\ 1 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 1 \\\\ 0 & 0 & 1 & 0 \\end{array}\\right], \\qquad & \\kD = \\left[\\begin{array}{rrrrr} 0 & 1 & 0 & 0 & 0 \\\\ 1 & 0 & 1 & 0 & 0 \\\\ 0 & 1 & 0 & 1 & 0 \\\\ 0 & 0 & 1 & 0 & 1 \\\\ 0 & 0 & 0 & 1 & 0 \\end{array}\\right] \\end{aligned} $$<ol type=\"a\"><li>Use row (and/or column) operations to find the determinants of these matrices.</li><li>Write the $6\\times6$ and $7\\times7$ matrices that follow in this pattern and state their determinants based on what you have seen.</li></ol>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = -1$, $\\det(\\kB) = 0$, $\\det(\\kC) = 1$, and $\\det(\\kD) = 0$.</li><li>If $E$ and $F$ are the $6\\times6$ and $7\\times7$ matrices, respectively, we expect that $\\det(E) = -1$ and $\\det(F) = 0$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li>$\\det(\\kA) = -1$, $\\det(\\kB) = 0$, $\\det(\\kC) = 1$, and $\\det(\\kD) = 0$.</li><li>If $E$ and $F$ are the $6\\times6$ and $7\\times7$ matrices, respectively, we expect that $\\det(E) = -1$ and $\\det(F) = 0$.</li></ol>"
+   }
+  },
+  {
+   "id": "e13",
+   "source_id": "3.4.13",
+   "source_number": "3.4.13",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "row-operations-compute",
+   "prompt": "<p>The following matrix is called a <em>Vandermond</em> matrix:</p>$$ V = \\left[\\begin{array}{rrr} 1 & a & a^2 \\\\ 1 & b & b^2 \\\\ 1 & c & c^2 \\end{array}\\right]. $$<ol type=\"a\"><li>Use row operations to explain why $\\det(V) = (b-a)(c-a)(c-b)$.</li><li>Explain why $V$ is invertible if and only if $a$, $b$, and $c$ are all distinct real numbers.</li><li>There is a natural way to generalize this to a $4\\times4$ matrix with parameters $a$, $b$, $c$, and $d$. Write this matrix and state its determinant based on your previous work.</li></ol><p>This matrix appeared in <a href=\"/understanding-linear-algebra/ch01/1.4/\">Exercise 1.4.9</a> when we were found a polynomial that passed through a given set of points.</p>",
+   "answer": {
+    "type": "open",
+    "generated_by": "source",
+    "solution": "<p><strong>Answer.</strong></p><ol type=\"a\"><li>Perform a sequence of row operations to form an upper triangular matrix.</li><li>If $a$, $b$, and $c$ are distinct, then $\\det(V) \\neq 0$.</li><li>The determinant is $(d-a)(d-b)(d-c)(c-a)(c-b)(b-a)$.</li></ol><p><strong>Solution.</strong></p><ol type=\"a\"><li><p>If $a$, $b$, and $c$ are not distinct, we see that $\\det(V)=0$ because two of the rows are identical. Therefore, we apply the following row operations, assuming $a$, $b$, and $c$ are distinct:</p>$$ \\begin{array}{rl} V = & \\left[\\begin{array}{rrr} 1 & a & a^2 \\\\ 1 & b & b^2 \\\\ 1 & c & c^2 \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & a & a^2 \\\\ 0 & b-a & b^2-a^2 \\\\ 0 & c-a & c^2-a^2 \\end{array}\\right] \\\\ \\sim & \\left[\\begin{array}{rrr} 1 & a & a^2 \\\\ 0 & 1 & b+a \\\\ 0 & 1 & c+a \\end{array}\\right] \\sim \\left[\\begin{array}{rrr} 1 & a & a^2 \\\\ 0 & 1 & b+a \\\\ 0 & 0 & c-b \\end{array}\\right]\\text{.} \\end{array} $$<p>Because of the scalings by $b-a$ and $c-a$, we have $\\det(V) = (b-a)(c-a)(c-b)$.</p></li><li>If $a$, $b$, and $c$ are distinct, then $\\det(V) \\neq 0$, which implies that $V$ is invertible.</li><li><p>In the $4\\times4$ case, we have</p>$$ \\det\\left[\\begin{array}{rrrr} 1 & a & a^2 & a^3 \\\\ 1 & b & b^2 & b^3 \\\\ 1 & c & c^2 & c^3 \\\\ 1 & d & d^2 & d^3 \\end{array}\\right] = (d-a)(d-b)(d-c)(c-a)(c-b)(b-a)\\text{.} $$</li></ol>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "a1",
+   "concept": "area-of-a-parallelogram"
+  },
+  {
+   "exercise": "a2",
+   "concept": "determinant"
+  },
+  {
+   "exercise": "a2",
+   "concept": "orientation-of-a-pair-of-vectors"
+  },
+  {
+   "exercise": "a2",
+   "concept": "determinant-of-a-triangular-matrix"
+  },
+  {
+   "exercise": "a2",
+   "concept": "determinant-of-a-product"
+  },
+  {
+   "exercise": "a2",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "a3",
+   "concept": "determinant-by-row-reduction"
+  },
+  {
+   "exercise": "a3",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "a3",
+   "concept": "determinant-of-a-triangular-matrix"
+  },
+  {
+   "exercise": "a3",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "a3",
+   "concept": "invertibility-of-a-triangular-matrix"
+  },
+  {
+   "exercise": "a4",
+   "concept": "cofactor-expansion"
+  },
+  {
+   "exercise": "a4",
+   "concept": "determinant-of-a-triangular-matrix"
+  },
+  {
+   "exercise": "a4",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "a4",
+   "concept": "basis"
+  },
+  {
+   "exercise": "e1",
+   "concept": "determinant-by-row-reduction"
+  },
+  {
+   "exercise": "e1",
+   "concept": "cofactor-expansion"
+  },
+  {
+   "exercise": "e2",
+   "concept": "determinant"
+  },
+  {
+   "exercise": "e2",
+   "concept": "orientation-of-a-pair-of-vectors"
+  },
+  {
+   "exercise": "e2",
+   "concept": "rotation-matrix"
+  },
+  {
+   "exercise": "e3",
+   "concept": "determinant-of-a-product"
+  },
+  {
+   "exercise": "e3",
+   "concept": "determinant-of-an-inverse"
+  },
+  {
+   "exercise": "e4",
+   "concept": "cofactor-expansion"
+  },
+  {
+   "exercise": "e4",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "e4",
+   "concept": "linear-independence-of-vectors"
+  },
+  {
+   "exercise": "e5",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e5",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "e6",
+   "concept": "determinant-of-a-product"
+  },
+  {
+   "exercise": "e6",
+   "concept": "determinant-of-an-inverse"
+  },
+  {
+   "exercise": "e6",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e7",
+   "concept": "determinant-of-a-product"
+  },
+  {
+   "exercise": "e7",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "e8",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "e8",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e8",
+   "concept": "cofactor-expansion"
+  },
+  {
+   "exercise": "e9",
+   "concept": "cofactor-expansion"
+  },
+  {
+   "exercise": "e9",
+   "concept": "invertibility-and-the-determinant"
+  },
+  {
+   "exercise": "e9",
+   "concept": "span"
+  },
+  {
+   "exercise": "e10",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e10",
+   "concept": "determinant-of-a-product"
+  },
+  {
+   "exercise": "e10",
+   "concept": "row-operations-as-matrix-multiplication"
+  },
+  {
+   "exercise": "e11",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e11",
+   "concept": "determinant-of-a-triangular-matrix"
+  },
+  {
+   "exercise": "e12",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e12",
+   "concept": "determinant-by-row-reduction"
+  },
+  {
+   "exercise": "e13",
+   "concept": "determinant-by-row-reduction"
+  },
+  {
+   "exercise": "e13",
+   "concept": "effect-of-row-operations-on-the-determinant"
+  },
+  {
+   "exercise": "e13",
+   "concept": "invertibility-and-the-determinant"
+  }
+ ],
+ "footnotes": [
+  {
+   "id": "activity-3-4-4-sign",
+   "kind": "correction",
+   "html": "The book prints $3\\det$ at the start of this chain; the factor from the entry $-3$ in the first row is $(-1)^{1+1}(-3) = -3$, as the next line has it, and the value $36$ is right."
+  },
+  {
+   "id": "exercise-3-4-10-column",
+   "kind": "correction",
+   "html": "The book prints $\\kvecvone - 3\\kvecvtwo$; the first column of $\\kA\\kR$ is $\\kvecvone - 3\\kvecvthree$, as the question states, since the $-3$ of $\\kR$ sits in its third row."
+  },
+  {
+   "id": "exercise-3-4-11-matrix",
+   "kind": "correction",
+   "html": "The book prints $\\kA \\sim \\kI$ here; the two interchanges are applied to $\\kB$, so it is $\\kB \\sim \\kI$ that gives $\\det(\\kB) = 1$."
+  }
+ ],
+ "derivations": [
+  {
+   "id": "invertibility-and-the-determinant",
+   "what": "invertibility and the determinant",
+   "source": "Understanding Linear Algebra, 3.4 Determinants",
+   "nodes": [
+    {
+     "assumes": [
+      {
+       "tex": "\\det(\\kU) = u_{11}u_{22}\\cdots u_{nn}",
+       "src": "Proposition 3.4.8"
+      },
+      {
+       "text": "An upper triangular matrix $\\kU$ is invertible if and only if all of its diagonal entries $u_{11}, u_{22}, \\ldots, u_{nn}$ are nonzero.",
+       "src": "Proposition 3.1.9"
+      }
+     ],
+     "then": {
+      "tex": "\\mk{d}{\\det(\\kU) \\neq 0}"
+     },
+     "steps": [
+      {
+       "tex": "\\mk{d}{\\det(\\kU) \\neq 0} \\iff \\mk{p}{u_{11}u_{22}\\cdots u_{nn} \\neq 0}",
+       "uses": [
+        0
+       ]
+      },
+      {
+       "tex": "\\mk{d}{\\det(\\kU) \\neq 0} \\iff \\mk{p}{u_{11} \\neq 0,\\ u_{22} \\neq 0,\\ \\ldots,\\ u_{nn} \\neq 0}",
+       "uses": [],
+       "cap": "A product of numbers is nonzero exactly when every one of its factors is nonzero."
+      },
+      {
+       "tex": "\\mk{d}{\\det(\\kU) \\neq 0} \\iff \\mk{u}{\\kU \\text{ is invertible}}",
+       "uses": [
+        1
+       ],
+       "map": {
+        "p": "u"
+       }
+      }
+     ],
+     "src": "3.4, Determinants and invertibility"
+    },
+    {
+     "assumes": [
+      {
+       "text": "Applying the forward substitution phase of Gaussian elimination to $\\kA$ leads to an upper triangular matrix $\\kU$ with $\\kA \\sim \\kU$, each step a row operation."
+      },
+      {
+       "text": "A row operation multiplies the determinant by a nonzero number: by $k$ for a scaling, by $-1$ for an interchange, by $1$ for a replacement.",
+       "src": "Proposition 3.4.11"
+      }
+     ],
+     "then": {
+      "tex": "\\mk{d}{\\det(\\kU)} = \\mk{c}{c}\\,\\mk{a}{\\det(\\kA)}",
+      "uses": [
+       0,
+       1
+      ],
+      "why": "The forward phase takes $\\kA$ to $\\kU$ by a sequence of row operations, and each of them multiplies the determinant by a nonzero number, so $\\det(\\kU)$ is $\\det(\\kA)$ times their product $c$, which is nonzero."
+     },
+     "steps": [
+      {
+       "tex": "\\mk{d}{\\det(\\kU) \\neq 0} \\iff \\mk{a}{\\det(\\kA) \\neq 0}",
+       "uses": [],
+       "cap": "Since $c \\neq 0$, the product $c\\det(\\kA)$ is nonzero exactly when $\\det(\\kA)$ is.",
+       "map": {
+        "c": "a"
+       }
+      }
+     ],
+     "src": "3.4, Determinants and invertibility"
+    },
+    {
+     "assumes": [
+      {
+       "step": 1
+      },
+      {
+       "step": 0
+      },
+      {
+       "text": "A matrix is invertible if and only if it is row equivalent to the identity matrix $\\kI$.",
+       "src": "Proposition 3.1.5"
+      },
+      {
+       "text": "Applying the forward substitution phase of Gaussian elimination to $\\kA$ leads to an upper triangular matrix $\\kU$ with $\\kA \\sim \\kU$, each step a row operation."
+      }
+     ],
+     "then": {
+      "tex": "\\mk{d}{\\det(\\kU) \\neq 0} \\iff \\mk{a}{\\det(\\kA) \\neq 0}",
+      "uses": [
+       0
+      ]
+     },
+     "steps": [
+      {
+       "tex": "\\mk{u}{\\kU \\text{ is invertible}} \\iff \\mk{a}{\\det(\\kA) \\neq 0}",
+       "uses": [
+        1
+       ],
+       "map": {
+        "d": "u"
+       }
+      },
+      {
+       "tex": "\\mk{u}{\\kU \\sim \\kI} \\iff \\mk{a}{\\det(\\kA) \\neq 0}",
+       "uses": [
+        2
+       ]
+      },
+      {
+       "tex": "\\mk{u}{\\kA \\sim \\kI} \\iff \\mk{a}{\\det(\\kA) \\neq 0}",
+       "uses": [
+        3
+       ],
+       "cap": "Since $\\kA \\sim \\kU$, the row operations that take $\\kA$ to $\\kU$ followed by those that take $\\kU$ to $\\kI$ take $\\kA$ to $\\kI$; and because every row operation can be undone, $\\kA \\sim \\kI$ gives $\\kU \\sim \\kI$ in the same way."
+      },
+      {
+       "tex": "\\mk{u}{\\kA \\text{ is invertible}} \\iff \\mk{a}{\\det(\\kA) \\neq 0}",
+       "uses": [
+        2
+       ]
+      }
+     ],
+     "src": "Proposition 3.4.10"
+    }
+   ]
+  }
+ ]
+}
