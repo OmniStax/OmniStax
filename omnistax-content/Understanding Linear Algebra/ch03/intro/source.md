@@ -1,3 +1,0 @@
-# Chapter 3 Invertibility, bases, and coordinate systems {chap3}
-
-In [Chapter 2](ref:2#chap2), we examined the [two fundamental	questions](ref:1.4#fundamental-questions) concerning the existence and uniqueness of solutions to linear systems independently of one another. We found that every equation of the form $A{\mathbf x} = {\mathbf b}$ has a solution when the span of the columns of $A$ is ${\mathbb R}^m$. We also found that the solution ${\mathbf x}={\mathbf 0}$ of the homogeneous equation $A{\mathbf x} = {\mathbf 0}$ is unique when the columns of $A$ are linearly independent. In this chapter, we explore the situation in which these two conditions hold simultaneously.
