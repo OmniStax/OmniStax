@@ -26,6 +26,7 @@ test('count says what it counts', () => {
 test('exerciseName prefers generated, then source number, then ordinal, then kind', () => {
   assert.equal(exerciseName(ex('ai:x1')), 'AI-generated exercise');
   assert.equal(exerciseName(ex('cq3', 'conceptual-question', '5.17')), 'Exercise 5.17');
+  assert.equal(exerciseName(ex('a1', 'activity', '1.2.2'), 'Activity'), 'Activity 1.2.2', "a numbered card wears its kind's label where the book gives one");
   assert.equal(exerciseName(ex('cq03')), 'Conceptual question 3');
   assert.equal(exerciseName(ex('P12', 'problem'), 'Problems & Exercises'), 'Problems & Exercises 12');
   assert.equal(exerciseName(ex('fig-2', 'try-it')), 'Try it');

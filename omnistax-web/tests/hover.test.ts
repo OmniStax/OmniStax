@@ -25,6 +25,9 @@ test('a bare common word is not underlined: the prose passes add no span, so onl
   const html = '<p>Wait a second: the <span data-concept="second">second</span> is the SI unit of time, as Figure 2.1 shows.</p>';
   assert.equal(wrapExampleRefs(wrapFigureRefs(html, new Map([['2.1', '2.1-sim-clock']])), new Map()),
     html.replace('Figure 2.1', '<a class="figref" href="#2.1-sim-clock" data-figref="2.1">Figure 2.1</a>'));
+  /* a book that numbers figures within the section cites three parts, which link whole and never as their first two */
+  assert.equal(wrapFigureRefs('<p>See Figure 2.1.3 and Figure 2.1.</p>', new Map([['2.1.3', '2.1-sim-span'], ['2.1', '2.1-sim-clock']])),
+    '<p>See <a class="figref" href="#2.1-sim-span" data-figref="2.1.3">Figure 2.1.3</a> and <a class="figref" href="#2.1-sim-clock" data-figref="2.1">Figure 2.1</a>.</p>');
   /* a section folder that holds only a source.md is one being built, and has no article to check yet */
   for (const dir of fs.readdirSync(path.join(ROOT, 'ch02')).filter((d) => /^\d+\.\d+$/.test(d) && fs.existsSync(path.join(ROOT, 'ch02', d, 'text.html')))) {
     const text = fs.readFileSync(path.join(ROOT, 'ch02', dir, 'text.html'), 'utf8');
