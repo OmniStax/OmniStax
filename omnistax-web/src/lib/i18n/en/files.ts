@@ -65,6 +65,7 @@ export const files = {
   'files.sync.record.chatTree': 'Chats shown as a tree',
   'files.sync.record.chatsByBook': 'Whether Conversations lists chats by book',
   'files.sync.record.colours': 'Colours for {book}',
+  'files.sync.record.dictationLang': 'Speech input language',
   'files.sync.record.drawingIndex': 'The list of your drawings',
   'files.sync.record.drawingPalette': 'Drawing colours',
   'files.sync.record.exmode': 'Exercises shown all at once or one at a time',
