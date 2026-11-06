@@ -162,7 +162,12 @@ test('the workspace is never pushed, never pulled, never deleted from the repo, 
     assert.equal(categoryOf(key), 'layout', key);
     assert.equal(deviceRecord(recordPath(key)), true, key);
   }
-  assert.equal(staysOnDevice('omnistax-practice-v2'), false);
+  for (const key of ['omnistax-tips-v1', 'omnistax-seen-notes-v1', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-folded', 'omnistax-hidden-figs', 'omnistax-chat-seen-v1', 'omnistax-chat-tree-v1']) {
+    assert.equal(staysOnDevice(key), true, key);
+    assert.equal(deviceRecord(recordPath(key)), true, key);
+  }
+  for (const key of ['omnistax-practice-v2', 'omnistax-practice-sessions-v2', 'omnistax-chats-v3', 'omnistax-chats-v1', 'omnistax-last-page-v1', 'omnistax-explorer-v1', 'omnistax-pomodoros', 'omnistax-theme', 'omnistax-ai-v1', 'omnistax-notedocs-v1', 'omnistax-files-v1'])
+    assert.equal(staysOnDevice(key), false, key);
   const layout = JSON.stringify({ sides: { left: { width: 200, items: [] }, right: { width: 200, items: [] } }, home: {}, collapsed: [], groups: [{ key: 'g', tabs: [], active: null }], focus: 0, tree: { type: 'leaf', group: 'g' } });
   const mine = profile([{ key: LAYOUT, value: layout }, { key: 'omnistax-theme', value: 'dark' }]);
   assert.equal(mine.records.length, 2, 'the file backup carries the layout');

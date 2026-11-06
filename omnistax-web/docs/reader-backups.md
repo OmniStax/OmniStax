@@ -101,7 +101,15 @@ pushed and never pulled, and a pull never replaces it: the profile a pull
 imports carries none, so the import writes this device's own back
 (`recordsToRestore` with `keepWorkspace`, beside the records it set aside).
 
-A repo that already holds workspace files from an earlier version keeps them.
+The device's history goes the same way: `omnistax-tips-v1` (which tip came
+last), `omnistax-seen-notes-v1` and `omnistax-seen-releases-v2`/`-v1` (the
+release notes and book releases this device has shown), `omnistax-folded` and
+`omnistax-hidden-figs`, `omnistax-chat-seen-v1` (which chats were read) and
+`omnistax-chat-tree-v1` (which chats show as a tree). It is what this browser
+remembers of how it was used, not anything the reader made, so each device
+keeps its own.
+
+A repo that already holds workspace or history files from an earlier version keeps them.
 They are not read and not deleted: a device still on that version syncs them
 as before, and would take their deletion as its own layout gone, since an
 import removes the records a profile leaves out.

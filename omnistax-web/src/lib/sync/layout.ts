@@ -12,8 +12,9 @@
    taken apart into the records they hold (explode, which the survey uses), and
    the next push writes them as files of their own and drops the old ones. A
    record's category is not in its path, so a key a later version files under
-   another category keeps its file. The workspace stays on each device and
-   is never laid out here (deviceRecord). Pure. */
+   another category keeps its file. The workspace and the device's history
+   (which tips and release notes it showed, what is folded, which chats were
+   read) stay on each device and are never laid out here (deviceRecord). Pure. */
 import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
 import { BACKUP_FORMAT, BACKUP_VERSION, ChatSchema, DrawingSchema, GeneratedSchema, ScratchSchema, categoryOf, isScalarKey, issueOf, newerIssue, parseBackup, recordIssue, staysOnDevice, type ParsedBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
@@ -61,8 +62,8 @@ export const isLegacyRecords = (path: RepoPath): boolean => { const s = stemOf(p
    not having it. */
 export const foreignRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && categoryOf(k) === null; };
 /* A record of this device's workspace (the tabs, splits and where each view
-   stands), which a sync neither sends nor takes: a phone and a wide screen
-   each keep their own. A repo that already holds one from an earlier version
+   stands) or of its history (staysOnDevice), which a sync neither sends nor
+   takes: a phone and a wide screen each keep their own. A repo that already holds one from an earlier version
    keeps it as it is; it is never read and never deleted, since a device still
    on that version takes a deletion as its own layout gone. */
 export const deviceRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && staysOnDevice(k); };

@@ -89,10 +89,19 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   return null;
 };
 
-/* A record of this device's own workspace. A file backup carries it, so a
-   restore puts the tabs back as they were; GitHub sync never does, since two
-   devices of different sizes each want their own (sync/layout.ts). */
-export const staysOnDevice = (key: string): boolean => LAYOUT_KEYS.includes(key);
+/* What this browser remembers of how it was used rather than what the reader
+   made: which tip came last, which release notes and book releases were seen,
+   which headings are folded and figures hidden, which chats were read and
+   which show as a tree. */
+const HISTORY_KEYS = [
+  'omnistax-tips-v1', 'omnistax-seen-notes-v1', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1',
+  'omnistax-folded', 'omnistax-hidden-figs', 'omnistax-chat-seen-v1', 'omnistax-chat-tree-v1',
+];
+/* A record of this device's own: its workspace, and the history above. A file
+   backup carries it, so a restore puts the device back as it was; GitHub sync
+   never does, since two devices of different sizes each want their own tabs,
+   and each keeps its own history (sync/layout.ts). */
+export const staysOnDevice = (key: string): boolean => LAYOUT_KEYS.includes(key) || HISTORY_KEYS.includes(key);
 
 const object = z.record(z.unknown());
 const finite = z.number().finite();
