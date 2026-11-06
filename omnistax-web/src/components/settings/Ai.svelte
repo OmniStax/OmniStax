@@ -4,7 +4,7 @@
   const fetchedPublic = new Set<string>();
   /* The words the settings filter finds this block by: the product names as
      they are, and the rest in the reader's language. */
-  export const aiWords = (t: TFn): string => `${t('settings.ai.keywords')} Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Ollama LM Studio API HTML`;
+  export const aiWords = (t: TFn): string => `${t('settings.ai.keywords')} ${t('settings.dictation.name')} ${t('settings.dictation.keywords')} Anthropic OpenAI Gemini DeepSeek OpenRouter Mistral Ollama LM Studio API HTML`;
 </script>
 
 <script lang="ts">
@@ -21,6 +21,8 @@
   import { providerOf } from '../../lib/chat/providers/all';
   import { i18n } from '../../lib/i18n/store.svelte';
   import { host } from '../../lib/commands/host.svelte';
+  import { dictation } from '../../lib/chat/dictation.svelte';
+  import { languageName, languagesByName, listeningLang } from '../../lib/chat/dictation';
   const t = i18n.t;
 
   let busy = $state.raw<Readonly<Record<string, boolean>>>({});
@@ -65,6 +67,10 @@
     void listLocal(id);
   };
 
+  /* The speech input languages by their names in the reader's language, and the one OmniStax's own language stands for. */
+  const speechLangs = $derived(languagesByName(i18n.locale));
+  const speechDefault = $derived(languageName(listeningLang('', i18n.locale, typeof navigator === 'undefined' ? [] : navigator.languages), i18n.locale));
+
   /* The Local AI help, cut where its code samples stand: {api}, {origins}, {localhost}. */
   const localHelp = $derived(t('settings.ai.localHelp').split(/\{(?:api|origins|localhost)\}/));
   const localHelpDesktop = $derived(t('settings.ai.localHelpDesktop').split('{api}'));
@@ -82,6 +88,15 @@
     <span class="hint">{t('settings.ai.inlineHtml.hint')}</span>
     <input type="checkbox" checked={ai.inlineHtml} onchange={(e) => ai.setInlineHtml(e.currentTarget.checked)}>
   </label>
+
+  <div class="row">
+    <span class="name">{t('settings.dictation.name')}</span>
+    <span class="hint">{t('settings.dictation.hint')}</span>
+    <select class="font" id="dictation-lang" aria-label={t('settings.dictation.name')} value={dictation.choice} onchange={(e) => dictation.setChoice(e.currentTarget.value)}>
+      <option value="">{t('settings.dictation.same', { language: speechDefault })}</option>
+      {#each speechLangs as l (l.tag)}<option value={l.tag} lang={l.tag}>{l.name}</option>{/each}
+    </select>
+  </div>
 
   {#each CLOUD_IDS as id (id)}
     {@const models = cardModels(ai.value, id)}

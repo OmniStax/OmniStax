@@ -13,6 +13,12 @@
   import { getAsset } from '../../lib/notes/assets';
   import type { PickerRow } from '../../lib/picker/model';
   import type { ChatId } from '../../lib/types/ids';
+  import { dictation, type Failure } from '../../lib/chat/dictation.svelte';
+  import { joinDictated } from '../../lib/chat/dictation';
+  import { alerts } from '../../lib/alerts.svelte';
+  import { ICON } from '../../lib/icons';
+  import { onDestroy } from 'svelte';
+  import type { MessageKey } from '../../lib/i18n/index';
 
   let { chatId, chips, onchips, onsend, onstop, streaming, blocked }: {
     chatId: ChatId;
@@ -82,7 +88,28 @@
     void chipOfRow(row).then(replace);
   };
 
+  /* ── speech input ──────────────────────────────────────────────────────── */
+
+  /* The words heard go where the cursor stood when the mic was pressed; what
+     is typed meanwhile stops the listening, so the two never fight over the field. */
+  const listening = $derived(dictation.listening(chatId));
+  const MIC_OFF: Readonly<Record<string, MessageKey>> = { unsupported: 'chat.composer.dictateUnsupported', desktop: 'chat.composer.dictateDesktop', offline: 'chat.composer.dictateOffline' };
+  const micTitle = $derived(listening ? i18n.t('chat.composer.dictateStop') : dictation.available === 'ready' ? i18n.t('chat.composer.dictate') : i18n.t(MIC_OFF[dictation.available]));
+  const FAILED: Readonly<Record<Failure, MessageKey>> = { denied: 'chat.composer.dictateDenied', network: 'chat.composer.dictateNetwork', other: 'chat.composer.dictateFailed' };
+  const listen = (): void => {
+    if (listening) { dictation.stop(); return; }
+    const cut = field?.selectionStart ?? text.length, end = field?.selectionEnd ?? cut;
+    const before = text.slice(0, cut), after = text.slice(end), lang = dictation.lang;
+    close();
+    dictation.start(chatId, {
+      heard: (words) => { text = joinDictated(before, words, after, lang); },
+      ended: (failure) => { if (failure) alerts.show({ text: i18n.t(FAILED[failure]) }); focus(); },
+    });
+  };
+  onDestroy(() => { if (dictation.listening(chatId)) dictation.stop(); });
+
   const send = (): void => {
+    if (listening) dictation.stop();
     const words = text.trim(); if (words === '') return;
     text = '';
     close();
@@ -183,10 +210,12 @@
     {#if at !== null}
       <AtPicker bind:this={picker} {root} {query} {field} previews onchoose={choose} onclose={close} />
     {/if}
-    <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={read} onclick={read} onfocus={read}
+    <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={() => { if (listening) dictation.stop(); read(); }} onclick={read} onfocus={read}
       placeholder={ready ? i18n.t('chat.composer.placeholder') : i18n.t('chat.composer.noModel')}
       aria-label={i18n.t('chat.composer.message')} rows="2"></textarea>
     <div class="acts">
+      <button type="button" class="btn ghost icon sm mic" class:on={listening} aria-pressed={listening} disabled={!listening && dictation.available !== 'ready'}
+        title={micTitle} aria-label={micTitle} onclick={listen}>{@html ICON.mic}</button>
       <span class="spacer"></span>
       <ModelMenu {chatId} />
       {#if streaming}
@@ -208,6 +237,12 @@
   .acts{display:flex;align-items:center;gap:6px;padding:2px 8px 6px}
   .spacer{flex:1}
   kbd{font:inherit;font-weight:500;opacity:0.6}
+  .mic :global(svg){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .mic:disabled{opacity:0.4}
+  .mic.on,.mic.on:hover:not(:disabled){color:var(--bad)}
+  .mic.on{animation:mic-on 1.2s ease-in-out infinite}
+  @keyframes mic-on{50%{opacity:0.55}}
+  @media (prefers-reduced-motion:reduce){ .mic.on{animation:none} }
   .chips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 6px;padding:0;list-style:none}
   .chips li{display:inline-flex;align-items:center;gap:2px;height:24px;font-size:0.76rem;font-weight:600;color:var(--ink);background:var(--soft);border-radius:999px;padding:0 4px 0 10px;max-width:22rem}
   .chips li.pic{padding-left:3px}
