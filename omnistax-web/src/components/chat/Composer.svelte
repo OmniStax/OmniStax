@@ -41,6 +41,29 @@
 
   const ready = $derived.by(() => { const p = chats.pickOf(chatId); return p !== null && ai.access(p) !== null; });
 
+  /* The field grows with what is typed, a line at a time, up to eight lines;
+     past that it scrolls. It fits again when the text changes in any way (typing,
+     a pick, dictation, sending) and when the panel's width rewraps the lines. */
+  const MOST_LINES = 8;
+  const fit = (): void => {
+    const el = field; if (!el) return;
+    const css = getComputedStyle(el);
+    const line = parseFloat(css.lineHeight) || parseFloat(css.fontSize) * 1.5;
+    const most = Math.ceil(line * MOST_LINES + parseFloat(css.paddingTop) + parseFloat(css.paddingBottom));
+    el.style.height = 'auto';
+    const want = el.scrollHeight;
+    el.style.height = `${Math.min(want, most)}px`;
+    el.style.overflowY = want > most ? 'auto' : 'hidden';
+  };
+  $effect(() => { void text; fit(); });
+  $effect(() => {
+    const el = field; if (!el) return;
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fit(); } });
+    watch.observe(el);
+    return () => watch.disconnect();
+  });
+
   export function focus(): void { field?.focus(); }
   export function insert(words: string): void {
     const cut = field?.selectionStart ?? text.length;
@@ -231,7 +254,7 @@
   .composer{flex:none;border-top:1px solid var(--rule);padding:6px 40px 6px;background:var(--bg);font-family:var(--sans)}
   .field{position:relative;border-radius:12px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--rule);transition:box-shadow 120ms}
   .field:focus-within,.field.dragging{box-shadow:inset 0 0 0 1px var(--accent),0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
-  textarea{display:block;width:100%;font:inherit;font-size:0.92rem;line-height:1.5;padding:9px 14px 2px;border:0;background:transparent;color:var(--ink);resize:none;max-height:40vh}
+  textarea{display:block;width:100%;font:inherit;font-size:0.92rem;line-height:1.5;padding:9px 14px 2px;border:0;background:transparent;color:var(--ink);resize:none;overflow-y:hidden}
   textarea::placeholder{color:var(--muted);opacity:0.8}
   textarea:focus{outline:none}
   .acts{display:flex;align-items:center;gap:6px;padding:2px 8px 6px}
