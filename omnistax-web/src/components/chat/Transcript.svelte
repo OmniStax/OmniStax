@@ -1,12 +1,13 @@
 <script lang="ts">
   /* The path the chat stands on, message by message. In a chat tab each
-     message folds to its opening and the last question stays pinned above;
+     message folds to its opening and the question being read under stays
+     pinned above;
      held compact in a drawing or a note it is read only. */
   import Bubble from './Bubble.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
   import { chats } from '../../lib/chat/store.svelte';
   import { transcript, type Chat, type MessageId } from '../../lib/chat/model';
-  import { dayLabel, lastAsked, opening, startsDay } from '../../lib/chat/tree';
+  import { dayLabel, opening, startsDay } from '../../lib/chat/tree';
   import { goSpan, openDoc, openItem } from '../../lib/sections/nav.svelte';
   import { parseLink } from '../../lib/notes/md/links';
   import { itemKey, noteId as asNoteId, noteItem, type ChatId } from '../../lib/types/ids';
@@ -19,17 +20,35 @@
 
   const chatId = $derived(chat.id);
   const path = $derived(transcript(chat));
-  const asked = $derived(compact ? null : lastAsked(path));
   const now = Date.now();
-  /* The pinned question stands only once its own bubble has scrolled out of
-     sight; while the bubble is on screen the pin would just repeat it. */
-  let askedSeen = $state(true);
+  /* The pin holds the question whose turn the top of the view is in: the
+     latest question that has wholly scrolled up out of sight. Reading the
+     last answer pins the last question; scrolling up past that question
+     pins the one before it, and so on. While a question is on screen, the
+     pin is the question before it, never a repeat of itself. */
+  let pinnedId = $state<MessageId | null>(null);
+  let pinHeight = $state(32);
+  const asked = $derived(compact || !pinnedId ? null : path.find((m) => m.id === pinnedId && m.role === 'user') ?? null);
+  const place = (): void => {
+    const host = list; if (!host || compact) { pinnedId = null; return; }
+    const top = host.getBoundingClientRect().top;
+    const qs = host.querySelectorAll<HTMLElement>('.bubble[data-role="user"]');
+    // the questions run top to bottom, so the last one above the view is found by halving
+    let lo = 0, hi = qs.length - 1, at = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (qs[mid]!.getBoundingClientRect().top < top) { at = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    const el = at < 0 ? null : qs[at]!;
+    pinnedId = el && el.getBoundingClientRect().bottom <= top + (pinHeight || 32) ? (el.dataset.message as MessageId) : null;
+  };
+  let frame = 0;
+  const onScroll = (): void => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; place(); }); };
   $effect(() => {
-    const id = asked?.id, host = list; if (!id || !host) return;
-    const el = host.querySelector(`[data-message="${id}"]`); if (!el) { askedSeen = false; return; }
-    const io = new IntersectionObserver(([e]) => { askedSeen = !!e?.isIntersecting; }, { root: host, threshold: 0 });
-    io.observe(el);
-    return () => io.disconnect();
+    void path; void collapsed; const host = list; if (!host || compact) return;
+    place();
+    const ro = new ResizeObserver(onScroll); ro.observe(host);
+    return () => { ro.disconnect(); cancelAnimationFrame(frame); frame = 0; };
   });
 
   let list = $state<HTMLElement | null>(null);
@@ -52,11 +71,13 @@
   };
 </script>
 
-<div class="messages" class:compact bind:this={list}>
-  {#if asked && !askedSeen}
-    <button type="button" class="asked" onclick={() => scrollTo(asked.id, 'start')}>
-      <span class="you">{i18n.t('chat.speaker.you')}</span><span class="words">{opening(asked.text, 200).replace(/\s+/g, ' ')}</span>
-    </button>
+<div class="messages" class:compact bind:this={list} onscroll={compact ? undefined : onScroll}>
+  {#if asked}
+    <div class="pin">
+      <button type="button" class="asked" bind:offsetHeight={pinHeight} onclick={() => scrollTo(asked.id, 'start')}>
+        <span class="you">{i18n.t('chat.speaker.you')}</span><span class="words">{opening(asked.text, 200).replace(/\s+/g, ' ')}</span>
+      </button>
+    </div>
   {/if}
   {#each path as m, i (m.id)}
     {#if startsDay(path, i)}<div class="day">{dayLabel(m.at, now)}</div>{/if}
@@ -69,7 +90,9 @@
   .messages{flex:1;min-height:0;overflow:auto;padding:0 40px 20px;scroll-padding-top:44px}
   /* a long chat lays out only the messages near the view; the rest keep the height they last had */
   .messages:not(.compact) > :global(.bubble){content-visibility:auto;contain-intrinsic-block-size:auto 160px}
-  .asked{position:sticky;top:0;z-index:2;display:flex;align-items:baseline;gap:8px;width:100%;margin:0 0 4px;padding:7px 2px 6px;font:inherit;font-size:0.82rem;text-align:left;color:var(--ink);background:var(--bg);border:0;border-bottom:1px solid var(--rule);cursor:pointer}
+  /* the pin floats over the messages and takes no room, so its coming and going never moves them */
+  .pin{position:sticky;top:0;z-index:2;height:0}
+  .asked{position:absolute;top:0;left:0;right:0;display:flex;align-items:baseline;gap:8px;margin:0;padding:7px 2px 6px;font:inherit;font-size:0.82rem;text-align:left;color:var(--ink);background:var(--bg);border:0;border-bottom:1px solid var(--rule);cursor:pointer}
   .asked:hover .words{color:var(--accent)}
   .you{flex:none;font-size:0.68rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
   .words{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
