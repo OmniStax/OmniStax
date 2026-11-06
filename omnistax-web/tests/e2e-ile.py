@@ -34,7 +34,7 @@ with sync_playwright() as p:
     print('8 autocomplete items:', pg.eval_on_selector_all('.cm-tooltip-autocomplete li', 'ls=>ls.slice(0,3).map(l=>l.textContent)'), 'buffer tail:', pg.evaluate('document.querySelector(".cm-content").textContent.slice(-8)'))
     pg.keyboard.type('2.1'); pg.wait_for_timeout(300); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
     pg.keyboard.type(' also $$E=mc^2$$'); pg.wait_for_timeout(300)
-    print('9 body:', pg.evaluate('JSON.parse(localStorage.getItem("omnistax-notedocs-v1")||"[]").map(n=>n.body)'))
+    print('9 body:', pg.evaluate('JSON.parse(localStorage.getItem("omnistax-notedocs")||"[]").map(n=>n.body)'))
     pg.keyboard.press('Control+e'); pg.wait_for_timeout(500)
     print('10 view mode:', pg.evaluate('document.querySelector(".note-tab")?.dataset.mode'), 'katex:', pg.evaluate('document.querySelectorAll(".note-view .katex").length'), 'wiki:', pg.eval_on_selector_all('.note-view a.wiki', 'as=>as.map(a=>a.dataset.link+"|"+a.textContent)'))
     pg.click('.note-view a.wiki'); pg.wait_for_timeout(600)

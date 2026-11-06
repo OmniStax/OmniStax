@@ -401,5 +401,7 @@ export const views = {
   'views.sync.tokenHint': 'A fine-grained token for this repo only, with Contents read and write.',
   'views.sync.tooLarge': 'over 100 MB',
   'views.sync.upToDate': 'Up to date',
+  'views.sync.upgrade': 'The next sync moves this repo to the current format. Other devices then need OmniStax updated before they can sync.',
+  'views.sync.upgradeNow': 'Update repo format',
   'views.sync.waiting': 'waiting',
 } as const;

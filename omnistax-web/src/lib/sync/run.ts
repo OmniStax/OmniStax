@@ -4,7 +4,8 @@
    then the profile this device should hold is built. Each file's progress is
    reported as it goes. Takes the fetch it calls GitHub through. */
 import { blobSha, commitChanges, readBlob, readHead, readTree, seedEmpty, writeBlob, type Fetch, type GitSha, type Head, type Remote, type RemoteEntry } from './github';
-import { MANIFEST, explode, fileProblem, fromRepo, groupOf, isLegacyRecords, jsonBytes, parseManifest, type Manifest, type RepoFile, type RepoPath } from './layout';
+import { GATE, GATE_BYTES, MANIFEST, SYNC_VERSION, explode, fileProblem, fromRepo, groupOf, isLegacyRecords, jsonBytes, parseManifest, recordBytes, recordKeyOf, recordPath, recordValueOf, type Manifest, type RepoFile, type RepoPath } from './layout';
+import { isOldKey, migration } from '../backup/migrate';
 import { manifestOf, originsAfter, rebase, type Base, type Change, type Merged, type Plan, type Status } from './plan';
 import { duplicateKey, mergeTexts } from './conflict';
 import { holdOf, type Found } from './held';
@@ -17,10 +18,30 @@ import { t } from '../i18n';
    blob yet), and `legacy` names the category files that the next push
    replaces with them. `base` is the same taking-apart of the category files
    the last sync agreed on, so a record is compared with its own last agreed
-   version from the first sync on. */
+   version from the first sync on.
+
+   A record an older build keeps under an old name (backup/migrate.ts) is
+   shown the same way, under the name it has now, and its old file is one of
+   the `legacy` the next sync drops. `upgrade` says the repo is in an older
+   data format: the next sync writes it in this one even when nothing else
+   goes up, which is also what stops the older builds syncing with it. */
 export type Survey = {
   readonly head: Head; readonly remote: readonly RemoteEntry[]; readonly manifest: Manifest | null;
   readonly held: ReadonlyMap<GitSha, Uint8Array>; readonly virtual: ReadonlySet<RepoPath>; readonly legacy: readonly RepoPath[]; readonly base: Base;
+  readonly upgrade: boolean;
+};
+/* The repo was last synced by a build of a newer data format. */
+export class NewerRepo extends Error {
+  constructor(readonly release: string) { super(t('files.sync.error.newer', { release })); }
+}
+/* The release that last synced a repo of a newer data format, or null. */
+export const newerRelease = (bytes: Uint8Array): string | null => {
+  let v: unknown;
+  try { v = JSON.parse(new TextDecoder().decode(bytes)); } catch { return null; }
+  if (typeof v !== 'object' || v === null) return null;
+  const o = v as { format?: unknown; version?: unknown; app?: unknown };
+  if (o.format !== 'omnistax-sync' || typeof o.version !== 'number' || o.version <= SYNC_VERSION) return null;
+  return typeof o.app === 'string' && o.app ? o.app : '?';
 };
 export type Report = (path: RepoPath, status: Status) => void;
 export type HashedFile = RepoFile & { readonly sha: GitSha };
@@ -50,27 +71,64 @@ const virtualOf = async (bytes: Uint8Array, held: Map<GitSha, Uint8Array>): Prom
     return { path, sha, size: b.length };
   }));
 
+/* Records under old names, and the records of the same repo under the
+   names they have now, as `migration` sees them. */
+const oldRecords = async (paths: readonly RepoPath[], read: (path: RepoPath) => Promise<Uint8Array | null>): Promise<{ readonly has: Set<string>; readonly values: Map<string, string> }> => {
+  const has = new Set<string>(), values = new Map<string, string>();
+  for (const p of paths) {
+    const key = recordKeyOf(p); if (key === null) continue;
+    has.add(key);
+    if (!isOldKey(key)) continue;
+    const bytes = await read(p).catch(() => null);
+    try { if (bytes) values.set(key, recordValueOf(key, bytes)); else has.delete(key); } catch { has.delete(key); }
+  }
+  return { has, values };
+};
+const renamedOf = async (paths: readonly RepoPath[], read: (path: RepoPath) => Promise<Uint8Array | null>): Promise<{ path: RepoPath; bytes: Uint8Array }[]> => {
+  if (!paths.some((p) => { const k = recordKeyOf(p); return k !== null && isOldKey(k); })) return [];
+  const { has, values } = await oldRecords(paths, read);
+  const m = migration((k) => has.has(k), (k) => values.get(k));
+  return [...m.set].map(([key, value]) => ({ path: recordPath(key), bytes: recordBytes({ key, value }) }));
+};
+const oldPath = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && isOldKey(k); };
+
 export const survey = async (remote: Remote, f: Fetch, base: Base = {}): Promise<Survey> => {
   const held = new Map<GitSha, Uint8Array>();
   const head = await readHead(remote, f);
   const entries = head.kind === 'at' ? await readTree(remote, f, head.tree) : [];
   const top = entries.find((e) => e.path === MANIFEST);
-  const manifest = top ? await readBlob(remote, f, top.sha).then(parseManifest).catch(() => null) : null;
+  const topBytes = top ? await readBlob(remote, f, top.sha) : null;
+  /* A repo a newer build wrote is left alone in both directions: a pull
+     would take in what this build cannot hold, and send it back without. */
+  const newer = topBytes ? newerRelease(topBytes) : null;
+  if (newer) throw new NewerRepo(newer);
+  const manifest = topBytes ? (() => { try { return parseManifest(topBytes); } catch { return null; } })() : null;
 
-  const legacy = entries.filter((e) => isLegacyRecords(e.path));
-  const real = entries.filter((e) => !isLegacyRecords(e.path));
+  const sha = new Map(entries.map((e) => [e.path, e.sha] as const));
+  const renamed = await renamedOf(entries.map((e) => e.path), (p) => readBlob(remote, f, sha.get(p) as GitSha));
+  const legacy = entries.filter((e) => isLegacyRecords(e.path) || oldPath(e.path));
+  const real = entries.filter((e) => e.path !== GATE && !isLegacyRecords(e.path) && !oldPath(e.path));
   const own = new Set(real.map((e) => e.path));
   /* Where a record has a file of its own beside a category file holding it,
      its own file is the later; the category file's copy is only what an older
      version left behind. */
-  const exploded = (await Promise.all(legacy.map(async (e) => virtualOf(await readBlob(remote, f, e.sha), held)))).flat().filter((e) => !own.has(e.path));
+  const categories = (await Promise.all(legacy.filter((e) => isLegacyRecords(e.path)).map(async (e) => virtualOf(await readBlob(remote, f, e.sha), held)))).flat().filter((e) => !own.has(e.path));
+  const moved = await Promise.all(renamed.map(async ({ path, bytes }) => { const s = await blobSha(bytes); held.set(s, bytes); return { path, sha: s, size: bytes.length }; }));
+  const exploded = [...categories, ...moved.filter((e) => !own.has(e.path) && !categories.some((c) => c.path === e.path))];
   const agreed: Record<RepoPath, GitSha> = {};
   for (const [path, sha] of Object.entries(base)) {
     if (!isLegacyRecords(path)) continue;
     const bytes = await readBlob(remote, f, sha).catch(() => null);
     if (bytes) for (const e of await virtualOf(bytes, held).catch(() => [])) if (!(e.path in base)) agreed[e.path] = e.sha;
   }
-  return { head, remote: [...real, ...exploded], manifest, held, virtual: new Set(exploded.map((e) => e.path)), legacy: legacy.map((e) => e.path), base: agreed };
+  /* What the last sync agreed on for a record under its old name is what it
+     agreed on under the new. */
+  for (const { path, bytes } of await renamedOf(Object.keys(base), (p) => readBlob(remote, f, base[p]))) {
+    if (path in base) continue;
+    const s = await blobSha(bytes); held.set(s, bytes); agreed[path] = s;
+  }
+  const upgrade = manifest !== null && (manifest.version < SYNC_VERSION || legacy.length > 0);
+  return { head, remote: [...real, ...exploded], manifest, held, virtual: new Set(exploded.map((e) => e.path)), legacy: legacy.map((e) => e.path), base: agreed, upgrade };
 };
 
 /* Runs every item, reporting each, and fails after all have run if any did. */
@@ -123,7 +181,7 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
 
   let commit = seen.head.kind === 'at' ? seen.head.commit : null;
   const remoteAfter = new Map(theirs);
-  if (plan.up.length) {
+  if (plan.up.length || seen.upgrade) {
     const manifest = jsonBytes(manifestOf(originsAfter(theirs.keys(), 'remote', plan.up, 'local'), ownManifest, seen.manifest, now));
     const head = seen.head.kind === 'empty' ? await seedEmpty(remote, f, MANIFEST, manifest) : seen.head;
     const sent = new Map<RepoPath, GitSha | null>(plan.up.map((c) => [c.path, null] as const));
@@ -136,6 +194,7 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
     const moved = [...seen.virtual].filter((p) => !sent.has(p) && theirs.has(p));
     await pool(moved, AT_ONCE, async (p) => { sent.set(p, await writeBlob(remote, f, seen.held.get(theirs.get(p) as GitSha) ?? new Uint8Array())); });
     seen.legacy.forEach((p) => sent.set(p, null));
+    sent.set(GATE, await writeBlob(remote, f, GATE_BYTES));
     const manifestSha = await writeBlob(remote, f, manifest);
     commit = await commitChanges(remote, f, head, [...[...sent].map(([path, sha]) => ({ path, sha })), { path: MANIFEST, sha: manifestSha }], 'Sync from OmniStax');
     plan.up.forEach((c) => (c.local ? remoteAfter.set(c.path, c.local) : remoteAfter.delete(c.path)));

@@ -12,6 +12,7 @@ export const shell: Readonly<Record<keyof typeof source, string>> = {
   'shell.backup.importTooLarge': '此备份超出了 {limit} 的导入上限。',
   'shell.backup.invalid': '这不是有效的 OmniStax 备份：{why}。',
   'shell.backup.invalidData': '数据无效',
+  'shell.backup.newer': '此备份来自更新的 OmniStax（{release}）。请重新加载以更新，然后再导入。',
   'shell.backup.noIndexedDb': '此浏览器不支持 IndexedDB，因此无法安全地恢复备份。',
   'shell.backup.noLocks': '安全恢复需要 Web Locks API，而此浏览器不提供。导出仍可使用；请用新版浏览器导入。',
   'shell.backup.notJson': '此文件不是有效的 JSON。',

@@ -74,8 +74,8 @@ with sync_playwright() as playwright:
     page.keyboard.press("Escape")
 
     page.set_input_files(".picker-dir", str(folder()))
-    page.wait_for_function("JSON.parse(localStorage.getItem('omnistax-files-v1') || '[]').length === 2", timeout=30000)
-    names = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer-v1')).entries.map(e => e.kind + ':' + e.name)")
+    page.wait_for_function("JSON.parse(localStorage.getItem('omnistax-file-index') || '[]').length === 2", timeout=30000)
+    names = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer')).entries.map(e => e.kind + ':' + e.name)")
     for want in ("folder:Course", "folder:week 1", "file:slides", "file:cover", "note:plan"):
         assert want in names, names
     assert "folder:empty" not in names, names
@@ -85,11 +85,11 @@ with sync_playwright() as playwright:
 
     page.keyboard.press("Control+z")
     page.wait_for_timeout(300)
-    left = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer-v1')).entries.map(e => e.name)")
+    left = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer')).entries.map(e => e.name)")
     assert not any(n in left for n in ("Course", "week 1", "slides", "cover", "plan")), left
     page.keyboard.press("Control+Shift+z")
     page.wait_for_timeout(300)
-    back = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer-v1')).entries.map(e => e.name)")
+    back = page.evaluate("JSON.parse(localStorage.getItem('omnistax-explorer')).entries.map(e => e.name)")
     assert all(n in back for n in ("Course", "week 1", "slides", "cover", "plan")), back
 
     # ── #31: the allowance line ─────────────────────────────────────────────

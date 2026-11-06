@@ -14,7 +14,7 @@ export type LibraryBookDTO = {
   readonly language: string; readonly translationOf?: string;
 };
 
-const KEY = 'omnistax-library-v1';
+const KEY = 'omnistax-library';
 
 const parseBook = (raw: unknown): LibraryBookDTO | null => {
   if (typeof raw !== 'object' || raw === null) return null;

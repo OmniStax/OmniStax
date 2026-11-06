@@ -34,11 +34,11 @@ with sync_playwright() as playwright:
       localStorage.setItem('omnistax-theme', 'dark');
       localStorage.setItem('omnistax-notes-other-book', JSON.stringify([{id:'h1',section:'x.1',doc:'text',anchor:{quote:'quoted',prefix:'',suffix:''},color:'blue',text:'note',created:1,updated:2}]));
       localStorage.setItem('omnistax-colours-other-book', JSON.stringify({format:'omnistax-colours',version:1,book:'other-book',order:['length'],overrides:{book:{length:{light:'#112233',dark:'#AABBCC'}},chapters:{},sections:{}}}));
-      localStorage.setItem('omnistax-notedocs-v1', JSON.stringify([{id:'n1',name:'My note',body:'![x](asset:a1)',created:1,updated:2}]));
-      localStorage.setItem('omnistax-files-v1', JSON.stringify([
+      localStorage.setItem('omnistax-notedocs', JSON.stringify([{id:'n1',name:'My note',body:'![x](asset:a1)',created:1,updated:2}]));
+      localStorage.setItem('omnistax-file-index', JSON.stringify([
         {id:'ffffffff',name:'Paper',type:'pdf',mime:'application/pdf',size:9,pages:2,created:1,updated:2},
         {id:'gggggggg',name:'Swatch',type:'image',mime:'image/png',size:3,created:1,updated:2}]));
-      localStorage.setItem('omnistax-filemarks-v1', JSON.stringify([
+      localStorage.setItem('omnistax-filemarks', JSON.stringify([
         {kind:'highlight',id:'abcdefghij',file:'ffffffff',page:2,anchor:{quote:'zyxomni',prefix:'',suffix:''},color:'green',text:'odd',created:1,updated:2}]));
     """)
     # The bytes of the two imported files, which travel as base64 in the backup.
@@ -68,7 +68,7 @@ with sync_playwright() as playwright:
         assert exported["assets"][0]["id"] == "a1"
         # A PDF and an image make the round trip: the metadata as records, the
         # bytes as base64 beside them.
-        assert "omnistax-files-v1" in keys and "omnistax-filemarks-v1" in keys
+        assert "omnistax-file-index" in keys and "omnistax-filemarks" in keys
         carried = {f["id"]: f for f in exported["files"]}
         assert set(carried) == {"ffffffff", "gggggggg"}, carried
         assert carried["ffffffff"]["type"] == "pdf" and carried["ffffffff"]["mime"] == "application/pdf"
@@ -93,8 +93,8 @@ with sync_playwright() as playwright:
         assert restored_notes is not None, (restored_notes, expected_notes)
         assert json.loads(restored_notes) == json.loads(expected_notes)
         assert fresh.evaluate("localStorage.getItem('omnistax-theme')") == "dark"
-        assert json.loads(fresh.evaluate("localStorage.getItem('omnistax-files-v1')"))[0]["name"] == "Paper"
-        assert json.loads(fresh.evaluate("localStorage.getItem('omnistax-filemarks-v1')"))[0]["id"] == "abcdefghij"
+        assert json.loads(fresh.evaluate("localStorage.getItem('omnistax-file-index')"))[0]["name"] == "Paper"
+        assert json.loads(fresh.evaluate("localStorage.getItem('omnistax-filemarks')"))[0]["id"] == "abcdefghij"
         assert fresh.evaluate("""async () => {
           const db=await new Promise((ok,no)=>{const r=indexedDB.open('omnistax-files',1);r.onupgradeneeded=()=>{r.result.createObjectStore('blobs',{keyPath:'id'});r.result.createObjectStore('text',{keyPath:'id'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
           const keys=await new Promise((ok,no)=>{const tx=db.transaction('blobs');const q=tx.objectStore('blobs').getAllKeys();q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -112,7 +112,7 @@ with sync_playwright() as playwright:
         failed_profile = dict(exported)
         failed_profile["records"] = [
             {"key": "omnistax-theme", "category": "appearance", "value": "light"},
-            {"key": "omnistax-underlines", "category": "appearance", "value": "0"},
+            {"key": "omnistax-voice", "category": "appearance", "value": "1"},
         ]
         failed_path = pathlib.Path(tmp) / "quota.json"
         failed_path.write_text(json.dumps(failed_profile))
@@ -122,7 +122,7 @@ with sync_playwright() as playwright:
           const original = Storage.prototype.setItem;
           let injected = false;
           Storage.prototype.setItem = function(key, value) {
-            if (!injected && key === 'omnistax-underlines' && value === '0') {
+            if (!injected && key === 'omnistax-voice' && value === '1') {
               injected = true; throw new DOMException('Injected quota failure', 'QuotaExceededError');
             }
             return original.call(this, key, value);

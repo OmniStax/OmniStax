@@ -8,7 +8,7 @@ import { readerWritesAllowed } from '../backup/guard';
 
 export type NoteDoc = { readonly id: NoteId; readonly name: string; readonly body: string; readonly created: number; readonly updated: number };
 
-const KEY = 'omnistax-notedocs-v1';
+const KEY = 'omnistax-notedocs';
 const SAVE_DELAY = 150;
 
 const parse = (raw: unknown): NoteDoc[] => {

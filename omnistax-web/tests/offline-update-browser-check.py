@@ -137,7 +137,7 @@ with tempfile.TemporaryDirectory(prefix="omnistax-update-") as temporary:
             assert cold_after.evaluate(MARKER) == 'app'
             whole(cold_after)
             Handler.down = False
-            cold_after.evaluate("localStorage.setItem('omnistax-auto-update-v1', JSON.stringify({sandbox:false}))")
+            cold_after.evaluate("localStorage.setItem('omnistax-auto-update', JSON.stringify({sandbox:false}))")
             for page in (old, fresh, cold, cold_after): page.close()
 
             # A content release with automatic updates off: the book row offers
@@ -163,11 +163,11 @@ with tempfile.TemporaryDirectory(prefix="omnistax-update-") as temporary:
             assert newer.evaluate(PIN)['release'] == b
 
             # A known-provenance saved session retains A after its live tab closes.
-            newer.evaluate("""release => localStorage.setItem('omnistax-practice-sessions-v2', JSON.stringify({saved:{id:'saved',curriculum:[],concepts:[],drawn:[{book:'sandbox',section:'1.1',ex:'x',why:'review',release}],at:0,outcomes:[null],started:1,before:{}}}))""", a)
+            newer.evaluate("""release => localStorage.setItem('omnistax-practice-sessions', JSON.stringify({saved:{id:'saved',curriculum:[],concepts:[],drawn:[{book:'sandbox',section:'1.1',ex:'x',why:'review',release}],at:0,outcomes:[null],started:1,before:{}}}))""", a)
             reader.close(); newer.reload(); newer.wait_for_selector('.shell'); newer.wait_for_timeout(2000)
             assert newer.evaluate(RECORD).get('previousRelease') == a
 
-            newer.evaluate("localStorage.removeItem('omnistax-practice-sessions-v2')")
+            newer.evaluate("localStorage.removeItem('omnistax-practice-sessions')")
             newer.reload(); newer.wait_for_selector('.shell')
             until(newer, lambda record: not record.get('previousRelease'), timeout=6)
             assert not newer.evaluate("name => caches.has(name)", f"omnistax-book:sandbox:{a}:{art_app}")

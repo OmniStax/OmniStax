@@ -100,11 +100,11 @@ scratch drawing; the card's existing "open" button uses this.
 - `src/lib/drawer/store.svelte.ts`: drawings in IndexedDB database
   `omnistax-drawings`, store `drawings`, one record per drawing, written
   debounced 300 ms after the last change and on tab blur; the name list is
-  mirrored in localStorage `omnistax-drawings-v1` (`{ id, name, created,
+  mirrored in localStorage `omnistax-drawing-index` (`{ id, name, created,
   updated }[]`) so the explorer and the link resolver never open IndexedDB
   to draw a row. Scratch drawings live in the same database under a
   `scratch` store keyed `<book>/<section>/<ex>`, with a localStorage index
-  `omnistax-scratch-v1` mapping that key to `{ linked?: DrawingId }`.
+  `omnistax-scratch-index` mapping that key to `{ linked?: DrawingId }`.
 - Backup: both localStorage keys validated in `backup/schema.ts`, and the
   two IndexedDB stores exported as `drawings: Drawing[]` and `scratch:
   { key, drawing }[]`.
@@ -172,8 +172,8 @@ smoothing, snapping and handle sums, and `render.ts` puts ink on a context and
 nothing else. `store.svelte.ts` is the reactive face over `db.ts`, which is a
 plain module so that the backup can read and write the two IndexedDB stores
 without pulling a rune into a test; the names are mirrored in
-`omnistax-drawings-v1` so the explorer and the link resolver never open a
-database to draw a row, and the scratch index in `omnistax-scratch-v1`. Both
+`omnistax-drawing-index` so the explorer and the link resolver never open a
+database to draw a row, and the scratch index in `omnistax-scratch-index`. Both
 keys are whitelisted and validated in `backup/schema.ts`, and the ink travels
 as `drawings` and `scratch` beside the chats and the files.
 

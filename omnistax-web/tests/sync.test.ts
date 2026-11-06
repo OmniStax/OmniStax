@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKUP_FORMAT, BACKUP_VERSION, categoryOf, parseBackup, validReaderRecord, type ReaderBackup } from '../src/lib/backup/schema';
-import { MANIFEST, filePath, fromRepo, imagePath, parseManifest, recordPath, toRepo, type RepoPath } from '../src/lib/sync/layout';
+import { MANIFEST, SYNC_VERSION, filePath, fromRepo, imagePath, parseManifest, recordPath, toRepo, type RepoPath } from '../src/lib/sync/layout';
 import { blobSha, gitSha, readHead, repoName, type Fetch, type Remote, type RemoteEntry } from '../src/lib/sync/github';
 import { changesOf, manifestOf, overwrite, planOf, rebase, type Base, type Status } from '../src/lib/sync/plan';
 import { carry, hashed, survey, type HashedFile } from '../src/lib/sync/run';
@@ -13,9 +13,9 @@ const sample = (): ReaderBackup => parseBackup({
   records: [
     { key: 'omnistax-theme', value: 'dark', category: 'appearance' },
     { key: 'omnistax-body-font', value: 'libertinus', category: 'appearance' },
-    { key: 'omnistax-library-v1', value: '["college-physics-2e"]', category: 'library' },
+    { key: 'omnistax-library', value: '["college-physics-2e"]', category: 'library' },
     { key: 'omnistax-pomodoros', value: '[{"id":"a","start":1}]', category: 'focus' },
-    { key: 'omnistax-files-v1', value: JSON.stringify([{ id: 'ffff0000', name: 'Handout.pdf', type: 'pdf', mime: 'application/pdf', size: 3, created: 1, updated: 1 }]), category: 'notes' },
+    { key: 'omnistax-file-index', value: JSON.stringify([{ id: 'ffff0000', name: 'Handout.pdf', type: 'pdf', mime: 'application/pdf', size: 3, created: 1, updated: 1 }]), category: 'notes' },
   ],
   assets: [{ id: 'img000000001', type: 'image/png', dataUrl: 'data:image/png;base64,iVBORw==', created: 2 }],
   chats: [{ id: 'abcd1234', name: 'Springs', root: 'm1', messages: { m1: { id: 'm1', parent: null, role: 'user', text: 'hi', chips: [], at: 1, state: 'done' } }, leaf: 'm1', created: 1, updated: 1 }],
@@ -29,16 +29,16 @@ const mapOf = (files: readonly { path: RepoPath; bytes: Uint8Array }[]): Map<Rep
 test('every key the reader owns is backed up, and the sync token and repo never are', () => {
   for (const key of ['omnistax-pomodoros', 'omnistax-pomodoro-len', 'omnistax-pomodoro-categories', 'omnistax-pomodoro-lock', 'omnistax-lock-grace']) assert.equal(categoryOf(key), 'focus', key);
   for (const key of ['omnistax-body-font', 'omnistax-figure-font', 'omnistax-card-open', 'omnistax-swap-drag']) assert.equal(categoryOf(key), 'appearance', key);
-  assert.equal(categoryOf('omnistax-chat-tree-v1'), 'chats');
-  assert.equal(categoryOf('omnistax-tips-v1'), 'reading');
-  assert.equal(categoryOf('omnistax-last-page-v1'), 'reading');
+  assert.equal(categoryOf('omnistax-chat-tree'), 'chats');
+  assert.equal(categoryOf('omnistax-tip-history'), 'reading');
+  assert.equal(categoryOf('omnistax-last-page'), 'reading');
   assert.equal(categoryOf('omnistax-github-token'), null);
   assert.equal(categoryOf('omnistax-sync-v1'), null);
   assert.equal(validReaderRecord({ key: 'omnistax-figure-font', value: 'cmu', category: 'appearance' }), true);
   assert.equal(validReaderRecord({ key: 'omnistax-figure-font', value: 'comic', category: 'appearance' }), false);
-  assert.equal(validReaderRecord({ key: 'omnistax-tips-v1', value: '{"first":1,"day":null,"next":0}', category: 'reading' }), true);
+  assert.equal(validReaderRecord({ key: 'omnistax-tip-history', value: '{"first":1,"day":null,"next":0}', category: 'reading' }), true);
   assert.equal(validReaderRecord({ key: 'omnistax-lock-grace', value: '12', category: 'focus' }), true);
-  assert.equal(validReaderRecord({ key: 'omnistax-chat-tree-v1', value: '["abcd1234"]', category: 'chats' }), true);
+  assert.equal(validReaderRecord({ key: 'omnistax-chat-tree', value: '["abcd1234"]', category: 'chats' }), true);
 });
 
 test('a profile lays out as one file per record, chat, drawing, scratch page and blob, and reads back whole', () => {
@@ -46,15 +46,15 @@ test('a profile lays out as one file per record, chat, drawing, scratch page and
   const files = toRepo(backup);
   assert.deepEqual(files.map((f) => f.path).sort(), [
     'chats/abcd1234.json', 'drawings/dddd1111.json', 'files/ffff0000.pdf', 'images/img000000001.png', MANIFEST,
-    'records/omnistax-body-font.json', 'records/omnistax-files-v1.json', 'records/omnistax-library-v1.json', 'records/omnistax-pomodoros.json', 'records/omnistax-theme.json',
+    'records/omnistax-body-font.json', 'records/omnistax-file-index.json', 'records/omnistax-library.json', 'records/omnistax-pomodoros.json', 'records/omnistax-theme.json',
     `scratch/${encodeURIComponent('college-physics-2e|1.1|ex 3')}.json`,
   ].sort());
   assert.equal(new TextDecoder().decode(files.find((f) => f.path === filePath('ffff0000', 'application/pdf'))?.bytes), '%PD');
   assert.equal(files.find((f) => f.group === 'files')?.label, 'Handout.pdf');
   const text = (path: string): string => new TextDecoder().decode(files.find((f) => f.path === path)?.bytes);
   assert.equal(text(recordPath('omnistax-theme')), '"dark"\n', 'a setting is its string');
-  assert.deepEqual(JSON.parse(text(recordPath('omnistax-library-v1'))), ['college-physics-2e'], 'a JSON record is the JSON it holds');
-  assert.equal(parseManifest(files.find((f) => f.path === MANIFEST)!.bytes).version, 2);
+  assert.deepEqual(JSON.parse(text(recordPath('omnistax-library'))), ['college-physics-2e'], 'a JSON record is the JSON it holds');
+  assert.equal(parseManifest(files.find((f) => f.path === MANIFEST)!.bytes).version, SYNC_VERSION);
 
   const back = fromRepo(mapOf(files));
   const norm = (b: ReaderBackup) => ({ ...b, records: b.records.map((r) => ({ ...r, value: r.category === 'appearance' ? r.value : JSON.stringify(JSON.parse(r.value)) })).sort((x, y) => x.key.localeCompare(y.key)) });

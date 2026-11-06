@@ -13,7 +13,7 @@ import {
   parseMarks, patchMark, removeMarks, removeMarksOfFiles, type FileMark, type PageNumber,
 } from './marks';
 
-export const MARKS_KEY = 'omnistax-filemarks-v1';
+export const MARKS_KEY = 'omnistax-filemarks';
 
 class FileMarks {
   list = $state.raw<readonly FileMark[]>([]);

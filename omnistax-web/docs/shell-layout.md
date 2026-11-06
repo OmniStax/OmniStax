@@ -87,7 +87,7 @@ Interactions:
 - Under 900px the sidebars become one-at-a-time overlays opened from the
   rail, and groups stack vertically.
 
-State is one JSON object in `localStorage` (`omnistax-layout-v4`): the items
+State is one JSON object in `localStorage` (`omnistax-layout`): the items
 in each sidebar and their widths, collapsed boxes, the groups with their
 tabs and active tab, a stable key per group, the focused group, and each
 view's home side. It is

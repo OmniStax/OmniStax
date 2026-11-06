@@ -1,7 +1,7 @@
 /* What the reader has settled under "AI": a key per provider, the models each
    card lists and which of them the chat's menu shows, the Local AI endpoints,
    the model last chosen, and whether answers may render inline HTML. It is
-   all kept in this browser under `omnistax-ai-v1`; the keys are excluded from
+   all kept in this browser under `omnistax-ai`; the keys are excluded from
    the backup.
 
    The reading and the writing are apart: this module is pure, so the backup
@@ -13,7 +13,7 @@ import {
   type Access, type CloudId, type ModelPick, type ProviderId,
 } from './providers/index';
 
-export const AI_KEY = 'omnistax-ai-v1';
+export const AI_KEY = 'omnistax-ai';
 
 export type EndpointId = string;
 export type Endpoint = { readonly id: EndpointId; readonly name: string; readonly baseUrl: string; readonly models: readonly string[] };

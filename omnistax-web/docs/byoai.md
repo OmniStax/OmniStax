@@ -14,7 +14,7 @@ to the provider they chose; no key ever touches OmniStax's server.
 Providers, chosen in Settings under "AI" with a key field each and a model
 picker: Anthropic, OpenAI, Google Gemini, and "OpenAI-compatible" with a
 base URL for local servers and other hosts. Keys are kept in localStorage
-`omnistax-ai-v1` and are **excluded from the backup**; the backup carries the
+`omnistax-ai` and are **excluded from the backup**; the backup carries the
 provider and model chosen, not the key. A provider that refuses a browser
 request (no CORS) is reported in the chat with the words "this host does not
 allow requests from a browser; run a local proxy or choose another".
@@ -114,19 +114,15 @@ error text on the message with a Retry.
 - Search has a corpus per chat over its messages; a hit opens the chat at
   that message's branch.
 - Chats live in IndexedDB database `omnistax-chats`, store `chats`, with a
-  localStorage index `omnistax-chats-v3` of `{ id, name, created, updated,
+  localStorage index `omnistax-chat-index` of `{ id, name, created, updated,
   said?, answered?, places? }` for the explorer-free places that list them
   (the picker, search, links, the Conversations page). `said` is when the
   chat's last message was sent (a rename moves `updated`, not `said`),
   `answered` when its last answer finished, stopped or failed, and `places`
   where it is filed (`lib/chat/entries.ts`, below), absent on a row not filed
-  yet. The first index, `omnistax-chats-v1`, is still read (merged row by
-  row) and written in its own shape for a tab open on an older build; a row
-  an older build touched since is filed again from the chat's messages when
-  the Conversations page is opened. The second, `omnistax-chats-v2` (one
-  `book` per row), never shipped: it is read only where the third has not been
-  written and no longer kept. All three are in the backup, the store exported
-  as `chats: Chat[]`.
+  yet. The indexes older builds kept (`omnistax-chats-v1`, `-v2`, `-v3`)
+  are taken over as the app starts (`lib/backup/migrate.ts`). The index is in
+  the backup, the store exported as `chats: Chat[]`.
 
 ## Files
 
@@ -167,8 +163,8 @@ and the pager, the fork breadcrumb and the leaf list are read off it.
 Gemini, and OpenAI-compatible, which is the OpenAI one at the reader's own
 address), with `requestOf` pure so a body can be checked without a network and
 a `TypeError` from fetch reported as the CORS sentence. Keys live in
-`omnistax-ai-v1` and the backup adapter strips them; the chats live in
-IndexedDB `omnistax-chats` with the index in `omnistax-chats-v1`, and both
+`omnistax-ai` and the backup adapter strips them; the chats live in
+IndexedDB `omnistax-chats` with the index in `omnistax-chat-index`, and both
 travel in a backup (`chats: Chat[]`). The picker is `lib/picker/` over
 `components/ui/AtPicker.svelte`, opened by `@` in the composer and by `[[` in
 the note editor, which no longer uses CodeMirror's own completion. Widgets are
@@ -369,7 +365,7 @@ one session: New chat and a row open the chat inside the page under a
 "‹ Conversations" way back (`components/ui/BackLink.svelte`, which the
 practice `PageHead` now uses too), and a Ctrl or middle click opens it as a
 tab of its own beside. Which chat a page shows is kept per page in
-`omnistax-chat-pages-v1` and forgotten when the page's tab closes. The list
+`omnistax-chat-pages` and forgotten when the page's tab closes. The list
 is filed by book (`byBook` in `lib/chat/entries.ts`): a row of books to
 filter by once there is more than one, and a heading per book, the book
 talked about last first, newest chat first in each, "No book" last.
@@ -395,7 +391,7 @@ only words no chip can stand for are typed into the composer.
 
 **2026-10-27.** The list is every chat, the one that last said something
 first (`recent`). "By book", a toggle in the page's bar remembered in
-`omnistax-chats-by-book-v1`, files it instead (`filed`): a heading per book,
+`omnistax-chats-by-book`, files it instead (`filed`): a heading per book,
 the book talked about last first, its chapters a step in and their sections a
 step further, in the book's order from its manifest, only the places that
 hold a chat, each folding away; "No book" last.
@@ -419,4 +415,4 @@ it is the active tab of a group, or the chat shown in a Conversations page
 that is, and the browser tab is in front; the shell marks it whenever the
 layout or the index moves, so an answer that finishes while the reader
 watches is never unread. When each chat was last seen is kept in
-`omnistax-chat-seen-v1`, which travels in the backup with the chats.
+`omnistax-chat-seen`, which travels in the backup with the chats.

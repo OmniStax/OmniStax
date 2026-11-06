@@ -15,7 +15,7 @@ test('oversized backup files are rejected before allocating their text', async (
 });
 
 test('reader key inventory is exact and excludes unrelated or future keys', () => {
-  assert.equal(categoryOf('omnistax-practice-v2'), 'practice');
+  assert.equal(categoryOf('omnistax-practice'), 'practice');
   assert.equal(categoryOf('omnistax-notes-physics'), 'notes');
   assert.equal(categoryOf('omnistax-practice-v99'), null);
   assert.equal(categoryOf('unrelated'), null);
@@ -24,19 +24,19 @@ test('reader key inventory is exact and excludes unrelated or future keys', () =
 test('backup parser validates typed records before writes', () => {
   const good = parseBackupText(backup([
     { key: 'omnistax-theme', value: 'dark', category: 'appearance' },
-    { key: 'omnistax-library-v1', value: '["physics"]', category: 'library' },
+    { key: 'omnistax-library', value: '["physics"]', category: 'library' },
   ]));
   assert.equal(good.records.length, 2);
   assert.deepEqual(summarizeBackup(good).categories, { appearance: 1, library: 1 });
 
-  assert.equal(validReaderRecord({ key: 'omnistax-library-v1', value: '{}', category: 'library' }), false);
+  assert.equal(validReaderRecord({ key: 'omnistax-library', value: '{}', category: 'library' }), false);
   const bad = parseBackupText(backup([
     { key: 'omnistax-theme', value: 'purple', category: 'appearance' },
-    { key: 'omnistax-practice-v2', value: '{"attempts":"lost"}', category: 'practice' },
-    { key: 'omnistax-library-v1', value: '["physics"]', category: 'library' },
+    { key: 'omnistax-practice', value: '{"attempts":"lost"}', category: 'practice' },
+    { key: 'omnistax-library', value: '["physics"]', category: 'library' },
   ]));
-  assert.deepEqual(bad.records.map((r) => r.key), ['omnistax-library-v1'], 'what can be read is restored');
-  assert.deepEqual(bad.skipped.map((r) => r.key), ['omnistax-theme', 'omnistax-practice-v2'], 'what cannot is set aside, by name');
+  assert.deepEqual(bad.records.map((r) => r.key), ['omnistax-library'], 'what can be read is restored');
+  assert.deepEqual(bad.skipped.map((r) => r.key), ['omnistax-theme', 'omnistax-practice'], 'what cannot is set aside, by name');
 });
 
 /* The report behind "This is not a valid OmniStax backup: invalid reader
@@ -65,8 +65,8 @@ test('a practice record as the store writes it passes the backup check', () => {
 
 test('a record that cannot be read says which it is and why, and the device keeps its own value for it', () => {
   const settings = { ...parseSettings({}), zzz: 1 };
-  assert.match(recordProblem({ key: 'omnistax-practice-v2', value: JSON.stringify({ attempts: [], shown: [], rounds: [], self: {}, settings }) }) ?? '', /^settings: Unrecognized key\(s\) in object: 'zzz'/);
-  assert.match(recordProblem({ key: 'omnistax-library-v1', value: '[nope' }) ?? '', /isn’t valid JSON/);
+  assert.match(recordProblem({ key: 'omnistax-practice', value: JSON.stringify({ attempts: [], shown: [], rounds: [], self: {}, settings }) }) ?? '', /^settings: Unrecognized key\(s\) in object: 'zzz'/);
+  assert.match(recordProblem({ key: 'omnistax-library', value: '[nope' }) ?? '', /isn’t valid JSON/);
   assert.match(recordProblem({ key: 'omnistax-theme', value: 'purple' }) ?? '', /“purple”/);
   assert.match(recordProblem({ key: 'omnistax-practice-v99', value: '{}' }) ?? '', /doesn’t know/);
   const parsed = parseBackupText(backup([{ key: 'omnistax-practice-v99', value: '{}', category: 'practice' }, { key: 'omnistax-theme', value: 'purple', category: 'appearance' }]));
@@ -82,7 +82,7 @@ test('a record filed under the category it once had restores under today’s', (
 });
 
 test('an exported tree may carry a drawing, a file and a chat, and a row naming no record is refused', () => {
-  const tree = (entries: unknown[]) => ({ key: 'omnistax-explorer-v1', value: JSON.stringify({ entries, expanded: [] }), category: 'library' as const });
+  const tree = (entries: unknown[]) => ({ key: 'omnistax-explorer', value: JSON.stringify({ entries, expanded: [] }), category: 'library' as const });
   assert.equal(validReaderRecord(tree([
     { id: 'd1', parent: null, kind: 'drawing', name: 'Free body', drawingId: 'd1' },
     { id: 'x1', parent: null, kind: 'file', name: 'Handout', fileId: 'x1' },
@@ -93,7 +93,7 @@ test('an exported tree may carry a drawing, a file and a chat, and a row naming 
 });
 
 test('backup parser rejects future versions, duplicates, and malformed assets', () => {
-  assert.throws(() => parseBackupText(JSON.stringify({ ...JSON.parse(backup()), version: 2 })));
+  assert.throws(() => parseBackupText(JSON.stringify({ ...JSON.parse(backup()), version: BACKUP_VERSION + 1, app: { readerFormat: 1, release: '2027.1.1.0' } })), /newer OmniStax \(2027.1.1.0\)/);
   const row = { key: 'omnistax-folded', value: '[]', category: 'reading' };
   assert.throws(() => parseBackupText(backup([row, row])), /omnistax-folded appears twice/);
   assert.throws(() => parseBackupText(JSON.stringify({ ...JSON.parse(backup()), assets: [{ id: 'x', type: 'image/png', dataUrl: 'https://example.test/x.png', created: 1 }] })));
@@ -103,8 +103,8 @@ test('book-qualified notes, pins, layout and fold keys pass the backup check', (
   const note = { id: 'n1', book: 'chemistry-2e', section: '1.1', doc: 'text', anchor: { quote: 'q', prefix: '', suffix: '' }, color: 'yellow', text: '', created: 1, updated: 1 };
   assert.equal(validReaderRecord({ key: 'omnistax-notes-chemistry-2e', value: JSON.stringify([note]), category: 'notes' }), true);
   const pins = { 'view:1': { follow: false, target: { level: 'section', book: 'college-physics-2e', section: '15.4' } } };
-  assert.equal(validReaderRecord({ key: 'omnistax-scope-v2', value: JSON.stringify(pins), category: 'layout' }), true);
-  assert.equal(categoryOf('omnistax-layout-v6'), 'layout');
+  assert.equal(validReaderRecord({ key: 'omnistax-scopes', value: JSON.stringify(pins), category: 'layout' }), true);
+  assert.equal(categoryOf('omnistax-layout'), 'layout');
   assert.equal(validReaderRecord({ key: 'omnistax-folded', value: JSON.stringify(['chemistry-2e|1.1-intro']), category: 'reading' }), true);
 });
 

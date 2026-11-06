@@ -34,8 +34,8 @@ const practice = (attempts, target, note) => ({
 });
 
 const note = (text, updated) => ({ id: 'n1', section: '1.1', doc: 'text', anchor: { quote: 'zzz', prefix: '', suffix: '' }, color: 'yellow', text, created: 1, updated });
-const P = 'records/omnistax-practice-v2.json', L = 'records/omnistax-library-v1.json', T = 'records/omnistax-theme.json';
-const N = 'records/omnistax-notes-college-physics-2e.json', F = 'records/omnistax-folded.json', W = 'records/omnistax-layout-v6.json';
+const P = 'records/omnistax-practice.json', L = 'records/omnistax-library.json', T = 'records/omnistax-theme.json';
+const N = 'records/omnistax-notes-college-physics-2e.json', F = 'records/omnistax-folded.json', W = 'records/omnistax-layout.json';
 const base = { [P]: practice([1], 3, 'base note'), [L]: ['college-physics-2e'], [T]: 'dark', [N]: [note('agreed', 20)], [F]: ['1.1'] };
 const mine = { [P]: practice([1, 2], 4, 'my note'), [L]: ['college-physics-2e', 'chemistry-2e'], [T]: 'dark', [N]: [note('agreed', 20)], [F]: ['1.1'] };
 const theirs = { [P]: practice([1, 3], 5, 'their note'), [L]: ['college-physics-2e', 'calculus-1'], [T]: 'dark', [N]: [note('an old copy', 10)], [F]: { sections: ['1.1'] }, [W]: { from: 'an earlier version' } };
@@ -82,22 +82,22 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
     localStorage.setItem('omnistax-notes-college-physics-2e', JSON.stringify(m.notes));
     localStorage.setItem('omnistax-folded', JSON.stringify(m.folded));
     localStorage.setItem('omnistax-theme', m.theme);
-    localStorage.setItem('omnistax-practice-v2', JSON.stringify(m.practice));
-    localStorage.setItem('omnistax-library-v1', JSON.stringify(m.library));
+    localStorage.setItem('omnistax-practice', JSON.stringify(m.practice));
+    localStorage.setItem('omnistax-library', JSON.stringify(m.library));
     localStorage.setItem('omnistax-sync-v1', JSON.stringify({ repo: 'chen/notes', branch: 'main', every: 0, last: { repo: 'chen/notes', branch: 'main', at: 1, base: agreedBase } }));
     localStorage.setItem('omnistax-github-token', 'github_pat_test');
   }, [{ theme: mine[T], practice: mine[P], library: mine[L], notes: mine[N], folded: mine[F] }, agreed]);
   await page.reload();
   await page.waitForSelector('.shell');
-  const layoutBefore = await page.evaluate(() => localStorage.getItem('omnistax-layout-v6'));
+  const layoutBefore = await page.evaluate(() => localStorage.getItem('omnistax-layout'));
   await page.locator('#sync-btn').click();
   const view = page.locator('.sync');
   await view.locator('.status').filter({ hasText: 'changed in both' }).waitFor({ timeout: 30000 });
 
   const rows = {};
   for (const r of await view.locator('.file').all()) rows[await r.locator('.label').innerText()] = await r.locator('.state').innerText();
-  assert(rows['omnistax-library-v1'] === 'merged', `library merged: ${JSON.stringify(rows)}`);
-  assert(rows['omnistax-practice-v2'] === '2 conflicts', `practice has two conflicts: ${JSON.stringify(rows)}`);
+  assert(rows['omnistax-library'] === 'merged', `library merged: ${JSON.stringify(rows)}`);
+  assert(rows['omnistax-practice'] === '2 conflicts', `practice has two conflicts: ${JSON.stringify(rows)}`);
   assert(!('omnistax-theme' in rows), 'an agreeing record never shows');
   assert(await view.locator('summary .sec-name', { hasText: /^pull$/i }).count() === 0, 'the held files are not in a pull list');
 
@@ -120,7 +120,7 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   const go = view.locator('.go').first();
   assert(await go.isDisabled() && (await go.innerText()).startsWith('Choose a version for 1 file'), `go waits: ${await go.innerText()}`);
 
-  await view.locator('.file', { hasText: 'omnistax-practice-v2' }).click();
+  await view.locator('.file', { hasText: 'omnistax-practice' }).click();
   const diff = page.locator('.diff');
   const bar = diff.locator('.bar');
   await bar.getByText('Conflict 1 of 2').waitFor({ timeout: 20000 });
@@ -166,7 +166,7 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   await status.filter({ hasText: 'goes to the repo and to this device' }).waitFor();
   if (SHOT) await page.screenshot({ path: SHOT });
 
-  assert(await view.locator('.file', { hasText: 'omnistax-practice-v2' }).locator('.state').innerText() === 'resolved', 'the row says resolved');
+  assert(await view.locator('.file', { hasText: 'omnistax-practice' }).locator('.state').innerText() === 'resolved', 'the row says resolved');
   assert(await go.isEnabled() && (await go.innerText()).startsWith('Pull 2 and push'), `go: ${await go.innerText()}`);
 
   await Promise.all([page.waitForNavigation({ timeout: 30000 }), go.click()]);
@@ -176,9 +176,9 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
   assert(up.settings.masteryTarget === 4 && up.settings.promptNote === 'their note', `settled settings went up: ${JSON.stringify(up.settings)}`);
   assert(JSON.stringify(up.attempts.map((a) => a.at)) === '[1,2,3]', 'every attempt went up');
   assert(JSON.stringify(JSON.parse(posted.get(sent[L]))) === JSON.stringify(['college-physics-2e', 'chemistry-2e', 'calculus-1']), 'the library merge went up');
-  const here = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-practice-v2')));
+  const here = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-practice')));
   assert(here.settings.masteryTarget === 4 && here.attempts.length === 3, `and came down: ${JSON.stringify(here.settings)}`);
-  const lib = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-library-v1')));
+  const lib = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-library')));
   assert(JSON.stringify(lib) === JSON.stringify(['college-physics-2e', 'chemistry-2e', 'calculus-1']), `library here: ${JSON.stringify(lib)}`);
   const last = await page.evaluate(() => JSON.parse(localStorage.getItem('omnistax-sync-v1')).last.base);
   assert(last[P] === sent[P] && last[L] === sent[L], 'both sides agree on the merges');
@@ -194,7 +194,7 @@ const assert = (ok, what) => { if (!ok) throw new Error(`assertion failed: ${wha
 
   /* The layout: none went up, the repo's was not deleted, and this device's is its own. */
   assert(!Object.keys(sent).some((p) => p.includes('layout') || p.includes('scope') || p.includes('-pages-')), `no workspace sent: ${Object.keys(sent)}`);
-  const layoutAfter = await page.evaluate(() => localStorage.getItem('omnistax-layout-v6'));
+  const layoutAfter = await page.evaluate(() => localStorage.getItem('omnistax-layout'));
   assert(!(layoutAfter ?? '').includes('an earlier version'), 'the repo’s layout never came down');
   assert(layoutBefore === null || layoutAfter !== null, 'and this device’s stayed');
 

@@ -1,5 +1,5 @@
 /* Walking the shell into another book: Shell sets the walk, the crumb bar calls it. */
-const KEY = 'omnistax-last-page-v1';
+const KEY = 'omnistax-last-page';
 
 const read = (): Record<string, unknown> => {
   try { const o: unknown = JSON.parse(localStorage.getItem(KEY) ?? '{}'); return typeof o === 'object' && o !== null ? (o as Record<string, unknown>) : {}; } catch { return {}; }

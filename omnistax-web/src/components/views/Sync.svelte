@@ -17,6 +17,8 @@
   import { openInFocus } from '../../lib/layout/model';
   import { repoName } from '../../lib/sync/github';
   import { groupLabel } from '../../lib/sync/layout';
+  import { describe } from '../../lib/sync/describe';
+  import { library } from '../../lib/explorer/library.svelte';
   import { isMerged, oneWay, tooLarge, type Change, type Letter, type Side, type Status } from '../../lib/sync/plan';
   import { blocksOf, conflictCount } from '../../lib/sync/conflict';
   import { session } from '../../lib/sync/session.svelte';
@@ -76,6 +78,9 @@
     layoutStore.overlay = null;
   };
 
+  /* What a file is: what a record holds, else the kind of file it is. */
+  const about = (c: Change): string => describe(c.path, i18n.locale, (id) => library.book(id)?.title ?? id) ?? groupLabel(c.group, i18n.locale);
+
   const LETTER = $derived<Readonly<Record<Letter, string>>>({ A: i18n.t('views.sync.letter.added'), M: i18n.t('views.sync.letter.modified'), D: i18n.t('views.sync.letter.deleted'), '!': i18n.t('views.sync.changedInBoth') });
   const stateText = (s: Status | undefined, c: Change): string => {
     if (!s && c.side === 'both') {
@@ -116,7 +121,7 @@
               <span class="label">{c.label}</span>
               <span class="state" class:bad={s?.kind === 'failed' || (!s && stuck(c))} class:ok={s?.kind === 'done'}>{stateText(s, c)}</span>
               <span class="letter l{c.letter === '!' ? 'C' : c.letter}" title={LETTER[c.letter]} aria-label={LETTER[c.letter]}>{c.letter}</span>
-              <span class="group">{groupLabel(c.group, i18n.locale)}</span>
+              <span class="group">{about(c)}</span>
             </button>
             {#if choosing}
               <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
@@ -142,7 +147,7 @@
       <span class="label">{c.label}</span>
       <span class="state"></span>
       <span class="letter l{c.letter}" title={LETTER[c.letter]} aria-label={LETTER[c.letter]}>{c.letter}</span>
-      <span class="group">{groupLabel(c.group, i18n.locale)}</span>
+      <span class="group">{about(c)}</span>
     </button>
     <HeldWhy {h} />
     <span class="choose" role="group" aria-label={i18n.t('views.sync.keepWhich', { name: c.label })}>
@@ -207,6 +212,11 @@
         {#if plan.down.length && !unchosen}<p class="hint">{i18n.t('views.sync.pullReloads')}</p>{/if}
       {/if}
       {#if session.problem}<p class="hint bad" role="alert">{session.problem}</p>{/if}
+      {#if session.newer}<button type="button" class="go" onclick={() => location.reload()}>{i18n.t('shell.update.reload')}</button>{/if}
+      {#if session.seen?.upgrade && phase !== 'moving'}
+        <p class="hint">{i18n.t('views.sync.upgrade')}</p>
+        {#if changes.length <= held.length}<button type="button" class="go" disabled={phase !== 'ready'} onclick={() => void session.go(plan)}>{i18n.t('views.sync.upgradeNow')}</button>{/if}
+      {/if}
 
       {#if held.length}
         <details open class="sec">

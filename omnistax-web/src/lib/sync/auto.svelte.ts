@@ -43,7 +43,7 @@ export const tick = async (now = Date.now()): Promise<void> => {
     if (session.phase !== 'ready') throw new Error(session.problem || 'Could not read the repo.');
     tellHeld();
     const plan = session.plan;   /* with nothing picked, down holds the files changed on the other side alone that passed the check, and the clean merges */
-    if (!plan.up.length && !plan.down.length) return;
+    if (!plan.up.length && !plan.down.length && !session.seen?.upgrade) return;
     await session.go(plan);
     if (session.problem) throw new Error(session.problem);
   } catch (e) {

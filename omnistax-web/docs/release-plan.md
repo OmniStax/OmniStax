@@ -69,7 +69,7 @@ read those first. Decision 9 reverses one ruling of `app-updates-plan.md`.
      The i18n check does not require it.
 7. **Readers see "What's new", never "release", for app notes.** "Release"
    stays the word for a book's version on book rows.
-8. **When the app starts** it compares `omnistax-seen-notes-v1` with the newest
+8. **When the app starts** it compares `omnistax-seen-notes` with the newest
    note in the build:
 
    | Reader | Test | Shows |
@@ -157,7 +157,7 @@ read those first. Decision 9 reverses one ruling of `app-updates-plan.md`.
 
 ### Shortcuts across installs
 
-18. **`omnistax-keys-v2` stores only what the reader changed**, as
+18. **`omnistax-shortcuts` stores only what the reader changed**, as
     `{ commandId: chords[] }`. Each install starts from `defaultBindings(host)`
     and applies the changes on top; a changed chord that this host keeps for
     itself takes its Alt twin when free, else the command's default here (the

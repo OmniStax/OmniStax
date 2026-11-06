@@ -34,6 +34,9 @@
         stopLock = await startReaderLifetimeLock();
         if (await hasInterruptedRestore()) throw new Error('reader restore recovery did not commit');
       }
+      /* Records an older build kept under other names are moved to the names
+         they have now, before any store reads one. */
+      (await import('../lib/backup/migrate')).migrateStorage();
       await start();
     };
     void bootstrap().catch(() => { failed = true; });
