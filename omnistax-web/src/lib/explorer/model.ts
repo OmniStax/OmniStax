@@ -167,7 +167,18 @@ export const parseTree = (raw: unknown): Tree | null => {
   const parsed = o.entries.map(parseEntry);
   if (parsed.some((e) => e === null)) return null;
   const seen = new Set<EntryId>();
-  const entries = (parsed as Entry[]).filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)));
+  /* A book stands once under Books, whatever its rows are called: two devices
+     that each added it name it with ids of their own, and a sync keeps both, so
+     the first is kept and the rest are dropped. */
+  const books = new Set<string>();
+  const entries = (parsed as Entry[]).filter((e) => {
+    if (seen.has(e.id)) return false;
+    seen.add(e.id);
+    if (e.kind !== 'book' || e.bookId === undefined) return true;
+    if (books.has(e.bookId)) return false;
+    books.add(e.bookId);
+    return true;
+  });
   const known = new Set(entries.map((e) => e.id));
   const parentOf = new Map(entries.map((e) => [e.id, e.parent] as const));
   /* A parent that has gone, or a chain that comes back round on itself, would
