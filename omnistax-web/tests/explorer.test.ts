@@ -124,6 +124,11 @@ test('garbage is refused and half-sound trees are made whole', () => {
   const twice = parseTree({ entries: [{ id: 'a', parent: null, kind: 'folder', name: 'A' }, { id: 'a', parent: null, kind: 'folder', name: 'Again' }] });
   assert.deepEqual(twice?.entries.map((e) => e.name), ['A'], 'an id is kept once');
 
+  /* Two devices that each added the same book, merged by a sync: the explorer
+     keys a book's row by the book, so a second row for it would stop the view. */
+  const synced = parseTree({ entries: [{ id: 'b1', parent: null, kind: 'book', name: 'Calculus', bookId: 'calculus' }, { id: 'n', parent: null, kind: 'note', name: 'N' }, { id: 'b2', parent: null, kind: 'book', name: 'Calculus', bookId: 'calculus' }] });
+  assert.deepEqual(synced?.entries.map((e) => e.id), ['b1', 'n'], 'a book is kept once');
+
   assert.deepEqual(parseTree({ entries: [] }), emptyTree());
 });
 

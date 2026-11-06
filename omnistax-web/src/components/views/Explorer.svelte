@@ -200,9 +200,13 @@
     const booksOpen = !explorer.expanded(ROOT_KEY.books);
     const notesOpen = !explorer.expanded(ROOT_KEY.notes);
     out.push({ key: ROOT_KEY.books, kind: 'root', root: 'books', depth: 0, label: i18n.t('explorer.row.books'), icon: ICON.book, expandable: true, open: booksOpen, dim: false, active: false });
+    /* A row key stands once in the tree, so a book the tree somehow holds twice is drawn once. */
+    const drawn = new Set<string>();
     if (booksOpen) explorer.children(null).filter((e) => e.kind === 'book').forEach((e) => {
       const bookId = e.bookId ?? '';
       const key = bookKey(bookId);
+      if (drawn.has(key)) return;
+      drawn.add(key);
       const open = explorer.expanded(key);
       out.push({ key, kind: 'book', depth: 1, label: e.name, icon: ICON.book, entry: e, expandable: true, open, dim: false, active: false });
       if (open) book(bookId, 2);
