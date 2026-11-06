@@ -166,8 +166,11 @@ reads as none, and it syncs on. Against a format-3 repo it would see its own
 records under old names deleted, take that as the reader's doing, and pull the
 deletion. `records/_requires-newer-omnistax.json` stops it: such a build takes
 any `records/` file whose name does not begin `omnistax-` for a category file
-of format 1 and takes it apart, and the gate, a JSON string, cannot be, so its
-survey fails before anything moves. Builds of format 3 and later check the
+of format 1 and reads it as JSON, and the gate is plain text, so its survey
+fails before anything moves, with an error that begins "Update Omn…". This
+was checked against a build of format 2: without the gate it offered to push
+its old names into a format-3 repo and took the renamed records for deleted;
+with it, it stopped with no request but reads. Builds of format 3 and later check the
 manifest instead (`newerRelease`) and leave the gate alone.
 
 ### Which way each file moves

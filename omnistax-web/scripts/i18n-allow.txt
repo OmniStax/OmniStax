@@ -49,4 +49,4 @@
 # The default note practice adds to the writer's prompt (it can be edited in the session plan): text for the model, in English.
 ^src/lib/practice/model\.ts:\d+: Make exercises test what the other exercises for the same concept haven’t tested
 # The text of the sync repo file that stops builds from before the data format gate (a file in the reader's repo, read on GitHub, not UI).
-^src/lib/sync/layout\.ts:\d+: This repo was synced by a newer OmniStax
+^src/lib/sync/layout\.ts:\d+: Update OmniStax: this repo was synced by a newer version

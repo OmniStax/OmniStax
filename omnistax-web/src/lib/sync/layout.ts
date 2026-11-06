@@ -28,12 +28,13 @@ export const MANIFEST: RepoPath = 'omnistax.json';
 /* A file only for the builds that synced before the data format was in the
    manifest, which read on through a manifest they cannot parse. Such a build
    takes any records/ file whose name does not begin `omnistax-` for a
-   category file of the first layout and takes it apart, which this one, a
-   string, does not survive: its sync stops there, before it pulls or pushes
-   anything, rather than undoing what a newer build wrote. Every later build
-   checks the manifest's version instead and leaves this file alone. */
+   category file of the first layout and reads it as JSON, which this one is
+   not: its sync stops there, before it pulls or pushes anything, rather than
+   undoing what a newer build wrote, and the error it shows begins "Update
+   Omn…", the start of the text. Every later build checks the manifest's
+   version instead and leaves this file alone. */
 export const GATE: RepoPath = 'records/_requires-newer-omnistax.json';
-export const GATE_BYTES: Uint8Array = new TextEncoder().encode(`${JSON.stringify('This repo was synced by a newer OmniStax. Reload OmniStax to update it, then sync again.')}\n`);
+export const GATE_BYTES: Uint8Array = new TextEncoder().encode('Update OmniStax: this repo was synced by a newer version. Reload OmniStax, then sync again.\n');
 export const GROUPS: readonly SyncGroup[] = ['records', 'chats', 'drawings', 'scratch', 'generated', 'files', 'images'];
 const GROUP_KEY: Readonly<Record<SyncGroup, MessageKey>> = {
   records: 'files.sync.group.records', chats: 'files.sync.group.chats', drawings: 'files.sync.group.drawings', scratch: 'files.sync.group.scratch', generated: 'files.sync.group.generated', files: 'files.sync.group.files', images: 'files.sync.group.images',

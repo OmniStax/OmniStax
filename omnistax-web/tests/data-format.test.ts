@@ -252,7 +252,7 @@ test('the gate file stops a build from before the data format gate in its survey
   const seen = await survey(remote, gh.f);
   assert.equal(seen.upgrade, false);
   assert.deepEqual(seen.remote.map((e) => e.path).sort(), [MANIFEST, recordPath('omnistax-theme')].sort(), 'the gate is not a file of the profile');
-  assert.match(new TextDecoder().decode(GATE_BYTES), /newer OmniStax/);
+  assert.match(new TextDecoder().decode(GATE_BYTES), /^Update OmniStax/);
 });
 
 test('a push writes the gate, the manifest names this build’s release, and a first push to a fresh repo is in the current format', async () => {
