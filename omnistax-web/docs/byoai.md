@@ -101,6 +101,23 @@ Streaming through each provider's SSE; a Stop button while streaming marks
 the message `stopped` and keeps the text so far; a failed request keeps the
 error text on the message with a Retry.
 
+## Speech input
+
+A mic button in the composer dictates into the field with the browser's own
+speech recognition (`lib/chat/dictation.ts`, run by `dictation.svelte.ts`):
+the words land where the cursor stood, between what was typed, updated as
+they are heard, and never send on their own. Pressing it again, typing, or
+sending stops it. The button is off, with the reason as its tooltip, where
+there is no recognition (Firefox), in the desktop app (Chromium without the
+key Chrome's recognition service asks for), and offline (Chrome recognises
+on Google's servers). A refused microphone or an unreachable service raises
+an alert. It listens in OmniStax's language (English in the browser's own
+variety of it), or the one chosen under Settings → AI → Speech input
+language (`omnistax-dictation-lang`), from about a hundred tags Chrome takes,
+named by `Intl.DisplayNames` in the reader's language. No browser lists the
+languages it can recognise. `tests/dictation.test.ts` and
+`tests/dictation-browser-check.py`, with a fake recognition.
+
 ## Messages elsewhere
 
 - A bubble drags out by its head line (who said it, when) as

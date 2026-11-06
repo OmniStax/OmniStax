@@ -62,6 +62,7 @@ export const files: Readonly<Record<keyof typeof source, string>> = {
   'files.sync.record.chatTree': '以树形显示的对话',
   'files.sync.record.chatsByBook': '对话页是否按书列出对话',
   'files.sync.record.colours': '{book} 的颜色',
+  'files.sync.record.dictationLang': '语音输入语言',
   'files.sync.record.drawingIndex': '你的绘图列表',
   'files.sync.record.drawingPalette': '绘图颜色',
   'files.sync.record.exmode': '练习一次全部显示还是逐题显示',

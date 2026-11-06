@@ -9,6 +9,10 @@
    it does not know and send the rest back without them. So a sync repo or a
    backup file of a higher number asks the reader to update first.
 
+   A record of a new name needs no new number: a build that does not know a
+   record leaves it alone, never pulling it, never deleting it, and keeping
+   its own on a restore. A new field in a record it knows is what does.
+
    3: every record under one name (migrate.ts), and the release of the build
       that wrote the data recorded beside it.
    2: a sync repo keeps a file per record.

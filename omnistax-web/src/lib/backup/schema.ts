@@ -5,6 +5,7 @@ import { chord } from '../commands/chord';
 import { isFontId } from '../settings/fonts';
 import { TipStateSchema } from '../tips/model';
 import { AnswerSchema, BLOOM_LEVELS } from '../content/schema';
+import { isDictationLang } from '../chat/dictation';
 import { migrateRecords } from './migrate';
 import { DATA_VERSION } from './format';
 
@@ -33,6 +34,8 @@ const scalarKeys = new Map<string, (value: string) => boolean>([
   ['omnistax-swap-drag', bit], ['omnistax-fill-all', bit],
   /* Whether a finger draws on a drawing, or only a pen does (DrawingTab.svelte). */
   ['omnistax-finger-draws', bit],
+  /* The language the chat's speech input listens in (chat/dictation.ts); absent, OmniStax's own. */
+  ['omnistax-dictation-lang', isDictationLang],
   ['omnistax-lock-grace', positive], ['omnistax-pomodoro-len', positive], ['omnistax-pomodoro-lock', bit],
 ]);
 
