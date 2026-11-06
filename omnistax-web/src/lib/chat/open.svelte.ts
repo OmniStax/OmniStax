@@ -4,8 +4,9 @@
    tab that may not even be mounted yet — it says which chat is meant, and the
    tab takes the words when it is there. */
 import { layoutStore } from '../layout/store.svelte';
-import { openInFocus, openTab } from '../layout/model';
-import { chatItem, itemKey, type ChatId } from '../types/ids';
+import { closeItem, openInFocus, openTab } from '../layout/model';
+import { chatPages } from './pages.svelte';
+import { chatItem, itemKey, viewItem, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
 import type { MessageId } from './model';
 import type { Chip } from './context';
@@ -62,6 +63,19 @@ export const askAi = (selection: string): void => {
 };
 
 export const chatTabKey = (id: ChatId): string => itemKey(chatItem(id));
+
+/* The way back from a chat standing in a tab of its own, as "Ask AI" or a
+   discussion opens one, to the list of every chat: the Conversations page
+   takes the tab's place in its group, at its list, and the tab goes. */
+export const backToConversations = (id: ChatId): void => {
+  const tab = chatTabKey(id), page = itemKey(viewItem('chats'));
+  layoutStore.apply((l) => {
+    const at = l.groups[l.focus]?.tabs.includes(tab) ? l.focus : l.groups.findIndex((g) => g.tabs.includes(tab));
+    if (at < 0) return openInFocus(l, page);
+    return closeItem(openTab(l, page, at, { before: tab }), tab, at);
+  });
+  chatPages.back(page);
+};
 
 export const showChatAt = async (id: ChatId, message: MessageId): Promise<void> => {
   showChat(id);
