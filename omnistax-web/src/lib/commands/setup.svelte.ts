@@ -28,7 +28,7 @@ import { drawingItem, itemKey, newViewItem, noteItem, aboutItem, parseItemKey, v
 import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
-import { newChatTab } from '../chat/open.svelte';
+import { newChatTab, splitGroup } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
 import { i18n, type LocaleChoice } from '../i18n/store.svelte';
 import { localePath } from '../i18n/index';
@@ -141,8 +141,8 @@ export const installCommands = (): void => {
   const fold = { foldAll: () => foldAllIn(focusedArticle()), unfoldAll: () => unfoldAllIn(focusedArticle()), hideFigures: () => hideFigsIn(focusedArticle()), showFigures: () => showFigsIn(focusedArticle()) };
   const layout = {
     reset: () => layoutStore.reset(),
-    splitRight: () => layoutStore.apply((x) => split(x, x.focus, 'right')),
-    splitDown: () => layoutStore.apply((x) => split(x, x.focus, 'down')),
+    splitRight: () => splitGroup(layoutStore.layout.focus, 'right'),
+    splitDown: () => splitGroup(layoutStore.layout.focus, 'down'),
     moveRight: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'right')),
     moveDown: () => layoutStore.apply((x) => moveToNewGroup(x, x.focus, 'down')),
     /* The active tab of the focused group; a group left with nothing goes with it. */

@@ -2,7 +2,8 @@
   /* Tabs of one group, a "+" that opens the section picker for this group, and
      the two buttons that split the group beside it or below it. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { openTab, activate, splitRight, splitDown, type Group } from '../lib/layout/model';
+  import { openTab, activate, type Group } from '../lib/layout/model';
+  import { splitGroup } from '../lib/chat/open.svelte';
   import { tabTitle } from '../lib/layout/titles';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { ICON } from '../lib/icons';
@@ -24,8 +25,8 @@
   {/each}
   <button type="button" class="act plus" title={i18n.t('shell.tabStrip.openHere')} aria-label={i18n.t('shell.tabStrip.openInGroup')} onclick={(e) => { e.stopPropagation(); onPick(index, e.currentTarget as HTMLElement); }}>{@html ICON.plus}</button>
   <span class="spacer"></span>
-  <button type="button" class="act" aria-label={i18n.t('commands.splitRight')} onclick={() => layoutStore.apply((x) => splitRight(x, index))}>{@html ICON.split}</button>
-  <button type="button" class="act" aria-label={i18n.t('commands.splitDown')} onclick={() => layoutStore.apply((x) => splitDown(x, index))}>{@html ICON.splitDown}</button>
+  <button type="button" class="act" aria-label={i18n.t('commands.splitRight')} onclick={() => splitGroup(index, 'right')}>{@html ICON.split}</button>
+  <button type="button" class="act" aria-label={i18n.t('commands.splitDown')} onclick={() => splitGroup(index, 'down')}>{@html ICON.splitDown}</button>
 </div>
 
 <style>

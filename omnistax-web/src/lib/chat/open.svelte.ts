@@ -4,9 +4,9 @@
    tab that may not even be mounted yet — it says which chat is meant, and the
    tab takes the words when it is there. */
 import { layoutStore } from '../layout/store.svelte';
-import { closeItem, openInFocus, openTab } from '../layout/model';
+import { activate, closeItem, focusedGroup, openInFocus, openTab, split, type ItemKey, type SplitSide } from '../layout/model';
 import { chatPages } from './pages.svelte';
-import { chatItem, itemKey, viewItem, type ChatId } from '../types/ids';
+import { chatItem, itemKey, newViewItem, viewKindOf, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
 import type { MessageId } from './model';
 import type { Chip } from './context';
@@ -68,13 +68,43 @@ export const chatTabKey = (id: ChatId): string => itemKey(chatItem(id));
    discussion opens one, to the list of every chat: the Conversations page
    takes the tab's place in its group, at its list, and the tab goes. */
 export const backToConversations = (id: ChatId): void => {
-  const tab = chatTabKey(id), page = itemKey(viewItem('chats'));
+  const tab = chatTabKey(id);
+  let page: ItemKey = itemKey(newViewItem('chats'));
   layoutStore.apply((l) => {
     const at = l.groups[l.focus]?.tabs.includes(tab) ? l.focus : l.groups.findIndex((g) => g.tabs.includes(tab));
-    if (at < 0) return openInFocus(l, page);
+    if (at < 0) { page = l.groups[l.focus]?.tabs.find(isConversations) ?? page; return openTab(l, page, l.focus); }
+    page = l.groups[at]!.tabs.find(isConversations) ?? page;
     return closeItem(openTab(l, page, at, { before: tab }), tab, at);
   });
   chatPages.back(page);
+};
+
+/* A Conversations page, the one the rail first opened or another opened beside it. */
+const isConversations = (k: string | null | undefined): k is ItemKey => !!k && viewKindOf(k) === 'chats';
+
+/* The rail's chat button. Plainly pressed, the Conversations page comes
+   forward, the focused group's first, else one standing anywhere, else a
+   new one here; pressed for beside, another page opens beside, at its list. */
+export const openConversations = (beside: boolean): void => {
+  layoutStore.apply((l) => {
+    if (beside) return split(l, l.focus, 'right', newViewItem('chats'));
+    const here = focusedGroup(l).tabs.find(isConversations);
+    if (here) return activate(l, l.focus, here);
+    const at = l.groups.findIndex((g) => g.tabs.some(isConversations));
+    return at >= 0 ? activate(l, at, l.groups[at]!.tabs.find(isConversations)!) : openTab(l, newViewItem('chats'), l.focus);
+  });
+};
+
+/* Splitting a group. A page of a view lives in one place, so a split moves
+   it; a Conversations page is copied instead, as a document is: the new page
+   beside shows the chat this one shows, or the list. */
+export const splitGroup = (index: number, side: SplitSide): void => {
+  const active = layoutStore.layout.groups[index]?.active;
+  if (!isConversations(active)) { layoutStore.apply((l) => split(l, index, side)); return; }
+  const fresh = itemKey(newViewItem('chats'));
+  const shown = chatPages.of(active);
+  if (shown) chatPages.show(fresh, shown);
+  layoutStore.apply((l) => split(l, index, side, fresh));
 };
 
 export const showChatAt = async (id: ChatId, message: MessageId): Promise<void> => {

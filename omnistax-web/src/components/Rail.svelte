@@ -9,16 +9,17 @@
      and a Ctrl click puts a page of it in a new group beside. Every button drags,
      so any view can be dropped into a group. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, openInFocus, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
+  import { where, openSide, openTab, closeItem, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { openingOf } from '../lib/sections/nav.svelte';
-  import { isSidebarKind, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
+  import { isSidebarKind, newViewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
   import { ICON, viewTitle } from '../lib/icons';
   import { i18n } from '../lib/i18n/store.svelte';
   import { ui } from '../lib/commands/ui.svelte';
   import { settings } from '../lib/settings/store.svelte';
   import { reader } from '../lib/voice.svelte';
   import { pomodoro } from '../lib/pomodoro/store.svelte';
+  import { openConversations } from '../lib/chat/open.svelte';
   import { cart } from '../lib/practice/cart.svelte';
   let { narrow = false }: { narrow?: boolean } = $props();
   const l = $derived(layoutStore.layout);
@@ -45,11 +46,8 @@
     const fresh = newViewItem(kind);
     layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, fresh) : showViewInFocus(x, kind, fresh)));
   };
-  /* The conversations are one page: wherever it stands it comes forward. */
-  const openChats = (e: MouseEvent) => {
-    const k = viewItem('chats');
-    layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, k) : openInFocus(x, k)));
-  };
+  /* A Conversations page already open comes forward; asked for beside, another opens. */
+  const openChats = (e: MouseEvent) => openConversations(openingOf(e) === 'new');
   const voiceTitle = $derived(i18n.t(reader.speaking ? 'commands.stopReading' : 'commands.readAloud'));
   /* The chat button lights while any chat stands open, as a view's button
      lights while any page of it does. */
