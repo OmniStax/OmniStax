@@ -6,23 +6,61 @@ site data removes downloaded books and reader data; a backup saved outside the
 browser survives. After importing on another device, referenced textbooks must
 be added or downloaded separately.
 
-## Version 1 inventory
+## Inventory
 
 Only these owned records are exported. Other origin storage is deliberately
-excluded.
+excluded. Each record has one name, with no version in it; the Sync view says
+in a few words what each one holds (`src/lib/sync/describe.ts`).
 
 | Category | Storage records |
 | --- | --- |
-| Appearance and reading | `omnistax-theme`, `omnistax-lang` (the reader's language, `en` or `zh-CN`; absent, the browser's), `omnistax-anim`, `omnistax-exmode`, `omnistax-voice`, every `omnistax-highlights-<book>` record, `omnistax-map-progress`, `omnistax-zoom`, `omnistax-zoom-keys`, `omnistax-folded`, `omnistax-hidden-figs`, `omnistax-seen-releases-v2` (and the older `-v1`) |
-| Keyboard | `omnistax-keys` |
-| Practice | `omnistax-practice-v1`, `omnistax-practice-v2`, the `sessions` v1/v2 records, `omnistax-practice-links-v1` |
-| Library | `omnistax-library-v1`, `omnistax-explorer-v1`, `omnistax-auto-update-v1` |
-| Notes | `omnistax-notedocs-v1`, every `omnistax-notes-<book>` record, and pasted note images from the `omnistax-assets` IndexedDB |
+| Appearance and reading | `omnistax-theme`, `omnistax-lang` (the reader's language, `en` or `zh-CN`; absent, the browser's), `omnistax-anim`, `omnistax-exmode`, `omnistax-voice`, `omnistax-tips`, `omnistax-card-open`, `omnistax-swap-drag`, `omnistax-fill-all`, `omnistax-finger-draws`, `omnistax-figure-font`, `omnistax-body-font`, `omnistax-drawing-palette`, every `omnistax-highlights-<book>` record, `omnistax-map-progress`, `omnistax-zoom`, `omnistax-folded`, `omnistax-hidden-figs`, `omnistax-seen-releases`, `omnistax-seen-notes`, `omnistax-tip-history`, `omnistax-last-page` |
+| Keyboard | `omnistax-shortcuts` |
+| Practice | `omnistax-practice`, `omnistax-practice-sessions`, `omnistax-practice-links` |
+| Library | `omnistax-library`, `omnistax-explorer`, `omnistax-auto-update` |
+| Notes | `omnistax-notedocs`, every `omnistax-notes-<book>` record, `omnistax-file-index`, `omnistax-filemarks`, `omnistax-drawing-index`, `omnistax-scratch-index`, and pasted note images from the `omnistax-assets` IndexedDB |
 | Colours | every `omnistax-colours-<book>` record |
-| Workspace | `omnistax-layout-v6`, `omnistax-layout-v5`, `omnistax-scope`, `omnistax-scope-v2`, the practice `pages` v1/v2 records, `omnistax-chat-pages-v1` (the `layout` category; a file backup carries it, GitHub sync does not) |
+| Chats | `omnistax-ai` (without keys), `omnistax-chat-index`, `omnistax-chats-by-book`, `omnistax-chat-seen`, `omnistax-chat-tree` |
+| Focus | `omnistax-pomodoros`, `omnistax-pomodoro-categories`, `omnistax-pomodoro-len`, `omnistax-pomodoro-lock`, `omnistax-lock-grace` |
+| Workspace | `omnistax-layout`, `omnistax-scopes`, `omnistax-practice-pages`, `omnistax-chat-pages` (the `layout` category; a file backup carries it, GitHub sync does not) |
+
+## The data format
+
+`DATA_VERSION` (`src/lib/backup/format.ts`) numbers what a backup file and a
+sync repo hold. It goes up by one with every change to what any record, chat,
+drawing or file holds, a field added included, and only then. A backup records
+it as `version` and the release that wrote it as `app.release`; a sync repo's
+manifest records them as `version` and `app`.
+
+A build reads data of its own number and of any lower one, and writes its own.
+Data of a higher number it does not touch: reading it would drop the fields it
+does not know, and the next write would send the rest back without them. So a
+backup file of a higher number is refused whole ("This backup is from a newer
+OmniStax (…). Reload to update, then import it again."), and a sync repo of a
+higher number stops sync in both directions on this device, with a Reload
+button, until it is updated. A pull alone would not be safe either: what came
+down would be edited here without the new fields and pushed back after the
+update.
+
+What a record holds only ever grows, so that what an older build wrote reads
+as it is. Where a record must change name or shape, `src/lib/backup/migrate.ts`
+says how the old one becomes the new, and runs wherever an older build's
+records can arrive: on this device as the app starts (before any store reads,
+in `ShellLoader.svelte`), in a backup file (`parseBackup`), and in a sync repo
+(the survey, below). Where the current name is already there, the old names
+only go; otherwise the newest old one is taken over, converted where its shape
+differed. One that cannot be converted is left where it is.
+
+Format 3 gave every record one name. Before it, a record took a new name
+whenever its shape changed (`omnistax-practice-v1` → `-v2`,
+`omnistax-chats-v1` → `-v2` → `-v3`) and the old name was kept, and in the
+chats' case still written, for a tab open on an older build. Format 3 also
+brought `omnistax-fill-all`, `omnistax-finger-draws` and the drawing palette
+into the profile, and retired the highlight switches from before each book
+kept its own (`omnistax-cc*`, `omnistax-underlines`) and `omnistax-zoom-keys`.
 
 The exporter scans all matching per-book records, not only the currently open
-book. Legacy records are preserved so an older profile can round-trip. Runtime
+book. Runtime
 caches, installed book resources and installation metadata are intentionally
 excluded.
 
@@ -75,55 +113,65 @@ can store them with IndexedDB's structured-clone algorithm.
 Sync (`src/lib/sync/`) keeps the same profile in a GitHub repo of the reader's
 own, as files a person can read, and moves only what differs.
 
-### The repo's layout (manifest version 2)
+### The repo's layout (data format 3)
 
 | Path | Holds |
 | --- | --- |
-| `omnistax.json` | the manifest: `format: "omnistax-sync"`, `version: 2`, the books, the imported files' and images' metadata, the labels of the other files |
+| `omnistax.json` | the manifest: `format: "omnistax-sync"`, `version` (the data format), `app` (the release that last synced), the books, the imported files' and images' metadata, the labels of the other files |
 | `records/<key>.json` | one reader record, its key URL-encoded: the JSON value itself (`["college-physics-2e"]`), a setting's string as a JSON string (`"dark"`) |
 | `chats/<id>.json`, `drawings/<id>.json`, `scratch/<key>.json`, `generated/<id>.json` | one each |
 | `files/<id>.<ext>`, `images/<id>.<ext>` | the bytes |
+| `records/_requires-newer-omnistax.json` | the gate, below |
 
 A record's category is not in its path, so a key a later version files under
 another category keeps its file. A record file whose key this version does not
-know (a newer version's) is never pulled, never deleted and never shown: it
-stays in the repo for the version that knows it.
+know is never pulled, never deleted and never shown.
 
 ### The workspace stays on each device
 
-The `layout` category (`omnistax-layout-v6`/`-v5`, `omnistax-scope-v2`/
-`omnistax-scope`, and what each practice and Conversations page shows,
-`omnistax-practice-pages-v2`/`-v1` and `omnistax-chat-pages-v1`, which are kept
-by the page's tab) is in the file backup and out of GitHub sync
-(`staysOnDevice` in `backup/schema.ts`, `deviceRecord` in `sync/layout.ts`): a
-phone and a wide screen each keep their own tabs and splits. It is never
-pushed and never pulled, and a pull never replaces it: the profile a pull
-imports carries none, so the import writes this device's own back
-(`recordsToRestore` with `keepWorkspace`, beside the records it set aside).
+The `layout` category (`omnistax-layout`, `omnistax-scopes`, and what each
+practice and Conversations page shows, `omnistax-practice-pages` and
+`omnistax-chat-pages`, which are kept by the page's tab) is in the file backup
+and out of GitHub sync (`staysOnDevice` in `backup/schema.ts`, `deviceRecord`
+in `sync/layout.ts`): a phone and a wide screen each keep their own tabs and
+splits. It is never pushed and never pulled, and a pull never replaces it: the
+profile a pull imports carries none, so the import writes this device's own
+back (`recordsToRestore` with `keepWorkspace`, beside the records it set aside).
 
-A repo that already holds workspace files from an earlier version keeps them.
-They are not read and not deleted: a device still on that version syncs them
-as before, and would take their deletion as its own layout gone, since an
-import removes the records a profile leaves out.
+### A repo an older build last synced
 
-Version 1 kept every record of a category in one file
-(`records/<category>.json`), so two devices that touched any two records of a
-category — the practice log on one, a practice setting on the other — were one
-conflict. A version-1 repo is still read: the survey takes each category file
-apart into the record files it stands for (`explode`, byte for byte what
-`toRepo` writes) and compares those, and it takes apart the category files of
-the last agreed base the same way, so each record is compared with its own last
-agreed version from the first sync on. The next push writes every record as its
-own file (the changed ones from this device, the rest as the repo had them),
-deletes the category files and writes a version-2 manifest, in one commit.
-Where a record has its own file and a category file still holds it, its own
-file wins.
+The survey (`sync/run.ts`) shows such a repo as this format would lay it out,
+and the next sync writes it so, in one commit, even when nothing else goes up
+(the Sync view says so first, with an "Update repo format" button when there is
+nothing else to sync):
 
-A version that knows only manifest version 1 refuses a version-2 manifest
-("The repo’s omnistax.json isn’t one this version can read") rather than
-misreading the repo, so every device should be updated before syncing on the
-new version. An old version can still push; its category files are read again,
-for keys that have no file of their own.
+- Format 1 kept every record of a category in one file
+  (`records/<category>.json`). The survey takes each apart into the record
+  files it stands for (`explode`, byte for byte what `toRepo` writes), and the
+  category files of the last agreed base the same way, so each record is
+  compared with its own last agreed version from the first sync on. Where a
+  record has its own file and a category file still holds it, its own file
+  wins.
+- A record under an old name (format 2 and before) is shown under its name
+  (`migration` over the repo's records), and the last agreed base is renamed
+  with it, so a record no device changed is no change at all.
+
+The commit writes those files under their names, deletes the category files
+and the old names, and writes the gate and a format-3 manifest.
+
+### The gate
+
+A build of format 2 does not check the manifest's version: one it cannot parse
+reads as none, and it syncs on. Against a format-3 repo it would see its own
+records under old names deleted, take that as the reader's doing, and pull the
+deletion. `records/_requires-newer-omnistax.json` stops it: such a build takes
+any `records/` file whose name does not begin `omnistax-` for a category file
+of format 1 and reads it as JSON, and the gate is plain text, so its survey
+fails before anything moves, with an error that begins "Update Omn…". This
+was checked against a build of format 2: without the gate it offered to push
+its old names into a format-3 repo and took the renamed records for deleted;
+with it, it stopped with no request but reads. Builds of format 3 and later check the
+manifest instead (`newerRelease`) and leave the gate alone.
 
 ### Which way each file moves
 

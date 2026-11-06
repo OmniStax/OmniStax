@@ -99,7 +99,7 @@ export const manifestOf = (origins: ReadonlyMap<RepoPath, Origin>, local: Manife
     return hit ? [hit] : [];
   };
   return {
-    format: 'omnistax-sync', version: SYNC_VERSION, exportedAt,
+    format: 'omnistax-sync', version: SYNC_VERSION, ...(local.app ? { app: local.app } : {}), exportedAt,
     books: [...new Map([...(remote?.books ?? []), ...local.books].map((b) => [b.id, b] as const)).values()],
     files: paths.filter((p) => p.startsWith('files/')).flatMap(entry((m) => m.files, (f) => filePath(f.id, f.mime))),
     images: paths.filter((p) => p.startsWith('images/')).flatMap(entry((m) => m.images, (i) => imagePath(i.id, i.type))),

@@ -11,8 +11,8 @@ import { readerWritesAllowed } from '../backup/guard';
 import type { ItemKey } from '../layout/model';
 import type { ChatId } from '../types/ids';
 
-const KEY = 'omnistax-chat-pages-v1';
-const BY_BOOK_KEY = 'omnistax-chats-by-book-v1';
+const KEY = 'omnistax-chat-pages';
+const BY_BOOK_KEY = 'omnistax-chats-by-book';
 
 const parse = (raw: unknown): Record<string, ChatId> =>
   typeof raw === 'object' && raw !== null && !Array.isArray(raw)

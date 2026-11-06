@@ -10,7 +10,7 @@ import {
 import { readerWritesAllowed } from '../backup/guard';
 import { t } from '../i18n/index';
 
-const KEY = 'omnistax-explorer-v1';
+const KEY = 'omnistax-explorer';
 const load = (): Tree => {
   try { return migrateTree(JSON.parse(localStorage.getItem(KEY) ?? 'null')) ?? emptyTree(); } catch { return emptyTree(); }
 };

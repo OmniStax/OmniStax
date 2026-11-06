@@ -10,7 +10,7 @@ download size, progress, repair/remove actions, update availability, release
 dates, and deterministic release changes. A downloaded book updates itself
 unless the reader turns off "Update automatically", in that panel or in the
 book row's menu; the setting is one for a book and its translations (kept per
-book id in `omnistax-auto-update-v1`, on unless an edition was turned off).
+book id in `omnistax-auto-update`, on unless an edition was turned off).
 
 ## Publication
 
@@ -62,7 +62,7 @@ stays until the install completes, so with automatic updates on it shows only
 while the background install runs. "Updated" with a blue dot shows, for every
 reader whether the book is downloaded or not, when the release they have (the
 download's, else the catalog's) is not the one they last saw.
-`omnistax-seen-releases-v2` keeps per book the release, artifact and section
+`omnistax-seen-releases` keeps per book the release, artifact and section
 fingerprints last seen; a book first seen records them silently. Clicking the
 mark records the current release as seen and opens the changes: sections
 added, changed and removed by fingerprint, each added or changed one opening

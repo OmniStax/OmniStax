@@ -47,7 +47,7 @@ with sync_playwright() as playwright:
 
     page.goto(f"{BASE}/college-physics-2e/ch01/1.1/")
     page.evaluate("localStorage.clear()")
-    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai-v1", json.dumps(AI)])
+    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai", json.dumps(AI)])
     page.reload()
     page.wait_for_load_state("networkidle")
 

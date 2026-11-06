@@ -41,8 +41,8 @@ test('a repo copy that would undo an edit made here is held; a later edit or a d
 });
 
 test('a copy this version cannot read is held as a newer version’s or as unreadable, and only an older one can be taken', () => {
-  const P = recordPath('omnistax-practice-v2');
-  const newer = holdOf(P, null, fileOf('omnistax-practice-v2', practice([1], {}, { metronome: true })));
+  const P = recordPath('omnistax-practice');
+  const newer = holdOf(P, null, fileOf('omnistax-practice', practice([1], {}, { metronome: true })));
   assert.equal(newer?.reason, 'newer');
   assert.match(newer?.why ?? '', /metronome/);
   assert.equal(holdOf(recordPath('omnistax-theme'), null, jsonBytes('sepia'))?.reason, 'newer', 'a setting’s value this version does not offer');
@@ -53,12 +53,12 @@ test('a copy this version cannot read is held as a newer version’s or as unrea
 
 test('mastery, freshness and every other number that falls on its own never holds a file', () => {
   /* A session's mastery snapshot fallen, its review dates earlier, mastered lost to decay. */
-  const S = recordPath('omnistax-practice-sessions-v2');
-  assert.equal(holdOf(S, fileOf('omnistax-practice-sessions-v2', session(mastery(3, 900, true))), fileOf('omnistax-practice-sessions-v2', session(mastery(1, 100, false)))), null);
+  const S = recordPath('omnistax-practice-sessions');
+  assert.equal(holdOf(S, fileOf('omnistax-practice-sessions', session(mastery(3, 900, true))), fileOf('omnistax-practice-sessions', session(mastery(1, 100, false)))), null);
   /* An attempt taken back, a self-assessment lowered and dated earlier. */
-  const P = recordPath('omnistax-practice-v2');
+  const P = recordPath('omnistax-practice');
   const self = (level: number, when: number) => ({ c: { level, mastered: level >= 3, at: when, noDecay: false } });
-  assert.equal(holdOf(P, fileOf('omnistax-practice-v2', practice([1, 2, 3], self(3, 50))), fileOf('omnistax-practice-v2', practice([1, 3], self(1, 40)))), null);
+  assert.equal(holdOf(P, fileOf('omnistax-practice', practice([1, 2, 3], self(3, 50))), fileOf('omnistax-practice', practice([1, 3], self(1, 40)))), null);
   /* Only `updated` is compared, at any depth. */
   assert.equal(newerHere({ level: 3, lastAt: 9, dueAt: 9, halfLife: 40 }, { level: 0, lastAt: 1, dueAt: 1, halfLife: 3 }), false);
   assert.equal(newerHere({ chat: { updated: 9 } }, { chat: { updated: 8 } }), true);
@@ -142,27 +142,27 @@ test('a pull takes what passes and holds what would undo an edit here; the base 
 });
 
 test('a forced pull still refuses a file this version cannot read, and hands it to the queue', async () => {
-  const P = recordPath('omnistax-practice-v2'), T = recordPath('omnistax-theme');
-  const gh = github({ [MANIFEST]: manifest, [P]: fileOf('omnistax-practice-v2', practice([1], {}, { metronome: true })), [T]: jsonBytes('light') });
-  const local = await hashed(toRepo(profile([{ key: 'omnistax-practice-v2', value: practice([1]) }, { key: 'omnistax-theme', value: 'dark' }])));
+  const P = recordPath('omnistax-practice'), T = recordPath('omnistax-theme');
+  const gh = github({ [MANIFEST]: manifest, [P]: fileOf('omnistax-practice', practice([1], {}, { metronome: true })), [T]: jsonBytes('light') });
+  const local = await hashed(toRepo(profile([{ key: 'omnistax-practice', value: practice([1]) }, { key: 'omnistax-theme', value: 'dark' }])));
   const base: Base = Object.fromEntries(local.map((f) => [f.path, f.sha]));
   const seen = await survey(remote, gh.f, base);
   const out = await carry(remote, gh.f, seen, local, overwrite(changesOf(local, seen.remote, base, seen.manifest), 'device'), base, () => undefined);
   assert.deepEqual(out.held.map((h) => [h.path, h.reason]), [[P, 'newer']]);
-  assert.equal(JSON.parse(out.backup!.records.find((r) => r.key === 'omnistax-practice-v2')!.value).settings.metronome, undefined, 'this device keeps its own');
+  assert.equal(JSON.parse(out.backup!.records.find((r) => r.key === 'omnistax-practice')!.value).settings.metronome, undefined, 'this device keeps its own');
   assert.equal(out.base[P], base[P]);
 });
 
 /* ── the workspace stays on each device ──────────────────────────────── */
 
 test('the workspace is never pushed, never pulled, never deleted from the repo, and a pull leaves this device’s as it is', async () => {
-  const LAYOUT = 'omnistax-layout-v6';
-  for (const key of [LAYOUT, 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope', 'omnistax-chat-pages-v1', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1']) {
+  const LAYOUT = 'omnistax-layout';
+  for (const key of [LAYOUT, 'omnistax-scopes', 'omnistax-chat-pages', 'omnistax-practice-pages']) {
     assert.equal(staysOnDevice(key), true, key);
     assert.equal(categoryOf(key), 'layout', key);
     assert.equal(deviceRecord(recordPath(key)), true, key);
   }
-  assert.equal(staysOnDevice('omnistax-practice-v2'), false);
+  assert.equal(staysOnDevice('omnistax-practice'), false);
   const layout = JSON.stringify({ sides: { left: { width: 200, items: [] }, right: { width: 200, items: [] } }, home: {}, collapsed: [], groups: [{ key: 'g', tabs: [], active: null }], focus: 0, tree: { type: 'leaf', group: 'g' } });
   const mine = profile([{ key: LAYOUT, value: layout }, { key: 'omnistax-theme', value: 'dark' }]);
   assert.equal(mine.records.length, 2, 'the file backup carries the layout');
@@ -177,9 +177,9 @@ test('the workspace is never pushed, never pulled, never deleted from the repo, 
     assert.deepEqual(changesOf(local, remoteTree, base, null), [], 'neither pulled nor deleted');
 
   /* A sync's profile leaves this device's own in place; a file restore takes the file's. */
-  const here = new Map([[LAYOUT, layout], ['omnistax-practice-pages-v2', '{}'], ['omnistax-theme', 'dark']]);
+  const here = new Map([[LAYOUT, layout], ['omnistax-practice-pages', '{}'], ['omnistax-theme', 'dark']]);
   const pulled = { records: [{ key: 'omnistax-theme', value: 'light', category: 'appearance' as const }], skipped: [] };
-  assert.deepEqual(recordsToRestore(pulled, true, [...here.keys()], (k) => here.get(k) ?? null).map((r) => `${r.key}=${r.value}`).sort(), [`${LAYOUT}=${layout}`, 'omnistax-practice-pages-v2={}', 'omnistax-theme=light']);
+  assert.deepEqual(recordsToRestore(pulled, true, [...here.keys()], (k) => here.get(k) ?? null).map((r) => `${r.key}=${r.value}`).sort(), [`${LAYOUT}=${layout}`, 'omnistax-practice-pages={}', 'omnistax-theme=light']);
   const restored = { records: [{ key: LAYOUT, value: 'from the file', category: 'layout' as const }], skipped: [] };
   assert.deepEqual(recordsToRestore(restored, false, [...here.keys()], (k) => here.get(k) ?? null).map((r) => r.value), ['from the file']);
   assert.deepEqual(recordsToRestore(restored, true, [...here.keys()], (k) => here.get(k) ?? null).find((r) => r.key === LAYOUT)?.value, layout, 'and a sync never takes one');
@@ -188,7 +188,7 @@ test('the workspace is never pushed, never pulled, never deleted from the repo, 
 test('a backup’s set-aside records say whether a newer version probably wrote them', () => {
   const back = parseBackup({
     format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: at, app: { readerFormat: 1 }, assets: [], books: [],
-    records: [{ key: 'omnistax-practice-v2', value: practice([1], {}, { metronome: true }) }, { key: 'omnistax-library-v1', value: '[nope' }, { key: 'omnistax-hologram-v1', value: '1' }],
+    records: [{ key: 'omnistax-practice', value: practice([1], {}, { metronome: true }) }, { key: 'omnistax-library', value: '[nope' }, { key: 'omnistax-hologram-v1', value: '1' }],
   });
-  assert.deepEqual(back.skipped.map((s) => [s.key, s.newer]), [['omnistax-practice-v2', true], ['omnistax-library-v1', false], ['omnistax-hologram-v1', true]]);
+  assert.deepEqual(back.skipped.map((s) => [s.key, s.newer]), [['omnistax-practice', true], ['omnistax-library', false], ['omnistax-hologram-v1', true]]);
 });

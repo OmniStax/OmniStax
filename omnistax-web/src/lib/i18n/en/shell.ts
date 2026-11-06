@@ -14,6 +14,7 @@ export const shell = {
   'shell.backup.importTooLarge': 'This backup exceeds the {limit} import limit.',
   'shell.backup.invalid': 'This is not a valid OmniStax backup: {why}.',
   'shell.backup.invalidData': 'invalid data',
+  'shell.backup.newer': 'This backup is from a newer OmniStax ({release}). Reload to update, then import it again.',
   'shell.backup.noIndexedDb': 'This browser lacks IndexedDB, so it cannot restore a backup safely.',
   'shell.backup.noLocks': 'Safe restore needs the Web Locks API, which this browser does not provide. Export still works; use a current browser to import.',
   'shell.backup.notJson': 'This file is not valid JSON.',

@@ -9,7 +9,7 @@ import { readerWritesAllowed } from '../backup/guard';
 import { t } from '../i18n/index';
 import { SvelteMap } from 'svelte/reactivity';
 
-const SEEN = 'omnistax-seen-releases-v2', AUTO = 'omnistax-auto-update-v1';
+const SEEN = 'omnistax-seen-releases', AUTO = 'omnistax-auto-update';
 const readJson = <T extends object>(key: string): T => { try { const raw: unknown = JSON.parse(localStorage.getItem(key) ?? '{}'); return (typeof raw === 'object' && raw !== null ? raw : {}) as T; } catch { return {} as T; } };
 const writeJson = (key: string, value: unknown): void => { if (readerWritesAllowed()) try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ } };
 const artifactOf = (record: InstallationRecord | undefined): string | undefined => record?.installedArtifact ?? record?.manifest?.runtime.artifactId;

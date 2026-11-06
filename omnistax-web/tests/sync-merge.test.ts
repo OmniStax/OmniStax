@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKUP_FORMAT, BACKUP_VERSION, parseBackup, type ReaderBackup } from '../src/lib/backup/schema';
-import { MANIFEST, explode, fileProblem, foreignRecord, fromRepo, isLegacyRecords, jsonBytes, recordKeyOf, recordPath, toRepo, type RepoPath } from '../src/lib/sync/layout';
+import { MANIFEST, SYNC_VERSION, explode, fileProblem, foreignRecord, fromRepo, isLegacyRecords, jsonBytes, recordKeyOf, recordPath, toRepo, type RepoPath } from '../src/lib/sync/layout';
 import { gitSha } from '../src/lib/sync/github';
 import { changesOf, oneWay, planOf, rebase, type Base, type Change, type Merged, type Status } from '../src/lib/sync/plan';
 import { bothWays, carry, hashed, settle, survey } from '../src/lib/sync/run';
@@ -119,9 +119,9 @@ test('a record’s file is named by its key alone, and a category file of the fi
 });
 
 test('a repo of the first layout reads back, and a category file comes apart into the files toRepo writes', () => {
-  const legacy = jsonBytes({ 'omnistax-theme': 'dark', 'omnistax-library-v1': ['phys'] });
+  const legacy = jsonBytes({ 'omnistax-theme': 'dark', 'omnistax-library': ['phys'] });
   const back = fromRepo(new Map([[MANIFEST, jsonBytes(v1Manifest)], ['records/appearance.json', legacy]]));
-  assert.deepEqual(back.records.map((r) => [r.key, r.value, r.category]).sort(), [['omnistax-library-v1', '["phys"]', 'library'], ['omnistax-theme', 'dark', 'appearance']]);
+  assert.deepEqual(back.records.map((r) => [r.key, r.value, r.category]).sort(), [['omnistax-library', '["phys"]', 'library'], ['omnistax-theme', 'dark', 'appearance']]);
   const parts = explode(legacy);
   const now = toRepo(back);
   for (const [path, bytes] of parts) assert.deepEqual(bytes, now.find((f) => f.path === path)?.bytes, path);
@@ -138,9 +138,9 @@ test('a record in its own file wins over the copy a category file still holds', 
 
 test('a value that is not what its key holds travels, is named on the other side, and never stops a push', () => {
   /* A JSON key whose stored value is not JSON used to throw out of toRepo. */
-  const bad = { ...profile([{ key: 'omnistax-theme', value: 'dark' }]), records: [{ key: 'omnistax-library-v1', value: '["phys"', category: 'library' as const }] };
+  const bad = { ...profile([{ key: 'omnistax-theme', value: 'dark' }]), records: [{ key: 'omnistax-library', value: '["phys"', category: 'library' as const }] };
   const files = toRepo(bad);
-  const lib = files.find((f) => f.path === recordPath('omnistax-library-v1'))!;
+  const lib = files.find((f) => f.path === recordPath('omnistax-library'))!;
   assert.equal(dec.decode(lib.bytes), '"[\\"phys\\""\n');
   assert.match(fileProblem(lib.path, lib.bytes) ?? '', /^Expected array, received string/);
   /* A setting a file holds as null, or as a number, is read as the JSON it is,
@@ -154,7 +154,7 @@ test('a value that is not what its key holds travels, is named on the other side
 
 test('a file is checked as what it holds before it is taken', () => {
   assert.equal(fileProblem(recordPath('omnistax-theme'), jsonBytes('dark')), null);
-  assert.match(fileProblem(recordPath('omnistax-library-v1'), enc.encode('[nope')) ?? '', /isn’t valid JSON/);
+  assert.match(fileProblem(recordPath('omnistax-library'), enc.encode('[nope')) ?? '', /isn’t valid JSON/);
   assert.match(fileProblem('chats/abcd1234.json', jsonBytes({ id: 'abcd1234' })) ?? '', /^name: Required/);
   assert.match(fileProblem('records/appearance.json', jsonBytes({ 'omnistax-theme': 'purple' })) ?? '', /^omnistax-theme: “purple”/);
   assert.equal(fileProblem('files/x.pdf', new Uint8Array([1, 2])), null);
@@ -202,7 +202,7 @@ test('on a repo of the first layout, a record changed there and another changed 
   assert.equal(dec.decode(gh.blobs.get(tree.get(recordPath('omnistax-theme'))!)), '"light"\n');
   assert.equal(dec.decode(gh.blobs.get(tree.get(recordPath('omnistax-anim'))!)), '"0"\n');
   const manifest = JSON.parse(dec.decode(gh.blobs.get(tree.get(MANIFEST)!)));
-  assert.equal(manifest.version, 2);
+  assert.equal(manifest.version, SYNC_VERSION);
   assert.deepEqual(out.backup?.records.map((r) => `${r.key}=${r.value}`).sort(), ['omnistax-anim=0', 'omnistax-theme=light', 'omnistax-voice=0']);
   assert.equal(out.base['records/appearance.json'], undefined, 'the base forgets the category file');
   assert.equal(out.base[recordPath('omnistax-voice')], await shaOf(jsonBytes('0')));
@@ -212,10 +212,10 @@ const practice = (attempts: number[], target = 3) => JSON.stringify({
   attempts: attempts.map((at) => ({ book: 'b', section: '1.1', ex: `e${at}`, at, ok: true, concepts: ['c'] })), shown: [], rounds: [], self: {},
   settings: { masteryTarget: target, freshnessDecay: true, startingHalfLife: 3, maxHalfLife: 240, order: 'mixed', includeFresh: false, generated: 'include', grading: 'reveal', promptNote: 'p', fresh: false, stopwatch: false, model: null },
 });
-const practiceFile = (attempts: number[], target = 3) => toRepo(profile([{ key: 'omnistax-practice-v2', value: practice(attempts, target) }])).find((f) => f.path === recordPath('omnistax-practice-v2'))!.bytes;
+const practiceFile = (attempts: number[], target = 3) => toRepo(profile([{ key: 'omnistax-practice', value: practice(attempts, target) }])).find((f) => f.path === recordPath('omnistax-practice'))!.bytes;
 
 test('practice on two devices merges on its own: both sides’ attempts go both ways as one file', async () => {
-  const P = recordPath('omnistax-practice-v2');
+  const P = recordPath('omnistax-practice');
   const was = practiceFile([1]), here = practiceFile([1, 2]), there = practiceFile([1, 3]);
   const gh = github({ [MANIFEST]: jsonBytes({ ...v1Manifest, version: 2 }), [P]: there }, [was]);
   const base: Base = { [P]: await shaOf(was) };
@@ -232,13 +232,13 @@ test('practice on two devices merges on its own: both sides’ attempts go both 
   const out = await carry(remote, gh.f, seen, local, planOf(changes, new Map([[P, merged]])), base, (p, s) => statuses.set(p, s));
   assert.equal(gh.calls.filter((c) => c.method === 'GET' && c.path === `/git/blobs/${merged.sha}`).length, 0, 'the merge is not fetched: it travels with the plan');
   assert.equal(new Map(gh.committed().map((e) => [e.path, e.sha])).get(P), merged.sha, 'the merge goes up');
-  assert.deepEqual(JSON.parse(out.backup!.records.find((r) => r.key === 'omnistax-practice-v2')!.value).attempts.length, 3, 'and comes down');
+  assert.deepEqual(JSON.parse(out.backup!.records.find((r) => r.key === 'omnistax-practice')!.value).attempts.length, 3, 'and comes down');
   assert.equal(out.base[P], merged.sha, 'and both sides now agree on it');
   assert.equal(statuses.get(P)?.kind, 'done');
 });
 
 test('where the two sides changed the same setting, the reader settles it conflict by conflict and the result is checked', async () => {
-  const P = recordPath('omnistax-practice-v2');
+  const P = recordPath('omnistax-practice');
   const was = practiceFile([1], 3), here = practiceFile([1, 2], 4), there = practiceFile([1], 5);
   const gh = github({ [P]: there }, [was]);
   const base: Base = { [P]: await shaOf(was) };

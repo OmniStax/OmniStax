@@ -20,8 +20,8 @@ import { deleteDrawingRecord, deleteScratchRecord, getDrawing, getScratchRecord,
 
 export { exportDrawings, exportScratch, replaceDrawings, replaceScratch, type ScratchRecord } from './db';
 
-export const ROWS_KEY = 'omnistax-drawings-v1';
-export const SCRATCH_KEY = 'omnistax-scratch-v1';
+export const ROWS_KEY = 'omnistax-drawing-index';
+export const SCRATCH_KEY = 'omnistax-scratch-index';
 const SAVE_DELAY = 300;
 
 /* Which exercise a piece of scratch work belongs to. It is a string because it

@@ -5,6 +5,7 @@ import { config } from './omnistax.config.ts';
 import { chooseBooks, findBooks, mediaDirsOf } from './src/lib/content/load.ts';
 import { builderHash, planBuild, setBuildPlan } from './src/lib/content/stored.ts';
 import content from './content.mjs';
+import { readNotes } from './src/lib/content/releases.ts';
 
 /* Which books this build carries, resolved once here so that the integration
    watching and copying their media reads the same list the pages do. A
@@ -33,6 +34,9 @@ export default defineConfig({
      project, and the project's src and node_modules must still be served. */
   vite: {
     server: { fs: { allow: ['.', config.content.root] } },
+    /* The release this build is, which a backup and a sync repo record beside
+       their data (src/lib/backup/format.ts). */
+    define: { __OMNISTAX_RELEASE__: JSON.stringify(readNotes()[0]?.version ?? 'dev') },
     /* Vite's dependency cache also defaults into node_modules; a shared one is rewritten under a running dev server. */
     ...(process.env.OMNISTAX_CACHE_DIR ? { cacheDir: `${process.env.OMNISTAX_CACHE_DIR}/vite` } : {}),
   },

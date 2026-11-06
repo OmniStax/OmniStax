@@ -52,8 +52,8 @@ SEED = """async () => {
     await new Promise((res) => { const tx = db.transaction('chats', 'readwrite'); tx.objectStore('chats').put(chat); tx.oncomplete = res; });
     db.close();
     localStorage.setItem('omnistax-chats-v1', JSON.stringify([{ id: 'chatchat', name: 'Sky', created: 1, updated: 5 }]));
-    localStorage.setItem('omnistax-notedocs-v1', JSON.stringify([{ id: 'notenote', name: 'Sky note', body: 'Before.\\n\\n![[chat:chatchat]]', created: 1, updated: 1 }]));
-    localStorage.setItem('omnistax-explorer-v1', JSON.stringify({ entries: [{ id: 'notenote', parent: null, kind: 'note', name: 'Sky note' }], expanded: [] }));
+    localStorage.setItem('omnistax-notedocs', JSON.stringify([{ id: 'notenote', name: 'Sky note', body: 'Before.\\n\\n![[chat:chatchat]]', created: 1, updated: 1 }]));
+    localStorage.setItem('omnistax-explorer', JSON.stringify({ entries: [{ id: 'notenote', parent: null, kind: 'note', name: 'Sky note' }], expanded: [] }));
 }"""
 
 
@@ -220,7 +220,7 @@ with sync_playwright() as playwright:
     page.keyboard.press("Escape")
     page.wait_for_timeout(300)
     assert frame.locator(".cm-content").count() == 0, "Escape leaves the editor"
-    body = page.evaluate("JSON.parse(localStorage.getItem('omnistax-notedocs-v1'))[0].body")
+    body = page.evaluate("JSON.parse(localStorage.getItem('omnistax-notedocs'))[0].body")
     assert "Typed here." in body, f"the frame wrote to the note itself ({body!r})"
     assert len(items(page, "stroke")) == 3, "typing in the frame laid no ink and picked no tool"
 

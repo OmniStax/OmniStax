@@ -3,12 +3,12 @@
    Ctrl+S — of which the first is held here for a moment while the second is
    waited for. The dispatcher runs from the document's keydown; chords without
    Ctrl or Alt are left to inputs so typing keeps working. Only the reader's
-   changes are kept (omnistax-keys-v2), each host laying them over its own
+   changes are kept (omnistax-shortcuts), each host laying them over its own
    defaults, so a change made on the desktop and pulled into a tab still leaves
    the tab with chords it can use. */
 import { commands } from './registry.svelte';
-import { type Bindings, type Chord, chordOf, chordsFor, isEditable, parseBindings, rebind, resolveChord, startsSequence, withoutCommand } from './chord';
-import { type Changes, applyChanges, changesAfter, changesFrom, defaultBindings, parseChanges } from './defaults';
+import { type Bindings, type Chord, chordOf, chordsFor, isEditable, rebind, resolveChord, startsSequence, withoutCommand } from './chord';
+import { type Changes, applyChanges, changesAfter, defaultBindings, parseChanges } from './defaults';
 import { host } from './host.svelte';
 import type { CommandId } from './command';
 import { readerWritesAllowed } from '../backup/guard';
@@ -16,19 +16,15 @@ import { retiredViewKeys } from '../types/ids';
 export type { Bindings, Chord, ParsedChord, KeyLike } from './chord';
 export { parseChord, formatChord, chord, chordOf, chordKeys, resolveChord, startsSequence } from './chord';
 
-const KEY = 'omnistax-keys-v2', OLD_KEY = 'omnistax-keys';
+const KEY = 'omnistax-shortcuts';
 const WAIT = 1500;   /* how long the first press of a sequence is held, in milliseconds */
 export { DEFAULT_BINDINGS } from './defaults';
 
 /* What the reader changed, or nothing at all when they never changed a chord.
-   A whole map saved before changes were kept apart is read as its changes from
-   this host's defaults and left where it is, for an older build still open. */
-const read = (key: string): unknown => JSON.parse(retiredViewKeys(localStorage.getItem(key) ?? 'null'));
+   A whole map an older build saved is taken over as the app starts
+   (backup/migrate.ts). */
 const load = (): Changes => {
-  try {
-    const changes = parseChanges(read(KEY)); if (changes) return changes;
-    const old = parseBindings(read(OLD_KEY)); return old ? changesFrom(host.info, old) : {};
-  } catch { return {}; }
+  try { return parseChanges(JSON.parse(retiredViewKeys(localStorage.getItem(KEY) ?? 'null'))) ?? {}; } catch { return {}; }
 };
 const save = (c: Changes): void => { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* private mode */ } };
 

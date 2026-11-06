@@ -7,7 +7,7 @@ import { createBackup, importBackup } from '../backup/adapters';
 import { readBlob, type GitSha } from './github';
 import { toRepo, type RepoPath } from './layout';
 import { changesOf, isMerged, mergedFor, overwrite, planOf, rebase, type Change, type Pick, type Plan, type Status } from './plan';
-import { bothWays, carry, hashed, screen, settle, survey, type BothWays, type HashedFile, type Survey } from './run';
+import { NewerRepo, bothWays, carry, hashed, screen, settle, survey, type BothWays, type HashedFile, type Survey } from './run';
 import { reconcile, withHeld, type Held } from './held';
 import { heldQueue } from './queue.svelte';
 import type { Choices } from './conflict';
@@ -23,6 +23,8 @@ const failure = (e: unknown): string => e instanceof Error ? e.message : t('file
 class SyncSession {
   phase = $state<Phase>('idle');
   problem = $state('');
+  /* The release of a newer build that last synced the repo, which this one leaves alone until it is updated. */
+  newer = $state<string | null>(null);
   seen = $state.raw<Survey | null>(null);
   local = $state.raw<readonly HashedFile[]>([]);
   changes = $state.raw<readonly Change[]>([]);
@@ -41,12 +43,12 @@ class SyncSession {
   get unchosen(): number { return this.changes.filter((c) => c.side === 'both' && !this.chosen(c)).length; }
   chosen(c: Change): boolean { const p = this.picks.get(c.path); return p === 'mine' || p === 'theirs' || mergedFor(p, c); }
 
-  clear(): void { this.#ticket++; this.phase = 'idle'; this.seen = null; this.changes = []; this.local = []; this.merges = new Map(); this.problem = ''; }
+  clear(): void { this.#ticket++; this.phase = 'idle'; this.seen = null; this.changes = []; this.local = []; this.merges = new Map(); this.problem = ''; this.newer = null; }
 
   async read(): Promise<void> {
     const remote = sync.remote; if (!remote) return;
     const mine = ++this.#ticket;
-    this.phase = 'reading'; this.problem = '';
+    this.phase = 'reading'; this.problem = ''; this.newer = null;
     try {
       const last = sync.last?.base ?? {};
       const [s, files] = await Promise.all([survey(remote, fetch.bind(globalThis), last), createBackup().then(toRepo).then(hashed)]);
@@ -70,7 +72,7 @@ class SyncSession {
       this.picks = picks;
       this.drafts = new Map([...this.drafts].filter(([p]) => both.has(p)));
       this.status = new Map(); this.phase = 'ready';
-    } catch (e) { if (mine === this.#ticket) { this.phase = 'idle'; this.problem = failure(e); } }
+    } catch (e) { if (mine === this.#ticket) { this.phase = 'idle'; this.problem = failure(e); this.newer = e instanceof NewerRepo ? e.release : null; } }
   }
 
   async go(plan: Plan): Promise<void> {

@@ -101,7 +101,7 @@ def item_count(page, kind=None):
     """How many items the open drawing holds, read off the store itself."""
     return page.evaluate(
         """(kind) => {
-            const key = JSON.parse(localStorage.getItem('omnistax-drawings-v1') ?? '[]');
+            const key = JSON.parse(localStorage.getItem('omnistax-drawing-index') ?? '[]');
             return key.length;
         }""",
         kind,

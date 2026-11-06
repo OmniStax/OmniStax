@@ -7,7 +7,7 @@ import type { ChatId } from '../types/ids';
 import type { ChatEntry } from './entries';
 import { look, parseSeen, unread, type Seen } from './seen';
 
-const KEY = 'omnistax-chat-seen-v1';
+const KEY = 'omnistax-chat-seen';
 
 class ChatSeen {
   seen = $state.raw<Seen>({});

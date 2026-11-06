@@ -399,5 +399,7 @@ export const views: Readonly<Record<keyof typeof source, string>> = {
   'views.sync.tokenHint': '一个仅限此仓库的细粒度令牌，Contents 权限为 Read and write。',
   'views.sync.tooLarge': '超过 100 MB',
   'views.sync.upToDate': '已是最新',
+  'views.sync.upgrade': '下次同步会把此仓库转为当前格式。之后其他设备需先更新 OmniStax 才能同步。',
+  'views.sync.upgradeNow': '更新仓库格式',
   'views.sync.waiting': '等待中',
 };

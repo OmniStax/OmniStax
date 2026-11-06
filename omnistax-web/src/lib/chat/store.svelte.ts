@@ -21,19 +21,15 @@ import { liveLibrary } from './library';
 import * as M from './model';
 import type { Chat, MessageId, ToolStep } from './model';
 import { t } from '../i18n';
-import { entryOfChat, mergeIndex, parseIndex, unfiled, type ChatEntry, type HighlightAt } from './entries';
+import { entryOfChat, parseIndex, type ChatEntry, type HighlightAt } from './entries';
 import { notes } from '../notes/store.svelte';
 import { chatSeen } from './seen.svelte';
 
-/* The index of the chats. The first held a chat's name and dates; the second
-   added the one book a chat was filed under, and never shipped; this one
-   keeps when the chat last said something, when it last answered and every
-   place of the books it is filed at. The second is read only where this one
-   has not been written yet, and the first is read beside this one and kept
-   written in its own shape for a tab still open on a build that knows only it. */
-export const INDEX_KEY = 'omnistax-chats-v3';
-const FILED_KEY = 'omnistax-chats-v2';
-export const OLD_INDEX_KEY = 'omnistax-chats-v1';
+/* The index of the chats: a row per chat with its name and dates, when it
+   last said something, when it last answered, and every place of the books
+   it is filed at. The indexes older builds kept are taken over as the app
+   starts (backup/migrate.ts). */
+export const INDEX_KEY = 'omnistax-chat-index';
 const SAVE_DELAY = 250;
 
 export { parseIndex, type ChatEntry } from './entries';
@@ -61,9 +57,7 @@ class Chats {
   private toolless = new Set<string>();
 
   init(): void {
-    const read = (key: string): ChatEntry[] => { try { return parseIndex(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { return []; } };
-    const own = (() => { try { return localStorage.getItem(INDEX_KEY) !== null; } catch { return false; } })();
-    this.index = mergeIndex(read(own ? INDEX_KEY : FILED_KEY), read(OLD_INDEX_KEY));
+    try { this.index = parseIndex(JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]')); } catch { this.index = []; }
   }
 
   get(id: ChatId): Chat | null { return this.open[id] ?? null; }
@@ -285,10 +279,7 @@ class Chats {
 
   private saveIndex(): void {
     if (!readerWritesAllowed()) return;
-    try {
-      localStorage.setItem(INDEX_KEY, JSON.stringify(this.index));
-      localStorage.setItem(OLD_INDEX_KEY, JSON.stringify(unfiled(this.index)));
-    } catch { /* private mode */ }
+    try { localStorage.setItem(INDEX_KEY, JSON.stringify(this.index)); } catch { /* private mode */ }
   }
 }
 export const chats = new Chats();

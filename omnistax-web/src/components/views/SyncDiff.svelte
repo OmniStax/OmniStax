@@ -20,6 +20,8 @@
   import { sizeLabel } from '../../lib/files/model';
   import { hunksOf, lineDiff } from '../../lib/sync/diff';
   import { groupLabel } from '../../lib/sync/layout';
+  import { describe } from '../../lib/sync/describe';
+  import { library } from '../../lib/explorer/library.svelte';
   import { isMerged, type Change } from '../../lib/sync/plan';
   import { settle } from '../../lib/sync/run';
   import { blocksOf, chosenLines, conflictCount, resolvedText, type Choice } from '../../lib/sync/conflict';
@@ -153,7 +155,8 @@
     {@const s = sides(change)}
     <header>
       <h2>{change.label}</h2>
-      <p class="path">{groupLabel(change.group, i18n.locale)} · {change.path}</p>
+      <p class="what">{describe(change.path, i18n.locale, (id) => library.book(id)?.title ?? id) ?? groupLabel(change.group, i18n.locale)}</p>
+      <p class="path">{change.path}</p>
       {#if held}
         <div class="held"><HeldWhy h={held} /></div>
         <span class="choose" role="group" aria-label={i18n.t('views.diff.keepWhich')}>
@@ -263,6 +266,7 @@
   .diff{font-family:var(--sans);font-size:.88rem;line-height:1.45;padding:16px 8px;display:flex;flex-direction:column;gap:12px;max-width:1100px}
   header{display:flex;flex-direction:column;gap:2px}
   h2{margin:0;font-size:1.15rem;font-weight:600;line-height:1.2}
+  .what{margin:0;color:var(--muted);font-size:.86rem}
   .path{margin:0;color:var(--muted);font-family:var(--mono);font-size:.74rem}
   .about{margin:8px 0 0}
   .empty{color:var(--muted);margin:0}

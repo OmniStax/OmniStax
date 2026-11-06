@@ -15,7 +15,7 @@ import { t } from '../i18n';
 /* Where the list is kept. It lives with the pure model rather than with the
    store so that the backup can name the key without pulling a reactive module
    into a plain Node test. */
-export const FILES_KEY = 'omnistax-files-v1';
+export const FILES_KEY = 'omnistax-file-index';
 
 /* The two kinds that become a file. A markdown file becomes an ordinary note
    instead, so it is not one of these; `takeOf` names it as a third answer. */

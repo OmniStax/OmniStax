@@ -18,7 +18,7 @@ import { generated } from './generated.svelte';
 import { generatedIdOf, isGenerated } from './generated';
 import type { CatalogExercise, RoundChoice } from './model';
 import { checkOf, setNode, type Check, type Node, type Shape } from './select';
-import { BLANK, KEY, OLD_KEY, PAGES, OLD_PAGES, SESSIONS, OLD_SESSIONS, obj, parseAttempts, parseShown, parseSettings, parseRounds, parseSelf, parsePages, parseSessions, restrict, type Face, type Page, type Session } from './stored';
+import { BLANK, KEY, PAGES, SESSIONS, obj, parseAttempts, parseShown, parseSettings, parseRounds, parseSelf, parsePages, parseSessions, restrict, type Face, type Page, type Session } from './stored';
 export { BLANK, type Face, type Page, type Session } from './stored';
 
 class Practice {
@@ -44,14 +44,14 @@ class Practice {
   private readonly lastOk: ReadonlyMap<string, boolean> = $derived(new Map([...this.attempts].sort((a, b) => a.at - b.at).map((a) => [keyOf(a), a.ok] as const)));
 
   init(): void {
-    const fresh = obj(this.read(KEY)), old = obj(this.read(OLD_KEY)), saved = fresh ?? old;
+    const saved = obj(this.read(KEY));
     if (saved) {
       this.attempts = parseAttempts(saved.attempts); this.shown = parseShown(saved.shown);
       this.rounds = parseRounds(saved.rounds); this.self = parseSelf(saved.self);
-      this.settings = fresh ? parseSettings(saved.settings) : DEFAULT_SETTINGS;
+      this.settings = parseSettings(saved.settings);
     }
-    this.pages = parsePages(this.read(PAGES) ?? this.read(OLD_PAGES));
-    this.sessions = parseSessions(this.read(SESSIONS) ?? this.read(OLD_SESSIONS));
+    this.pages = parsePages(this.read(PAGES));
+    this.sessions = parseSessions(this.read(SESSIONS));
     void generated.load();
   }
 

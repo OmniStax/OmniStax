@@ -5,9 +5,12 @@ import { chord } from '../commands/chord';
 import { isFontId } from '../settings/fonts';
 import { TipStateSchema } from '../tips/model';
 import { AnswerSchema, BLOOM_LEVELS } from '../content/schema';
+import { migrateRecords } from './migrate';
+import { DATA_VERSION } from './format';
 
 export const BACKUP_FORMAT = 'omnistax-reader-backup' as const;
-export const BACKUP_VERSION = 1 as const;
+/* A backup is written in this build's data format and read in any up to it (format.ts). */
+export const BACKUP_VERSION = DATA_VERSION;
 /* A profile now carries whole PDFs, so the cap is what a browser can be asked
    to read in one go rather than what a profile of notes would ever reach. */
 export const MAX_BACKUP_BYTES = 500 * 1024 * 1024;
@@ -16,56 +19,58 @@ export const MAX_BACKUP_LABEL = '500 MB';
 const bit = (v: string): boolean => v === '0' || v === '1';
 const positive = (v: string): boolean => v !== '' && Number.isFinite(Number(v)) && Number(v) > 0;
 const scalarKeys = new Map<string, (value: string) => boolean>([
-  ['omnistax-cc', (v) => v === '0' || v === '1'], ['omnistax-cc-all', bit], ['omnistax-cc-facts', bit], ['omnistax-cc-refs', bit], ['omnistax-cc-words', bit], ['omnistax-cc-symbols', bit],
   ['omnistax-theme', (v) => v === 'light' || v === 'dark'],
   /* The reader's UI language (i18n/store.svelte.ts); absent, it follows the browser. */
   ['omnistax-lang', (v) => v === 'en' || v === 'zh-CN'],
   ['omnistax-anim', (v) => v === '0' || v === '1'],
   ['omnistax-exmode', (v) => v === 'all' || v === 'one'],
   ['omnistax-voice', (v) => v === '0' || v === '1'],
-  ['omnistax-underlines', (v) => v === '0' || v === '1'],
   ['omnistax-map-progress', (v) => v === '0' || v === '1'],
-  ['omnistax-zoom-keys', (v) => v === '0' || v === '1'],
   ['omnistax-tips', (v) => v === '0' || v === '1'],
   ['omnistax-zoom', (v) => Number.isFinite(Number(v)) && Number(v) > 0],
   ['omnistax-figure-font', isFontId], ['omnistax-body-font', isFontId],
   ['omnistax-card-open', (v) => v === 'hover' || v === 'click'],
-  ['omnistax-swap-drag', bit],
+  ['omnistax-swap-drag', bit], ['omnistax-fill-all', bit],
+  /* Whether a finger draws on a drawing, or only a pen does (DrawingTab.svelte). */
+  ['omnistax-finger-draws', bit],
   ['omnistax-lock-grace', positive], ['omnistax-pomodoro-len', positive], ['omnistax-pomodoro-lock', bit],
 ]);
 
 const jsonKeys = new Set([
-  'omnistax-keys-v2', 'omnistax-keys', 'omnistax-practice-v2', 'omnistax-practice-v1',
-  'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1',
-  'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1',
-  'omnistax-library-v1', 'omnistax-explorer-v1', 'omnistax-notedocs-v1',
-  'omnistax-layout-v6', 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope',
+  'omnistax-shortcuts', 'omnistax-practice',
+  'omnistax-practice-pages',
+  'omnistax-practice-sessions', 'omnistax-practice-links',
+  'omnistax-library', 'omnistax-explorer', 'omnistax-notedocs',
+  'omnistax-layout', 'omnistax-scopes',
   'omnistax-folded', 'omnistax-hidden-figs',
-  'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-auto-update-v1',
+  'omnistax-seen-releases', 'omnistax-auto-update',
   /* The files the reader imported and what they have written on them. Only the
      metadata is here; the bytes travel as `files` below. */
-  'omnistax-files-v1', 'omnistax-filemarks-v1',
+  'omnistax-file-index', 'omnistax-filemarks',
   /* Which provider and model the reader chose for AI, and the index of the
      chats they have held. The keys they pasted are not here: the adapter
      strips them on the way out, and the validator below refuses a record
      that still carries one. */
-  'omnistax-ai-v1', 'omnistax-chats-v3', 'omnistax-chats-v2', 'omnistax-chats-v1', 'omnistax-chat-pages-v1',
-  'omnistax-chats-by-book-v1', 'omnistax-chat-seen-v1',
+  'omnistax-ai', 'omnistax-chat-index', 'omnistax-chat-pages',
+  'omnistax-chats-by-book', 'omnistax-chat-seen',
   /* The drawings the reader has made and the scratch pages of their exercises.
      Only the names and the index are here; the ink travels as `drawings` and
      `scratch` below, since a page of strokes is far heavier than localStorage
      should ever hold. */
-  'omnistax-drawings-v1', 'omnistax-scratch-v1',
+  'omnistax-drawing-index', 'omnistax-scratch-index',
   'omnistax-pomodoros', 'omnistax-pomodoro-categories',
-  'omnistax-chat-tree-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1',
+  'omnistax-drawing-palette',
+  'omnistax-chat-tree', 'omnistax-tip-history', 'omnistax-last-page', 'omnistax-seen-notes',
 ]);
 const JSON_KEY_LIST = [...jsonKeys];
+/* Every record of a fixed name; the per-book ones are below. */
+export const RECORD_KEYS: readonly string[] = [...scalarKeys.keys(), ...JSON_KEY_LIST];
 
 /* One key per book, omnistax-highlights-<book>, beside the appearance scalars. */
 const HIGHLIGHTS_KEY = /^omnistax-highlights-[^/]+$/;
 const CATEGORIES = ['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats', 'focus'] as const;
 export type ReaderCategory = typeof CATEGORIES[number];
-const LAYOUT_KEYS = ['omnistax-layout-v6', 'omnistax-layout-v5', 'omnistax-scope-v2', 'omnistax-scope', 'omnistax-practice-pages-v2', 'omnistax-practice-pages-v1', 'omnistax-chat-pages-v1'];
+const LAYOUT_KEYS = ['omnistax-layout', 'omnistax-scopes', 'omnistax-practice-pages', 'omnistax-chat-pages'];
 const FOCUS_KEYS = ['omnistax-pomodoros', 'omnistax-pomodoro-categories', 'omnistax-pomodoro-len', 'omnistax-pomodoro-lock', 'omnistax-lock-grace'];
 export type ReaderRecord = { readonly key: string; readonly value: string; readonly category: ReaderCategory };
 export type BackupAsset = { readonly id: string; readonly type: string; readonly dataUrl: string; readonly created: number };
@@ -74,18 +79,18 @@ export const isScalarKey = (key: string): boolean => scalarKeys.has(key);
 
 export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
-  if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key)) return 'appearance';
-  if (key === 'omnistax-keys-v2' || key === 'omnistax-keys') return 'shortcuts';
-  if (['omnistax-practice-v2', 'omnistax-practice-v1', 'omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1', 'omnistax-practice-links-v1'].includes(key)) return 'practice';
-  if (key === 'omnistax-library-v1' || key === 'omnistax-explorer-v1' || key === 'omnistax-auto-update-v1') return 'library';
-  if (key === 'omnistax-notedocs-v1' || key === 'omnistax-files-v1' || key === 'omnistax-filemarks-v1'
-    || key === 'omnistax-drawings-v1' || key === 'omnistax-scratch-v1'
+  if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key) || key === 'omnistax-drawing-palette') return 'appearance';
+  if (key === 'omnistax-shortcuts') return 'shortcuts';
+  if (['omnistax-practice', 'omnistax-practice-sessions', 'omnistax-practice-links'].includes(key)) return 'practice';
+  if (key === 'omnistax-library' || key === 'omnistax-explorer' || key === 'omnistax-auto-update') return 'library';
+  if (key === 'omnistax-notedocs' || key === 'omnistax-file-index' || key === 'omnistax-filemarks'
+    || key === 'omnistax-drawing-index' || key === 'omnistax-scratch-index'
     || /^omnistax-(?:notes|colours)-[^/]+$/.test(key)) return 'notes';
   /* The workspace: the tabs and splits, where each view stands, and what each
      practice and Conversations page shows, which is kept by the page's tab. */
   if (LAYOUT_KEYS.includes(key)) return 'layout';
-  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases-v2', 'omnistax-seen-releases-v1', 'omnistax-tips-v1', 'omnistax-last-page-v1', 'omnistax-seen-notes-v1'].includes(key)) return 'reading';
-  if (['omnistax-ai-v1', 'omnistax-chats-v3', 'omnistax-chats-v2', 'omnistax-chats-v1', 'omnistax-chats-by-book-v1', 'omnistax-chat-seen-v1', 'omnistax-chat-tree-v1'].includes(key)) return 'chats';
+  if (['omnistax-folded', 'omnistax-hidden-figs', 'omnistax-seen-releases', 'omnistax-tip-history', 'omnistax-last-page', 'omnistax-seen-notes'].includes(key)) return 'reading';
+  if (['omnistax-ai', 'omnistax-chat-index', 'omnistax-chats-by-book', 'omnistax-chat-seen', 'omnistax-chat-tree'].includes(key)) return 'chats';
   return null;
 };
 
@@ -129,7 +134,6 @@ const splitNode: z.ZodType<unknown> = z.lazy(() => z.union([z.object({ type: z.l
 const layout = z.object({ sides: z.object({ left: side, right: side }).strict(), home: z.record(z.enum(['left', 'right'])), collapsed: z.array(z.string()), groups: z.array(z.object({ key: z.string(), tabs: z.array(z.string()), active: z.string().nullable() }).strict()).min(1), focus: finite, tree: splitNode, offered: z.array(z.string()).optional() }).strict();
 const scope = z.union([z.object({ follow: z.literal(true), level: z.enum(['book', 'chapter', 'section']) }).strict(), z.object({ follow: z.literal(false), target: z.union([z.object({ level: z.literal('book'), book: z.string().optional() }).strict(), z.object({ level: z.literal('chapter'), book: z.string().optional(), chapter: z.string() }).strict(), z.object({ level: z.literal('section'), book: z.string().optional(), section: z.string() }).strict()]) }).strict()]);
 const scopes = z.record(scope);
-const binding = z.record(z.string().min(1)).superRefine((value, ctx) => { Object.keys(value).forEach((key) => { if (!chord(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `invalid chord ${key}` }); }); });
 const changes = z.record(z.array(z.string().min(1)).superRefine((list, ctx) => { list.forEach((c) => { if (!chord(c)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `invalid chord ${c}` }); }); }));
 const tree = z.object({ entries: z.array(z.object({ id: z.string().min(1), parent: z.string().nullable(), kind: z.enum(['folder', 'note', 'book', 'drawing', 'file', 'chat']), name: z.string(), bookId: z.string().optional(), fileId: z.string().optional(), drawingId: z.string().optional(), chatId: z.string().optional() }).strict()), expanded: z.array(z.string()) }).strict();
 /* A file the reader imported, and the two things they write on one. The ids
@@ -180,11 +184,8 @@ const aiSettings = z.object({
 /* The index of the chats: one row per chat, the records themselves being far
    too heavy for localStorage and carried by `chats` below. */
 const chatRow = z.object({ id: z.string().regex(/^[a-z0-9]{8}$/), name: z.string(), created: finite.nonnegative(), updated: finite.nonnegative() }).strict();
-const chatIndex = z.array(chatRow);
-/* The same, each row with the book its chat is filed under, `''` for none. */
-const chatIndexFiled = z.array(chatRow.extend({ book: z.string().optional() }).strict());
-/* The same, each row with when its chat last said something and last
-   answered, and the places of the books it is filed at. */
+/* Each row with when its chat last said something and last answered, and
+   the places of the books it is filed at. */
 const chatPlace = z.object({ book: z.string().min(1), chapter: z.string().min(1).optional(), section: z.string().min(1).optional() }).strict();
 const chatIndexPlaced = z.array(chatRow.extend({ said: finite.nonnegative().optional(), answered: finite.nonnegative().optional(), places: z.array(chatPlace).optional() }).strict());
 const chatMessage = z.object({
@@ -246,33 +247,31 @@ export const DrawingSchema = z.object({
 export const ScratchSchema = z.object({ key: z.string().min(1), drawing: DrawingSchema }).strict();
 
 const validators: Readonly<Record<string, z.ZodTypeAny>> = {
-  'omnistax-ai-v1': aiSettings,
-  'omnistax-drawings-v1': drawingRows,
-  'omnistax-scratch-v1': scratchIndex,
-  'omnistax-chats-v3': chatIndexPlaced, 'omnistax-chats-v2': chatIndexFiled, 'omnistax-chats-v1': chatIndex,
-  'omnistax-chat-pages-v1': z.record(z.string().regex(/^[a-z0-9]{8}$/)),
-  'omnistax-chats-by-book-v1': z.boolean(),
-  'omnistax-chat-seen-v1': z.record(z.string().regex(/^[a-z0-9]{8}$/), finite.nonnegative()),
-  'omnistax-keys-v2': changes,
-  'omnistax-seen-notes-v1': z.string().regex(VERSION),
-  'omnistax-keys': binding,
-  'omnistax-practice-v2': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),
-  'omnistax-practice-v1': object,
-  'omnistax-practice-pages-v2': z.record(page), 'omnistax-practice-pages-v1': object,
-  'omnistax-practice-sessions-v2': z.record(session), 'omnistax-practice-sessions-v1': object,
-  'omnistax-practice-links-v1': z.object({ folder: z.string().min(1).nullable(), links: z.record(z.array(z.string().regex(/^(?:note|drawing|chat):[a-z0-9]{8}$/))) }).strict(),
-  'omnistax-library-v1': z.array(z.string()),
-  'omnistax-explorer-v1': tree,
-  'omnistax-notedocs-v1': z.array(noteDoc),
-  'omnistax-files-v1': z.array(fileDoc),
-  'omnistax-filemarks-v1': z.array(fileMark),
-  'omnistax-layout-v6': layout, 'omnistax-layout-v5': layout, 'omnistax-scope-v2': scopes, 'omnistax-scope': object,
+  'omnistax-ai': aiSettings,
+  'omnistax-drawing-index': drawingRows,
+  'omnistax-scratch-index': scratchIndex,
+  'omnistax-chat-index': chatIndexPlaced,
+  'omnistax-chat-pages': z.record(z.string().regex(/^[a-z0-9]{8}$/)),
+  'omnistax-chats-by-book': z.boolean(),
+  'omnistax-chat-seen': z.record(z.string().regex(/^[a-z0-9]{8}$/), finite.nonnegative()),
+  'omnistax-shortcuts': changes,
+  'omnistax-seen-notes': z.string().regex(VERSION),
+  'omnistax-practice': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),
+  'omnistax-practice-pages': z.record(page),
+  'omnistax-practice-sessions': z.record(session),
+  'omnistax-practice-links': z.object({ folder: z.string().min(1).nullable(), links: z.record(z.array(z.string().regex(/^(?:note|drawing|chat):[a-z0-9]{8}$/))) }).strict(),
+  'omnistax-library': z.array(z.string()),
+  'omnistax-explorer': tree,
+  'omnistax-notedocs': z.array(noteDoc),
+  'omnistax-file-index': z.array(fileDoc),
+  'omnistax-filemarks': z.array(fileMark),
+  'omnistax-layout': layout, 'omnistax-scopes': scopes,
   'omnistax-folded': z.array(z.string()), 'omnistax-hidden-figs': z.array(z.string()),
-  'omnistax-seen-releases-v2': z.record(z.object({ release: z.string().min(1), artifact: z.string().min(1), sections: z.array(z.object({ id: z.string().min(1), fingerprint: z.string().min(1) }).strict()) }).strict()),
-  'omnistax-seen-releases-v1': z.record(z.record(z.string().min(1))),
-  'omnistax-auto-update-v1': z.record(z.boolean()),
-  'omnistax-tips-v1': TipStateSchema, 'omnistax-last-page-v1': z.record(z.string()),
-  'omnistax-chat-tree-v1': z.array(z.string()),
+  'omnistax-seen-releases': z.record(z.object({ release: z.string().min(1), artifact: z.string().min(1), sections: z.array(z.object({ id: z.string().min(1), fingerprint: z.string().min(1) }).strict()) }).strict()),
+  'omnistax-auto-update': z.record(z.boolean()),
+  'omnistax-tip-history': TipStateSchema, 'omnistax-last-page': z.record(z.string()),
+  'omnistax-chat-tree': z.array(z.string()),
+  'omnistax-drawing-palette': z.array(z.string()),
   'omnistax-pomodoros': z.array(object), 'omnistax-pomodoro-categories': z.array(object),
 };
 /* The reader's highlights for one book: only the switches they set apart from its default. */
@@ -351,8 +350,9 @@ const FileBlobSchema = z.object({
 export type BackupFile = z.infer<typeof FileBlobSchema>;
 const AssetSchema = z.object({ id: z.string().min(1).max(200), type: z.string().min(1).max(200), dataUrl: z.string().startsWith('data:'), created: z.number().finite().nonnegative() }).strict();
 const BackupSchema = z.object({
-  format: z.literal(BACKUP_FORMAT), version: z.literal(BACKUP_VERSION), exportedAt: z.string().datetime(),
-  app: z.object({ readerFormat: z.literal(1) }).strict(),
+  format: z.literal(BACKUP_FORMAT), version: z.number().int().min(1).max(BACKUP_VERSION), exportedAt: z.string().datetime(),
+  /* `release` is the build that wrote the file, absent before data format 3. */
+  app: z.object({ readerFormat: z.literal(1), release: z.string().min(1).optional() }).strict(),
   records: z.array(RecordSchema), assets: z.array(AssetSchema),
   /* The chats themselves, which live in a database of their own rather than in
      localStorage. A backup written before chats existed carries none, and
@@ -396,6 +396,16 @@ export const parseBackupText = (text: string): ParsedBackup => {
   return parseBackup(raw);
 };
 
+/* The release that wrote a backup of a newer data format than this build's,
+   or null. Such a file is refused whole rather than read in part: what this
+   build cannot see in it would be lost when it is written out again. */
+const newerData = (raw: unknown): string | null => {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const o = raw as { format?: unknown; version?: unknown; app?: { release?: unknown } };
+  if (o.format !== BACKUP_FORMAT || typeof o.version !== 'number' || o.version <= BACKUP_VERSION) return null;
+  return typeof o.app?.release === 'string' && o.app.release ? o.app.release : '?';
+};
+
 /* The whole file is refused when it is not a backup at all, or when a chat,
    a drawing or an imported file in it is malformed: those are replaced whole
    on a restore, so one left out would be one deleted. A reader record is
@@ -406,11 +416,14 @@ export const parseBackupText = (text: string): ParsedBackup => {
    also what lets a device on an older version take a profile from a newer
    one, whose records may carry what the older does not know yet. */
 export const parseBackup = (raw: unknown): ParsedBackup => {
+  const newer = newerData(raw);
+  if (newer) throw new Error(t('shell.backup.newer', { release: newer }));
   const parsed = BackupSchema.safeParse(raw);
   if (!parsed.success) throw new Error(t('shell.backup.invalid', { why: issueOf(parsed.error) }));
   const { skipped: before = [], ...rest } = parsed.data;
   const records: ReaderRecord[] = [], skipped: SkippedRecord[] = [...before];
-  for (const r of rest.records) {
+  /* A file an older build wrote keeps some records under their old names. */
+  for (const r of migrateRecords(rest.records, (key, value) => ({ key, value }))) {
     const issue = recordIssue(r), category = categoryOf(r.key);
     if (issue === null && category) records.push({ key: r.key, value: r.value, category });
     else skipped.push({ key: r.key, why: issue?.why ?? t('shell.backup.record.unknown'), newer: issue?.newer ?? true });
@@ -418,7 +431,7 @@ export const parseBackup = (raw: unknown): ParsedBackup => {
   return { ...rest, records, skipped };
 };
 
-/* One line per record set aside, for the reader: "omnistax-practice-v2:
+/* One line per record set aside, for the reader: "omnistax-practice:
    settings: Unrecognized key(s) in object: 'stopwatch'". */
 export const skippedLine = (s: SkippedRecord): string => t('shell.backup.skippedLine', { key: s.key, why: s.why });
 

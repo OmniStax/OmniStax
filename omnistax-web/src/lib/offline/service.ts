@@ -46,9 +46,7 @@ const enoughSpace = async (bytes: number): Promise<void> => {
 };
 
 const savedReferences = () => {
-  for (const key of ['omnistax-practice-sessions-v2', 'omnistax-practice-sessions-v1']) {
-    try { const value = localStorage.getItem(key); if (value) return savedSessionReleaseReferences(JSON.parse(value)); } catch { /* malformed legacy data is not a valid reference */ }
-  }
+  try { const value = localStorage.getItem('omnistax-practice-sessions'); if (value) return savedSessionReleaseReferences(JSON.parse(value)); } catch { /* malformed data is not a valid reference */ }
   return [];
 };
 const clearPreviousIfUnused = async (record: InstallationRecord): Promise<InstallationRecord> => {

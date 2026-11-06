@@ -15,7 +15,7 @@ import type { ExerciseRef } from './model';
 export type ExKey = string;
 type Saved = { readonly folder: string | null; readonly links: Readonly<Record<ExKey, readonly string[]>> };
 
-const KEY = 'omnistax-practice-links-v1';
+const KEY = 'omnistax-practice-links';
 const FOLDER = '_practice';
 export type PracticeKind = 'scratch' | 'notes' | 'chats';
 export const PRACTICE_KINDS: readonly PracticeKind[] = ['scratch', 'notes', 'chats'];

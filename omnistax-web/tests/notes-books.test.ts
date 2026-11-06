@@ -21,7 +21,7 @@ test('notes read from a book key carry that book, and are written back without i
 test('a notes key names its book, and only a notes key does', () => {
   assert.equal(notesKey(phys), 'omnistax-notes-college-physics-2e');
   assert.equal(bookOfNotesKey('omnistax-notes-chemistry-2e'), chem);
-  assert.equal(bookOfNotesKey('omnistax-notedocs-v1'), null);
+  assert.equal(bookOfNotesKey('omnistax-notedocs'), null);
   assert.equal(bookOfNotesKey('omnistax-notes-Bad/key'), null);
 });
 

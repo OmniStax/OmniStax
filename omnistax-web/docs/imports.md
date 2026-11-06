@@ -33,7 +33,7 @@ Files are heavy, so their bytes live in IndexedDB and their metadata in
 localStorage, mirroring how note images already split (`notes/assets.ts`).
 
 - `src/lib/files/model.ts` (pure) and `store.svelte.ts`: the file list,
-  localStorage key `omnistax-files-v1`, an array of
+  localStorage key `omnistax-file-index`, an array of
   `FileDoc { id: FileId (8 base36), name, type: 'pdf' | 'image', mime, size,
   pages?: number, created, updated }`. A `FileId` is shared with the explorer
   entry that stands for the file, as a note's id is with its `NoteDoc`.
@@ -42,7 +42,7 @@ localStorage, mirroring how note images already split (`notes/assets.ts`).
   the backup exporter turns them into base64 on the way out. Reuse the
   transaction wrapper shape of `notes/assets.ts` rather than the module.
 - `src/lib/files/marks.svelte.ts`: annotations on files, localStorage key
-  `omnistax-filemarks-v1`, an array of `FileMark`, one ADT:
+  `omnistax-filemarks`, an array of `FileMark`, one ADT:
   - `{ kind: 'highlight', id, file, page, anchor: { quote, prefix, suffix },
     color, text, created, updated }` — the anchor is the same
     `Anchor` type and the same pure code as book highlights
@@ -54,8 +54,8 @@ localStorage, mirroring how note images already split (`notes/assets.ts`).
     renderer. It is the same component the Drawer's text box uses
     (`components/ui/TextBox.svelte`, see `drawer.md`); if the Drawer has not
     landed, build the component here and the Drawer adopts it.
-- Every new key joins `backup/schema.ts`: `omnistax-files-v1` and
-  `omnistax-filemarks-v1` as validated JSON, category `notes`, and the blob
+- Every new key joins `backup/schema.ts`: `omnistax-file-index` and
+  `omnistax-filemarks` as validated JSON, category `notes`, and the blob
   store beside `assets` in the backup document as `files: [{ id, type, mime,
   base64, created }]`. Raise `MAX_BACKUP_BYTES` to 500 MB and, in the Settings
   export, show the estimated size before writing. A backup over 50 MB warns
@@ -207,7 +207,7 @@ with them.
 list — a `FileDoc` of eight base-36 characters, what the app takes (`takeOf`
 answers file, note or refused, on the browser's type first and the name after
 it), and the storage boundary; `store.svelte.ts` keeps it under
-`omnistax-files-v1`. `files/blobs.ts` is the one IndexedDB for heavy things,
+`omnistax-file-index`. `files/blobs.ts` is the one IndexedDB for heavy things,
 `omnistax-files`, with a `blobs` store of Blobs and a `text` store of a PDF's
 pages. `files/import.ts` is the single way in for the import icon on the Your
 Files row and for a drop on the tree: markdown becomes an ordinary note, an
@@ -215,7 +215,7 @@ image and a PDF become file rows, and anything else is named in a line at the
 foot of the window rather than thrown. A file row deletes as one compound edit
 of `explorer/edits.ts` — the row, the record and its marks together — and its
 bytes are left behind until the next boot sweeps them, so undo has something to
-come back to. The backup carries `omnistax-files-v1` and `omnistax-filemarks-v1`
+come back to. The backup carries `omnistax-file-index` and `omnistax-filemarks`
 as validated records and the bytes as `files: [{ id, type, mime, base64,
 created }]`; `MAX_BACKUP_BYTES` is 500 MB with a warning above 50.
 

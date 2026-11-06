@@ -159,8 +159,8 @@ test('the chats in view: a chat that is a group\'s active tab, or the one its Co
 });
 
 test('the new keys travel with the chats in a backup', () => {
-  for (const key of ['omnistax-chats-v3', 'omnistax-chats-by-book-v1', 'omnistax-chat-seen-v1']) assert.equal(categoryOf(key), 'chats', key);
-  assert.equal(validReaderRecord({ key: 'omnistax-chats-v3', value: JSON.stringify([{ id: 'aaaaaaaa', name: '', created: 1, updated: 2, said: 2, answered: 3, places: [{ book: 'calculus', chapter: '2' }] }]), category: 'chats' }), true);
-  assert.equal(validReaderRecord({ key: 'omnistax-chat-seen-v1', value: '{"aaaaaaaa":12}', category: 'chats' }), true);
-  assert.equal(validReaderRecord({ key: 'omnistax-chats-by-book-v1', value: 'true', category: 'chats' }), true);
+  for (const key of ['omnistax-chat-index', 'omnistax-chats-by-book', 'omnistax-chat-seen']) assert.equal(categoryOf(key), 'chats', key);
+  assert.equal(validReaderRecord({ key: 'omnistax-chat-index', value: JSON.stringify([{ id: 'aaaaaaaa', name: '', created: 1, updated: 2, said: 2, answered: 3, places: [{ book: 'calculus', chapter: '2' }] }]), category: 'chats' }), true);
+  assert.equal(validReaderRecord({ key: 'omnistax-chat-seen', value: '{"aaaaaaaa":12}', category: 'chats' }), true);
+  assert.equal(validReaderRecord({ key: 'omnistax-chats-by-book', value: 'true', category: 'chats' }), true);
 });

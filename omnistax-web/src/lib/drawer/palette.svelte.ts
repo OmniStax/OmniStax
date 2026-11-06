@@ -7,7 +7,7 @@
 import { readerWritesAllowed } from '../backup/guard';
 import type { Colour } from './colour';
 
-const KEY = 'omnistax-drawing-palette-v1';
+const KEY = 'omnistax-drawing-palette';
 export const DEFAULT_PALETTE: readonly Colour[] = [
   'ink', '#6b7280', '#dc2626', '#ea580c', '#d97706', '#ca8a04', '#16a34a', '#0d9488',
   '#0891b2', '#2563eb', '#4f46e5', '#7c3aed', '#db2777', '#92400e', '#f8fafc',

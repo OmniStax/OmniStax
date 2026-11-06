@@ -109,11 +109,11 @@ with sync_playwright() as playwright:
     assert kept and kept[0]["n"] >= 5 and kept[0]["steps"] and kept[0]["pick"]["provider"] == "local", kept
 
     # The keys stay in this browser where the reader put them.
-    stored = page.evaluate("JSON.parse(localStorage.getItem('omnistax-ai-v1'))")
-    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai-v1", json.dumps({**stored, "keys": {**stored["keys"], "openai": "sk-secret"}})])
+    stored = page.evaluate("JSON.parse(localStorage.getItem('omnistax-ai'))")
+    page.evaluate("([k, v]) => localStorage.setItem(k, v)", ["omnistax-ai", json.dumps({**stored, "keys": {**stored["keys"], "openai": "sk-secret"}})])
     page.reload()
     page.wait_for_load_state("networkidle")
-    stored = page.evaluate("JSON.parse(localStorage.getItem('omnistax-ai-v1'))")
+    stored = page.evaluate("JSON.parse(localStorage.getItem('omnistax-ai'))")
     assert stored["keys"]["openai"] == "sk-secret", stored
 
     # Ask AI on a selection pastes the words into the chat's composer.

@@ -20,15 +20,11 @@ import type { ItemKey } from '../layout/model';
 import { readerWritesAllowed } from '../backup/guard';
 import { retiredViewKeys } from '../types/ids';
 
-const KEY = 'omnistax-scope-v2';
-const OLD = 'omnistax-scope';   /* { [kind]: sectionId }, the pins before views had levels */
+const KEY = 'omnistax-scopes';
 
 const read = (key: string): unknown => { try { return JSON.parse(retiredViewKeys(localStorage.getItem(key) ?? 'null')); } catch { return null; } };
 const load = (): Scopes => {
-  try {
-    if (localStorage.getItem(KEY) !== null) return parseScopes(read(KEY));
-    const old = parseScopes(read(OLD)); if (readerWritesAllowed()) localStorage.removeItem(OLD); return old;
-  } catch { return {}; }   /* private mode, or no browser at all */
+  try { return parseScopes(read(KEY)); } catch { return {}; }   /* private mode, or no browser at all */
 };
 
 class Scope {

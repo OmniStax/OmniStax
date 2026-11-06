@@ -94,7 +94,7 @@
   };
   const takeFocus = (node: HTMLInputElement) => { node.focus(); node.select(); };
 
-  const TREE_KEY = 'omnistax-chat-tree-v1';
+  const TREE_KEY = 'omnistax-chat-tree';
   const treeChats = (): readonly string[] => { try { const v: unknown = JSON.parse(localStorage.getItem(TREE_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; } };
   let tree = $state(treeChats().includes(chatId));
   let selection = $state.raw<ReadonlySet<MessageId>>(new Set());

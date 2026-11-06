@@ -5,7 +5,7 @@ import { closeGroup, closeItem, reopenGroup, defaultLayout, ensureOwn, firstLayo
 import { type ItemId, aboutItem, retiredViewKeys } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
 
-const KEY = 'omnistax-layout-v6';
+const KEY = 'omnistax-layout';
 /* How many closed tabs the shell can hand back, this reading only. */
 const REOPEN = 20;
 

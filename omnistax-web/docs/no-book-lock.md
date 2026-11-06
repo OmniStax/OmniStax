@@ -84,7 +84,7 @@ the book's own files: an item key, a link, a DOM lookup, a stored key, a card.
 
 ## Stores
 
-- Layout `omnistax-layout-v6`: book-qualified keys. v5 is migrated once by
+- Layout (`omnistax-layout-v6`, now `omnistax-layout`): book-qualified keys. v5 was migrated once by
   qualifying doc, fig, ex and sheet keys with the boot book. An unknown tab no
   longer resets the layout; it stays, and its pane says what is missing.
 - Notes: one in-memory store over every book. `Note` gains `book`. Storage

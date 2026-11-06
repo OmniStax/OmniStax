@@ -5,7 +5,7 @@ import { firstVisit } from '../firstvisit';
 import { aboutItem, itemKey, whatsNewItem, type ItemId } from '../types/ids';
 import { startOf, version, type Version } from './version';
 
-export const SEEN_NOTES = 'omnistax-seen-notes-v1';
+export const SEEN_NOTES = 'omnistax-seen-notes';
 
 const readSeen = (): Version | null => {
   try { const v = JSON.parse(localStorage.getItem(SEEN_NOTES) ?? 'null'); return typeof v === 'string' ? version(v) : null; } catch { return null; }

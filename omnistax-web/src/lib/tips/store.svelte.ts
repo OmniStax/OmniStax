@@ -2,7 +2,7 @@ import { readerWritesAllowed } from '../backup/guard';
 import { modKeyOf, tipsOf, TipStateSchema, stepTip, visit, type Tip, type TipState } from './model';
 import { i18n } from '../i18n/store.svelte';
 
-const KEY = 'omnistax-tips-v1';
+const KEY = 'omnistax-tip-history';
 
 const load = (): TipState | null => {
   try {

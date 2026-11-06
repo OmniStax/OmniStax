@@ -30,12 +30,9 @@ export type Session = {
 export type Page = { readonly curriculum: Curriculum; readonly session: SessionId | null; readonly face: Face; readonly showAll: boolean; readonly round?: RoundChoice };
 export const BLANK: Page = { curriculum: [], session: null, face: 'dashboard', showAll: false };
 
-export const KEY = 'omnistax-practice-v2';
-export const OLD_KEY = 'omnistax-practice-v1';
-export const PAGES = 'omnistax-practice-pages-v2';
-export const OLD_PAGES = 'omnistax-practice-pages-v1';
-export const SESSIONS = 'omnistax-practice-sessions-v2';
-export const OLD_SESSIONS = 'omnistax-practice-sessions-v1';
+export const KEY = 'omnistax-practice';
+export const PAGES = 'omnistax-practice-pages';
+export const SESSIONS = 'omnistax-practice-sessions';
 const FACES: readonly Face[] = ['dashboard', 'choose', 'practise', 'review', 'sessions'];
 
 export const obj = (raw: unknown): Record<string, unknown> | null => typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? raw as Record<string, unknown> : null;

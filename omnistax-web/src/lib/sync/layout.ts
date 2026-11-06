@@ -18,12 +18,23 @@ import { z } from 'zod';
 import { FILES_KEY, parseFiles } from '../files/model';
 import { BACKUP_FORMAT, BACKUP_VERSION, ChatSchema, DrawingSchema, GeneratedSchema, ScratchSchema, categoryOf, isScalarKey, issueOf, newerIssue, parseBackup, recordIssue, staysOnDevice, type ParsedBackup, type ReaderBackup, type ReaderRecord } from '../backup/schema';
 import { type Locale, type MessageKey, currentLocale, t, tIn } from '../i18n';
+import { APP_RELEASE, DATA_VERSION } from '../backup/format';
 
 export type RepoPath = string;
 export type SyncGroup = 'records' | 'chats' | 'drawings' | 'scratch' | 'generated' | 'files' | 'images';
 export type RepoFile = { readonly path: RepoPath; readonly group: SyncGroup; readonly label: string; readonly bytes: Uint8Array };
 
 export const MANIFEST: RepoPath = 'omnistax.json';
+/* A file only for the builds that synced before the data format was in the
+   manifest, which read on through a manifest they cannot parse. Such a build
+   takes any records/ file whose name does not begin `omnistax-` for a
+   category file of the first layout and reads it as JSON, which this one is
+   not: its sync stops there, before it pulls or pushes anything, rather than
+   undoing what a newer build wrote, and the error it shows begins "Update
+   Omn…", the start of the text. Every later build checks the manifest's
+   version instead and leaves this file alone. */
+export const GATE: RepoPath = 'records/_requires-newer-omnistax.json';
+export const GATE_BYTES: Uint8Array = new TextEncoder().encode('Update OmniStax: this repo was synced by a newer version. Reload OmniStax, then sync again.\n');
 export const GROUPS: readonly SyncGroup[] = ['records', 'chats', 'drawings', 'scratch', 'generated', 'files', 'images'];
 const GROUP_KEY: Readonly<Record<SyncGroup, MessageKey>> = {
   records: 'files.sync.group.records', chats: 'files.sync.group.chats', drawings: 'files.sync.group.drawings', scratch: 'files.sync.group.scratch', generated: 'files.sync.group.generated', files: 'files.sync.group.files', images: 'files.sync.group.images',
@@ -33,7 +44,7 @@ const GROUP_KEY: Readonly<Record<SyncGroup, MessageKey>> = {
 export const groupLabel = (g: SyncGroup, locale: Locale = currentLocale()): string => tIn(locale, GROUP_KEY[g]);
 
 export const groupOf = (path: RepoPath): SyncGroup | null =>
-  path === MANIFEST ? 'records' : GROUPS.find((g) => path.startsWith(`${g}/`)) ?? null;
+  path === MANIFEST ? 'records' : path === GATE ? null : GROUPS.find((g) => path.startsWith(`${g}/`)) ?? null;
 
 const EXT: Readonly<Record<string, string>> = {
   'application/pdf': '.pdf', 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp',
@@ -55,7 +66,7 @@ const stemOf = (path: RepoPath): string | null => {
 /* The key a record's file holds, or null for any other path. */
 export const recordKeyOf = (path: RepoPath): string | null => { const s = stemOf(path); return s?.startsWith(KEY_PREFIX) ? s : null; };
 /* A category file of the first layout. */
-export const isLegacyRecords = (path: RepoPath): boolean => { const s = stemOf(path); return s !== null && !s.startsWith(KEY_PREFIX); };
+export const isLegacyRecords = (path: RepoPath): boolean => { const s = stemOf(path); return path !== GATE && s !== null && !s.startsWith(KEY_PREFIX); };
 /* A record this version would not know what to do with: a newer version's,
    which a sync leaves where it is rather than pulling it, or deleting it for
    not having it. */
@@ -68,12 +79,15 @@ export const foreignRecord = (path: RepoPath): boolean => { const k = recordKeyO
 export const deviceRecord = (path: RepoPath): boolean => { const k = recordKeyOf(path); return k !== null && staysOnDevice(k); };
 
 const finite = z.number().finite();
-/* 2 since a record is a file of its own; a manifest of 1 is still read, and
-   whichever is read, the next push writes 2. A version that knows only 1
-   refuses a manifest of 2 rather than misreading the repo. */
-export const SYNC_VERSION = 2 as const;
+/* The data format of the repo (backup/format.ts): 2 since a record is a file
+   of its own, 3 since every record has one name. A manifest of any lower
+   number is still read, and the next sync writes this one; a higher number
+   stops the sync on this device until it is updated (survey, sync/run.ts). */
+export const SYNC_VERSION = DATA_VERSION;
 const ManifestSchema = z.object({
-  format: z.literal('omnistax-sync'), version: z.union([z.literal(1), z.literal(SYNC_VERSION)]), exportedAt: z.string().datetime(),
+  format: z.literal('omnistax-sync'), version: z.number().int().min(1).max(SYNC_VERSION), exportedAt: z.string().datetime(),
+  /* The release of the build that last synced, absent before format 3. */
+  app: z.string().min(1).optional(),
   books: z.array(z.object({ id: z.string().min(1), release: z.string().optional() }).strict()),
   files: z.array(z.object({ id: z.string().min(1), type: z.enum(['pdf', 'image']), mime: z.string().min(1), created: finite }).strict()),
   images: z.array(z.object({ id: z.string().min(1), type: z.string().min(1), created: finite }).strict()),
@@ -113,6 +127,8 @@ const valueOf = (r: { readonly key: string; readonly value: string }): unknown =
    than turning into something it never was (String(null) is "null"). */
 const textOf = (key: string, v: unknown): string => (isScalarKey(key) && typeof v === 'string' ? v : JSON.stringify(v));
 export const recordBytes = (r: { readonly key: string; readonly value: string }): Uint8Array => jsonBytes(valueOf(r));
+/* A record's value from the bytes of its file. */
+export const recordValueOf = (key: string, bytes: Uint8Array): string => textOf(key, jsonOf(bytes));
 const recordOf = (key: string, v: unknown): { key: string; value: string; category: string } => ({ key, value: textOf(key, v), category: categoryOf(key) ?? '' });
 /* A category file of the first layout: one object of key to value. */
 const legacyRecords = (file: unknown): { key: string; value: string; category: string }[] =>
@@ -139,7 +155,7 @@ export const toRepo = (backup: ReaderBackup): readonly RepoFile[] => {
   const images = backup.assets.map((a): RepoFile => ({ path: imagePath(a.id, a.type), group: 'images', label: a.id, bytes: bytesOfDataUrl(a.dataUrl) }));
   const body = [...records, ...chats, ...drawings, ...scratch, ...generated, ...files, ...images];
   const manifest: Manifest = {
-    format: 'omnistax-sync', version: SYNC_VERSION, exportedAt: backup.exportedAt, books: backup.books,
+    format: 'omnistax-sync', version: SYNC_VERSION, app: APP_RELEASE, exportedAt: backup.exportedAt, books: backup.books,
     files: backup.files.map(({ id, type, mime, created }) => ({ id, type, mime, created })),
     images: backup.assets.map(({ id, type, created }) => ({ id, type, created })),
     labels: Object.fromEntries(body.filter((f) => f.group !== 'records' && f.label !== f.path).map((f) => [f.path, f.label])),

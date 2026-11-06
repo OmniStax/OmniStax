@@ -52,7 +52,7 @@ with sync_playwright() as playwright:
     row.wait_for(timeout=30000)
     assert tree.locator('.row[data-kind="file"]', has_text="swatch").count() == 1
 
-    listed = page.evaluate("JSON.parse(localStorage.getItem('omnistax-files-v1') || '[]')")
+    listed = page.evaluate("JSON.parse(localStorage.getItem('omnistax-file-index') || '[]')")
     assert len(listed) == 2, listed
     pdf_id = next(f["id"] for f in listed if f["type"] == "pdf")
     assert next(f for f in listed if f["type"] == "pdf")["pages"] == 2, listed
@@ -67,15 +67,15 @@ with sync_playwright() as playwright:
 
     # ── a page link out of a note ────────────────────────────────────────────
     page.evaluate(
-        "id => localStorage.setItem('omnistax-notedocs-v1', JSON.stringify(["
+        "id => localStorage.setItem('omnistax-notedocs', JSON.stringify(["
         "{id:'nnnnnnnn', name:'Reading list', body:'See [[file:'+id+':p2]] for the odd word.',"
         " created:1, updated:1}]))",
         pdf_id,
     )
     page.evaluate(
-        "id => { const raw = JSON.parse(localStorage.getItem('omnistax-explorer-v1'));"
+        "id => { const raw = JSON.parse(localStorage.getItem('omnistax-explorer'));"
         " raw.entries.push({ id:'nnnnnnnn', parent:null, kind:'note', name:'Reading list' });"
-        " localStorage.setItem('omnistax-explorer-v1', JSON.stringify(raw)); }",
+        " localStorage.setItem('omnistax-explorer', JSON.stringify(raw)); }",
         pdf_id,
     )
     page.reload()
@@ -97,7 +97,7 @@ with sync_playwright() as playwright:
     bar = page.locator(".hl-bar")
     bar.wait_for()
     bar.locator(".dot.green").click()
-    marks = page.evaluate("JSON.parse(localStorage.getItem('omnistax-filemarks-v1') || '[]')")
+    marks = page.evaluate("JSON.parse(localStorage.getItem('omnistax-filemarks') || '[]')")
     assert len(marks) == 1 and marks[0]["kind"] == "highlight" and marks[0]["page"] == 2, marks
     assert len(marks[0]["id"]) == 10, marks
 
@@ -123,7 +123,7 @@ with sync_playwright() as playwright:
     page.locator(".pdf .bar button", has_text="Text box").click()
     page.locator('.pdf-page[data-page="1"]').click(position={"x": 120, "y": 160})
     page.locator(".text-box").first.wait_for()
-    boxes = [m for m in page.evaluate("JSON.parse(localStorage.getItem('omnistax-filemarks-v1') || '[]')") if m["kind"] == "box"]
+    boxes = [m for m in page.evaluate("JSON.parse(localStorage.getItem('omnistax-filemarks') || '[]')") if m["kind"] == "box"]
     assert len(boxes) == 1 and boxes[0]["page"] == 1, boxes
 
     # ── the search finds a word only the fixture holds ───────────────────────
