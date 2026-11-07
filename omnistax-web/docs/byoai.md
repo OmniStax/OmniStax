@@ -120,14 +120,14 @@ languages it can recognise. `tests/dictation.test.ts` and
 
 ## Messages elsewhere
 
-- A bubble drags out by its head line (who said it, when) as
-  `![[chat:<chatId>:<messageId>]]` and drops into notes and drawings as a card
-  with the role, the first line, and a link to the chat at that message;
-  `[[chat:<id>]]` opens the chat. The words of a bubble do not drag, and a
-  chat held compact in a note or a drawing drags nothing out. A whole chat
-  leaves only by the Copy menu in the chat's head: "Copy as embed" (the live
-  `![[chat:<id>]]`) or "Copy as text" (the branch as Markdown, which a drawing
-  lays out as linked cards).
+- A bubble does not drag. An answer's head carries a copy button, left of
+  Retry, that copies the answer as the raw Markdown the model wrote. A
+  `![[chat:<chatId>:<messageId>]]` already in a note or drawing still renders
+  as a card with the role, the first line, and a link to the chat at that
+  message; `[[chat:<id>]]` opens the chat. A whole chat leaves only by the Copy
+  menu in the chat's head: "Copy as embed" (the live `![[chat:<id>]]`) or
+  "Copy as text" (the branch as Markdown, which a drawing lays out as linked
+  cards).
 - Search has a corpus per chat over its messages; a hit opens the chat at
   that message's branch.
 - Chats live in IndexedDB database `omnistax-chats`, store `chats`, with a
@@ -399,7 +399,7 @@ fetched.
 
 Anything dropped on a chat, its transcript or its composer, that drags out
 as one embed (`![[concept:…]]` off the map or a panel, an equation, a
-definition, a figure's head, a highlight, another chat's bubble, a note, a
+definition, a figure's head, a highlight, a note, a
 drawing, a file) becomes the chip the picker makes for the same thing
 (`rowOfLink` in `picker/sources.ts`, `chipOfLink` in `lib/chat/drop.ts`);
 only words no chip can stand for are typed into the composer.

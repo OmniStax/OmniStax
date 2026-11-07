@@ -1,5 +1,5 @@
 /* Something dropped on a chat. A row of a panel, a figure's head, a concept off
-   the map, a highlight or a bubble of another chat drags out as the words that
+   the map, or a highlight drags out as the words that
    embed it, `![[concept:college-physics-2e/16.1:hooke]]`, which a note writes
    where it lands; a chat makes of them the chip the picker would have made for
    the same thing, with everything it sends read in. Words that name nothing a

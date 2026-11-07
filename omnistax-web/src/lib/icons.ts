@@ -50,6 +50,8 @@ export const ICON = {
   pomodoro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.8"/><path d="M8.5 5.2c1.1 1.1 2.2 1.6 3.5 1.6s2.4-.5 3.5-1.6"/><path d="M12 6.8V4"/></svg>',
   refresh: '<svg viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.4-5.5"/><path d="M17.6 3.2v3.6H14"/></svg>',
   sync: '<svg viewBox="0 0 24 24"><circle cx="7" cy="5" r="2.2"/><circle cx="7" cy="19" r="2.2"/><circle cx="17" cy="9" r="2.2"/><path d="M7 7.2v9.6"/><path d="M17 11.2c0 3-3 4-6 4.5-2 .3-3.5.8-4 1.5"/></svg>',
+  /* copy: the two stacked pages every editor uses for it */
+  copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/></svg>',
   mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>',
   speaker: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>',
   /* the concept map's layouts: rows of nodes joined downward, the same turned to run right, and the Poincaré disk with two geodesics */

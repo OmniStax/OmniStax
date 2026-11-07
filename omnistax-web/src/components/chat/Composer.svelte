@@ -167,7 +167,7 @@
   /* Images from the desktop become pictures; a tab dragged from the explorer (a
      section's text, a note, a drawing, a file, a chat) becomes a reference; and
      anything dragged out as the words that embed it (a concept off the map or a
-     panel, an equation, a figure's head, a highlight, a bubble) becomes the chip
+     panel, an equation, a figure's head, a highlight) becomes the chip
      the picker would make for it. Only words no chip can stand for are typed
      in, where the field is. The chat tab hands on what is dropped on its
      transcript, so the whole of the chat takes a drop. */

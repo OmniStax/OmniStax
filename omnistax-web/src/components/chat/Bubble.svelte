@@ -8,9 +8,8 @@
   import { chatBooks, chatResolver, decorateAnswer, placeAttrs, placeOf } from '../../lib/chat/resolve';
   import { partsOf } from '../../lib/chat/widget';
   import { CORS_MESSAGE } from '../../lib/chat/providers/index';
-  import { dragout } from '../../lib/notes/md/dragout';
+  import { ICON } from '../../lib/icons';
   import type { Chat, Message } from '../../lib/chat/model';
-  import type { LinkTarget } from '../../lib/notes/md/links';
   import { pagerOf } from '../../lib/chat/model';
   import { chats } from '../../lib/chat/store.svelte';
   import { ai } from '../../lib/chat/settings.svelte';
@@ -28,11 +27,22 @@
   /* An answer still arriving is drawn again at most every STREAM_DRAW_MS rather
      than on every word, since each drawing sets the whole answer afresh. */
   const STREAM_DRAW_MS = 80;
-  /* A message drags out by its head line, who said it and when, into a note or
-     a drawing as its card; the words under it are for reading and selecting,
-     and a chat held compact in a note or a drawing drags nothing out. A whole
-     chat leaves by Copy in the chat's head. */
-  const grip = (node: HTMLElement, target: LinkTarget | null) => (target ? dragout(node, target) : {});
+  /* A message does not drag out. An answer is copied whole, as the raw
+     Markdown the model wrote, by the copy button in its head; a whole chat
+     leaves by Copy in the chat's head. */
+  let copied = $state<'copied' | 'failed' | null>(null);
+  let copiedLater: ReturnType<typeof setTimeout> | null = null;
+  const copyAnswer = (): void => {
+    const done = (how: 'copied' | 'failed'): void => {
+      copied = how;
+      if (copiedLater !== null) clearTimeout(copiedLater);
+      copiedLater = setTimeout(() => { copiedLater = null; copied = null; }, 1200);
+    };
+    const clip = navigator.clipboard;
+    if (!clip) { done('failed'); return; }
+    clip.writeText(message.text).then(() => done('copied'), () => done('failed'));
+  };
+  const copyLabel = $derived(copied === 'copied' ? i18n.t('chat.bubble.copied') : copied === 'failed' ? i18n.t('chat.bubble.copyFailed') : i18n.t('chat.bubble.copyAnswer'));
   let drawnText = $state(untrack(() => message.text));
   let drawLater: ReturnType<typeof setTimeout> | null = null;
   $effect(() => {
@@ -41,7 +51,7 @@
     if (drawLater !== null) { clearTimeout(drawLater); drawLater = null; }
     drawnText = text;
   });
-  onDestroy(() => { if (drawLater !== null) clearTimeout(drawLater); });
+  onDestroy(() => { if (drawLater !== null) clearTimeout(drawLater); if (copiedLater !== null) clearTimeout(copiedLater); });
   const parts = $derived(partsOf(drawnText, !mine && ai.inlineHtml));
 
   let render = $state<RenderFn | null>(loaded());
@@ -96,7 +106,7 @@
 </script>
 
 <div class="bubble" class:mine {...placeAttrs(place)} data-message={message.id} data-role={message.role} data-state={message.state}>
-  <div class="who" class:grip={!readonly} title={readonly ? undefined : i18n.t('chat.bubble.drag')} use:grip={readonly ? null : { kind: 'chat', chat: chatId, message: message.id }}>
+  <div class="who">
     {#if ontoggle}
       <button type="button" class="fold btn ghost icon sm" class:shut={collapsed} data-nodrag aria-expanded={!collapsed}
         aria-label={collapsed ? i18n.t('chat.bubble.expand') : i18n.t('chat.bubble.collapse')} onclick={ontoggle}>▾</button>
@@ -116,6 +126,11 @@
         {#if mine}
           <button type="button" class="btn ghost sm" onclick={startEdit}>{i18n.t('chat.bubble.edit')}</button>
         {:else if message.state !== 'streaming'}
+          {#if message.text}
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            <button type="button" class="copy-answer btn ghost icon sm" class:done={copied === 'copied'} draggable="false"
+              title={copyLabel} aria-label={copyLabel} onclick={copyAnswer} ondragstart={(e) => e.preventDefault()}>{@html ICON.copy}</button>
+          {/if}
           <button type="button" class="btn ghost sm" onclick={() => void chats.retry(chatId, message.id)}>{i18n.t('chat.bubble.retry')}</button>
         {/if}
       </span>
@@ -159,7 +174,6 @@
 <style>
   .bubble{padding:12px 0;border-bottom:1px solid var(--rule)}
   .who{display:flex;align-items:center;gap:8px;font-size:0.72rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)}
-  .who.grip{cursor:grab}
   .spacer{flex:1}
   .role{font-weight:600}
   .fold{margin-left:-4px;color:var(--muted);transition:transform 120ms}
@@ -171,6 +185,8 @@
   .count{font-variant-numeric:tabular-nums}
   .acts{display:flex;gap:2px;text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}
   .bubble:hover .acts,.acts:focus-within{opacity:1}
+  .copy-answer :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+  .copy-answer.done{color:var(--good, var(--accent))}
   .at{text-transform:none;letter-spacing:0;opacity:0;transition:opacity 120ms}
   .bubble:hover .at{opacity:1}
   @media (hover: none){ .acts,.at{opacity:.7} }
