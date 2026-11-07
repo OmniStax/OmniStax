@@ -357,7 +357,12 @@ article.page p{max-width:66ch}
 article.page code{font-family:var(--mono);font-size:0.85em;padding:1px 5px;border-radius:4px;background:var(--soft)}
 article.page .masthead{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px}
 article.page .masthead h1{margin:0}
-article.page .masthead .logo{flex:none;color:var(--ink)}
+/* The mark's O is sized to the cap height of Source Sans 3 (0.67em at the
+   O's outer edge); its trunk hangs below the baseline like a descender. */
+article.page .masthead .wordmark{font-weight:400;white-space:nowrap;color:var(--ink)}
+article.page .masthead .wordmark .name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+article.page .masthead .wordmark .mark{height:1.461em;width:1.439em;vertical-align:-0.432em;overflow:visible;margin-right:.03em}
+article.page .masthead .wordmark .zh{font-weight:400;margin-left:.4em;padding-left:.4em;border-left:2px solid var(--rule)}
 article.page .repo{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;font-family:var(--sans)}
 article.page .repo:hover{background:var(--soft);border-color:var(--thumb)}
 article.page .repo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
