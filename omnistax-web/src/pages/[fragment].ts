@@ -3,12 +3,13 @@
    /whatsnew.html, … (fragmentUrl names them; registry.pageFor fetches them). */
 import type { APIRoute, GetStaticPaths } from 'astro';
 import { LOCALES, fragmentUrl, type Locale } from '../lib/i18n/index';
-import { aboutHtml } from '../lib/content/pages';
+import { aboutHtml, downloadHtml } from '../lib/content/pages';
 import { readNotes, whatsNewHtml } from '../lib/content/releases';
 
 const PAGES: Readonly<Record<string, (locale: Locale) => string>> = {
   about: (locale) => aboutHtml(locale),
   whatsnew: (locale) => whatsNewHtml(readNotes(), locale),
+  download: (locale) => downloadHtml(locale),
 };
 export const getStaticPaths: GetStaticPaths = () =>
   Object.keys(PAGES).flatMap((page) => LOCALES.map((locale) => ({ params: { fragment: fragmentUrl(page, locale).slice(1) }, props: { page, locale } })));

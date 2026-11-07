@@ -26,7 +26,7 @@
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { aboutItem, bookId, bookOfItem, docItem, itemKey, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, sheetId, sheetItem, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
+  import { aboutItem, downloadItem, bookId, bookOfItem, docItem, itemKey, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, sheetId, sheetItem, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
   import { refOfPath, resolvePath, sectionOfUrl } from '../lib/content/urls';
   import { bookPagesOf, pageLabel } from '../lib/content/roles';
   import { lastPage, rememberPage, setBookWalk } from '../lib/sections/books';
@@ -280,6 +280,9 @@
       clearView(e);
       ui.closeAll();
       if ((e.target as HTMLElement).closest('[data-find-textbook]')) { ui.openFindTextbook(); return; }
+      /* "Download OmniStax" (the about page, settings): the Download page opens as a tab of the group it was asked from. */
+      const dl = (e.target as HTMLElement).closest<HTMLElement>('[data-download]');
+      if (dl) { e.preventDefault(); void openItem(itemKey(downloadItem()), groupOf(dl), openingOf(e)); return; }
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
       if (sb?.dataset.splitKey) { e.preventDefault(); void openItem(sb.dataset.splitKey, groupOf(sb), openingOf(e)); return; }
       /* "Practice this section" at the end of a section: a practice view opens as a

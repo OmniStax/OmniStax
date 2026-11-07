@@ -8,6 +8,7 @@
    place in the shell marked as <span class="feature" data-feature="…">. The
    fragment is built once per language (about.html, about.zh-CN.html); a
    language with no introduction of its own falls back to English. */
+import { RELEASES, SYSTEMS } from './download';
 import { type ByLocale, type Locale, localePath, pick, tIn } from '../i18n/index';
 
 const INTRO: ByLocale<string> = {
@@ -47,7 +48,23 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
 
   <div class="coda">
     <button type="button" class="btn primary try" data-find-textbook>${esc(t('about.try'))}</button>
-    <a class="btn try" href="${localePath('/download/', locale)}" target="_blank" rel="noopener" data-download>${esc(t('about.download.title'))}</a>
+    <a class="btn try" href="${localePath('/download/', locale)}" data-download>${esc(t('about.download.title'))}</a>
   </div>
+</article>`;
+};
+
+/* The Download page, a tab like the about page: the installers, the reader's
+   own system first (preferOwnSystem puts it there when the shell adopts the
+   page), and the older releases. The links leave the app, so they open
+   outside it. */
+export const downloadHtml = (locale: Locale = 'en'): string => {
+  const t = (key: Parameters<typeof tIn>[1], params?: Parameters<typeof tIn>[2]): string => tIn(locale, key, params);
+  return `<article class="page" data-page="download" lang="${locale}">
+  <header><h1>${esc(t('about.download.title'))}</h1></header>
+  <p class="intro">${esc(t('about.download.description'))}</p>
+  <ul class="systems">
+    ${SYSTEMS.map((s) => `<li data-os="${s.id}"><a class="get" href="${RELEASES}/latest/download/${s.file}" target="_blank" rel="noopener noreferrer">${esc(t('about.download.for', { os: s.name }))}</a></li>`).join('\n    ')}
+  </ul>
+  <p class="more"><a href="${RELEASES}" target="_blank" rel="noopener noreferrer">${esc(t('about.download.older'))}</a></p>
 </article>`;
 };

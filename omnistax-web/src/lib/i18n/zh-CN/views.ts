@@ -274,6 +274,7 @@ export const views: Readonly<Record<keyof typeof source, string>> = {
   'views.registry.openFigureInTab': '在标签页中打开 {figure}',
   'views.registry.openInTab': '在标签页中打开',
   'views.registry.whatsNew': '新功能',
+  'views.registry.download': '下载',
   'views.scope.book': '教材',
   'views.scope.chapterShort': '第{id}章',
   'views.search.ai': 'AI',
