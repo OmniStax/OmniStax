@@ -33,8 +33,8 @@ export const aboutHtml = (locale: Locale = 'en'): string => {
   return `<article class="page" data-page="about" lang="${locale}">
   <header>
     <div class="masthead">
-      <img class="logo light" src="/logos/wanxiang-primary-vermilion.svg" alt="" width="56" height="56">
-      <img class="logo dark" src="/logos/wanxiang-dark-mode.svg" alt="" width="56" height="56">
+      <!-- Drawn in currentColor, so it follows the text colour in both themes. -->
+      <svg class="logo" viewBox="0.51 0.82 85.49 86.81" width="55" height="56" aria-hidden="true" focusable="false"><circle cx="66" cy="42" r="18" fill="none" stroke="currentColor" stroke-width="3"/><g transform="translate(3 -5) translate(27 48) rotate(7) scale(0.99) translate(-27 -48)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M50 20 C46 8 32 6 28 18 C24 32 26 56 20 76 C17 87 10 92 4 86" stroke-width="3.03"/><path d="M11.5 50.5 L38 50.5" transform="rotate(4 24.75 50.5)" stroke-width="2.42"/></g><circle cx="40" cy="30" r="2.8" fill="currentColor"/></svg>
       <h1>OmniStax/万象</h1>
       <a class="repo" href="${esc(REPO)}" target="_blank" rel="noopener noreferrer">
         ${GITHUB_MARK}
