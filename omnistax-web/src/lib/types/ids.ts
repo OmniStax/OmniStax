@@ -116,7 +116,7 @@ export type ItemId =
   | { readonly kind: 'doc'; readonly book: BookId; readonly section: SectionId; readonly doc: DocKind }
   | { readonly kind: 'view'; readonly view: ViewKind; readonly instance?: ViewInstance }   /* instance: one page of that view; none is the singleton a sidebar holds */
   | { readonly kind: 'fig'; readonly book: BookId; readonly section: SectionId; readonly fig: string }    /* fig: the figure's local id, e.g. sim-plane */
-  | { readonly kind: 'page'; readonly page: 'about' | 'whatsnew' }
+  | { readonly kind: 'page'; readonly page: 'about' | 'whatsnew' | 'download' }
   | { readonly kind: 'note'; readonly note: NoteId }
   | { readonly kind: 'sheet'; readonly book: BookId; readonly sheet: SheetId }   /* one of the book's reference sheets, drawn by the app from the sheet's data */
   | { readonly kind: 'file'; readonly file: FileId }      /* a file the reader imported: a PDF read in the tab, or an image shown in it */
@@ -136,6 +136,7 @@ export const newViewItem = (view: ViewKind): ItemId => viewItem(view, newViewIns
 export const figItem = (ref: SectionRef, fig: string): ItemId => ({ kind: 'fig', book: ref.book, section: ref.section, fig });
 export const aboutItem = (): ItemId => ({ kind: 'page', page: 'about' });
 export const whatsNewItem = (): ItemId => ({ kind: 'page', page: 'whatsnew' });
+export const downloadItem = (): ItemId => ({ kind: 'page', page: 'download' });
 export const noteItem = (note: NoteId): ItemId => ({ kind: 'note', note });
 export const sheetItem = (book: BookId, sheet: SheetId): ItemId => ({ kind: 'sheet', book, sheet });
 export const fileItem = (file: FileId): ItemId => ({ kind: 'file', file });
@@ -173,6 +174,7 @@ export const parseItemKey = (s: string): ItemId | null => {
   if (view) return (VIEW_KINDS as readonly string[]).includes(view[1]) ? viewItem(view[1] as ViewKind, view[2] ? viewInstance(view[2]) : undefined) : null;
   if (s === 'page:about') return aboutItem();
   if (s === 'page:whatsnew') return whatsNewItem();
+  if (s === 'page:download') return downloadItem();
   const note = /^note:([a-z0-9]{8})$/.exec(s);
   if (note) return noteItem(noteId(note[1]));
   const sheet = /^sheet:([a-z0-9-]+)\/([\w.-]+)$/.exec(s);

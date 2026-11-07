@@ -370,6 +370,13 @@ article.page[data-page="about"]{padding-bottom:24px}
 article.page[data-page="about"] .intro{margin-top:1rem}
 article.page[data-page="about"] .intro + .intro{margin-top:0.8rem}
 article.page[data-page="about"] header{margin-bottom:0}
+/* The Download page: one button per system, the reader's own first and filled. */
+article.page[data-page="download"] .systems{list-style:none;margin:1.6rem 0 1.2rem;padding:0;display:flex;flex-direction:column;gap:8px;max-width:26rem}
+article.page[data-page="download"] .get{display:block;padding:12px 16px;border:1px solid var(--rule);border-radius:8px;background:var(--panel);color:var(--ink);text-decoration:none;font-family:var(--sans);font-weight:600}
+article.page[data-page="download"] .get:hover{border-color:var(--thumb);background:var(--soft)}
+article.page[data-page="download"] .own .get{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+article.page[data-page="download"] .more{font-family:var(--sans);font-size:.95rem}
+article.page[data-page="download"] .more a{color:var(--muted)}
 article.page .coda{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:1.8rem}
 :root[data-desktop] [data-download]{display:none}
 article.page .try{height:36px;padding:0 18px;font-size:0.9rem;text-decoration:none}

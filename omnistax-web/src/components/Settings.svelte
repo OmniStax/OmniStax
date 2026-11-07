@@ -270,7 +270,7 @@
           <button type="button" class="btn-sm" disabled={keys.isDefault} onclick={() => keys.restoreDefaults()}>{t('settings.shortcuts.resetAll')}</button>
         </div>
         {#if held}
-          <p class="hint">{reserved[0]}<span class="kept" aria-hidden="true">⊘</span>{reserved[1]}{#if host.canInstall} {installLine[0]}<button class="link" type="button" onclick={() => host.install()}>{t('settings.shortcuts.installButton')}</button>{installLine[1]}{/if} {desktopLine[0]}<a href={localePath('/download/', i18n.locale)} target="_blank" rel="noopener">{t('settings.shortcuts.desktopLink')}</a>{desktopLine[1]}</p>
+          <p class="hint">{reserved[0]}<span class="kept" aria-hidden="true">⊘</span>{reserved[1]}{#if host.canInstall} {installLine[0]}<button class="link" type="button" onclick={() => host.install()}>{t('settings.shortcuts.installButton')}</button>{installLine[1]}{/if} {desktopLine[0]}<a href={localePath('/download/', i18n.locale)} data-download>{t('settings.shortcuts.desktopLink')}</a>{desktopLine[1]}</p>
         {/if}
         <table>
           <tbody>

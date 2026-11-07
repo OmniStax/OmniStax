@@ -3,8 +3,8 @@
    per language, and a language that lacks the text falls back to English.
    The catalog's messages (tIn in index.ts) follow it, and so does everything
    kept apart from the catalog: the About introductions, release notes, page
-   fragments, /download and the desktop shell. Pure and free of the catalogs,
-   so a page that needs only the language (download.astro) imports this alone. */
+   fragments and the desktop shell. Pure and free of the catalogs, so a page
+   that needs only the language imports this alone. */
 export const LOCALES = ['en', 'zh-CN'] as const;
 export type Locale = typeof LOCALES[number];
 /* Each name in its own language, never translated. */
@@ -44,7 +44,7 @@ export const matchLocale = (languages: readonly string[]): Locale => {
   return DEFAULT_LOCALE;
 };
 
-/* The language of a page that runs no app (download.astro): the reader's choice
+/* The language of a page that runs no app: the reader's choice
    in the app (omnistax-lang), else the page's own language, else the browser's,
    else English. The app itself takes the address's language only on a first
    visit, as the reader's choice (store.svelte.ts). */

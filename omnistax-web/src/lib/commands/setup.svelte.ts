@@ -24,14 +24,13 @@ import { history } from '../history/store.svelte';
 import { colours } from '../colours/store.svelte';
 import { focus } from '../sections/focus.svelte';
 import { scope } from '../sections/scope.svelte';
-import { drawingItem, itemKey, newViewItem, noteItem, aboutItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
+import { drawingItem, itemKey, newViewItem, noteItem, aboutItem, downloadItem, parseItemKey, viewItem, type GroupKey, type NoteId, type ViewKind } from '../types/ids';
 import type { Level, Target } from '../sections/scope';
 import { foldAllIn, unfoldAllIn, hideFigsIn, showFigsIn } from '../sections/fold.svelte';
 import { reader } from '../voice.svelte';
 import { newChatTab } from '../chat/open.svelte';
 import { practice } from '../practice/store.svelte';
 import { i18n, type LocaleChoice } from '../i18n/store.svelte';
-import { localePath } from '../i18n/index';
 import { library } from '../explorer/library.svelte';
 import { languageName } from '../explorer/editions';
 import { switchEdition, switchableFrom } from '../explorer/editions.svelte';
@@ -212,7 +211,7 @@ export const installCommands = (): void => {
     get desktop() { return host.surface === 'desktop'; },
     get canInstall() { return host.canInstall; },
     install: () => { void host.install(); },
-    download: () => { window.open(localePath('/download/', i18n.locale), '_blank', 'noopener'); },
+    download: () => { void openItem(itemKey(downloadItem())); },
   };
   /* The catalogue the editions are read from; fetched once, outside any derivation. */
   void library.load();
