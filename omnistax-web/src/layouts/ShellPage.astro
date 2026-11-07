@@ -49,8 +49,10 @@ const shellProps = { own, threeUrl: config.build.threeUrl, boot };
 <!-- The manifest makes the book installable as an app, where the browser reserves no shortcuts. -->
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/fonts/fonts.css">
-<meta name="theme-color" content="#1D4ED8">
-<link rel="icon" href="/logos/wanxiang-icon-small.svg" type="image/svg+xml">
+<!-- The browser bar takes the page background (--bg) in each theme. -->
+<meta name="theme-color" content="#F5F6F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121418" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <!-- Offline releases have no cross-origin runtime dependency. The font stacks
