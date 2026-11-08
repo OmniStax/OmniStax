@@ -112,13 +112,15 @@ Everything generated wears the AI mark on the item, whose hover names the model 
 
 ## 14. When a figure is made, and what kind
 
-An idea or result the section introduces gets an interactive figure whose sliders are what is interesting and variable in the idea, not necessarily one equation's variables. A sketch figure in the book is replaced by an interactive figure covering the same quantities with the book's numbers as defaults. A photograph is kept when it serves the narrative or the text points at it, dropped when it is decoration, with the book's caption and credit when kept; the plan says which and why. A figure that serves exercises is copied faithfully, no sliders, no animation.
+A concept the section introduces may earn an interactive figure. Its sliders are what is interesting and variable in the idea, which is not always the variables of one equation.
 
-Several book figures may fold into one interactive figure when the book draws one scene several times and one live drawing is clearly better (a grid walked, then its triangle, then its diagonal). The folded figure keeps every number: its own in `number`, the rest under `folds`, an eyebrow "Figure 3.3 + 3.4 + 3.5", every image in `originals`, and every cited number in the prose links to it.
+Where the book has a figure for the idea, the new figure starts from it and usually replaces it. Set it up the way an OmniStax figure works: motion where the idea moves, a point the reader sees at once, and little effort to read. A figure that replaces nothing in the book is a Sim: no number, eyebrow "Sim". One that transforms a book figure is a Figure with the book's number in its eyebrow. The validator reads every eyebrow against its row. The mechanism is a sim in the tables and code (`kind`, `.sim`, `sim-` ids, `F.sim()`); the label follows the number, never the kind.
 
-Two labels, and the reader sees no other word. A figure that replaces nothing in the book is a Sim: no number, eyebrow "Sim". One that transforms a book figure is a Figure with the book's number in its eyebrow. The validator reads every eyebrow against its row. The mechanism is a sim in the tables and code (`kind`, `.sim`, `sim-` ids, `F.sim()`); the label follows the number, never the kind.
+A sketch figure in the book becomes an interactive one when motion helps the reader learn the idea; otherwise it stays as the book draws it. A figure built this way covers the same quantities as the book's and opens on the book's numbers. A photograph is kept when it serves the narrative or the text points at it, and dropped when it is decoration. A kept photograph keeps the book's caption and credit, and the plan says which and why.
 
-Motion is decided per figure in the plan line, with the reason. A figure moves when its idea has a time in it, registers a cycle and gets the app's transport. A figure that only answers its sliders is still: no cycle, no transport, redraw on input. Never add a dummy loop to earn a transport.
+Several book figures fold into one interactive figure when the book draws one scene several times and a single drawing shows it better. The folded figure keeps every number: its own in `number`, the rest under `folds`, an eyebrow "Figure 3.3 + 3.4 + 3.5", every image in `originals`, and every cited number in the prose links to it.
+
+Motion is decided per figure in the plan line, with the reason. A figure moves when its idea has a time in it; it registers a cycle and gets the app's transport. A figure that only answers its sliders is still: no cycle, no transport, redraw on input. Never add a dummy loop to earn a transport.
 
 ## 15. Proposing extra simulations
 
