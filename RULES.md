@@ -193,7 +193,7 @@ In exploration, ask for this specific book what would make an intuitive and stun
 
 ## 25. Translating the figure, once the translation is decided
 
-Every figure and simulation is drawn and moved in the house style, Manim's (`docs/prompts/manim-style.md`): its look and its morphing transitions always, a directed camera sequence only where the building agent judges a guided order teaches more than free exploration. New components are allowed where the idea needs them. The simulation may generalise the figure, reaching states the book did not draw, so long as the book's numbers are the defaults and the book's picture is one state of it.
+Every figure and simulation is drawn and moved in the house style, Manim's (`docs/prompts/manim-style.md`): its look and its morphing transitions always, a directed camera sequence only where the building agent judges a guided order teaches more than free exploration. New components are allowed where the idea needs them. The simulation may generalise the figure and reach states the book did not draw. It need not keep the book's layout or contain the book's picture as one of its states: it is arranged for what the reader should see first (item 14). Where it covers the same quantities as the book's figure, it opens on the book's numbers.
 
 ## 26. Controls and legibility of a simulation
 
