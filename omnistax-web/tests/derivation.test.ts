@@ -38,3 +38,11 @@ test('different equations stay different facts', () => {
   const m = model(D([node([{ tex: '\\frac{a}{bc} = 1' }, { tex: '\\frac{ab}{c} = 1' }], { tex: 'y = 2' }, [{ tex: 'y = 3', uses: [0, 1] }])]));
   assert.equal(m.facts.length, 3);
 });
+
+test('a worked example\'s eyebrow keeps every part of its number, a letter after the last digit included', () => {
+  const one = node([], { tex: 'y = 2' }, [{ tex: 'y = 3' }]);
+  const of = (source: string): string => model({ ...D([one]), source } as DerivationDTO).label;
+  assert.equal(of('Book, 7.4 Perturbation Theory, Example 7.4.1B'), 'Example 7.4.1B');
+  assert.equal(of('Book, 4.3 Observables, Example 4.3.1; first worked in 3.7, Example 3.7.3'), 'Example 4.3.1');
+  assert.equal(of('Book, Appendix, Example A.1.2'), 'Example A.1.2');
+});
