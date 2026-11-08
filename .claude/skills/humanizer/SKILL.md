@@ -11,6 +11,16 @@ describes, qualifies and narrates. This skill is the checklist that removes
 those reflexes. Apply it to every string a reader sees, in the app and in
 the books.
 
+## First pass: the humanizer plugin
+
+Run `/humanizer:humanizer` (the `humanizer@humanizer` plugin from
+github.com/blader/humanizer, declared in `.claude/settings.json`) over the
+text first, in embedded mode: it removes the general AI patterns (not-X-but-Y,
+one-line closers, triads, dashes, inflated words). Then apply this file, whose
+OmniStax rules win where the two differ. If the plugin is not installed,
+install it with `/plugin marketplace add blader/humanizer` and
+`/plugin install humanizer@humanizer`.
+
 ## The rule
 
 Say only what the UI does not already say. If the control, the label or the
