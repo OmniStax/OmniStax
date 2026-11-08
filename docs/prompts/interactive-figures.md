@@ -14,6 +14,8 @@ One line per figure in `plan.md`, before any code:
 id · replaces (Figure N.M, "Figure N.M + N.K" when folded, or Sim) · concept ids it serves · value add (root rule 24.4) · arrows: kinematic (naming what moves or flows), symbolic, or none (24.1; kinematic sets the floor at a moving figure) · moving, with what moves, or still, with the reason · sliders and choices with their types · what the headline reads · graph below, beside, or none · 3D, with the orbit bound and the reason, or 2D
 ```
 
+A debugger figure (code stepped block by block beside its drawing) adds three fields after the headline: the blocks, each `id [first–last line] touches`, nested by line containment; the inputs the choice swaps (hit, miss, duplicates, adversarial); and the level it opens at, or "default" (the coarsest with at least three stops where every step changes something). Its code is verbatim and its credit comes from the block's attribution.
+
 One figure per idea or result the section introduces; a worked example gets one only when it adds a quantity the section figure does not show. Every sketch figure in the book is replaced. Every photograph and unnumbered image is listed with keep or drop and the reason. A figure that serves an exercise is a faithful copy: no sliders, no animation. The book's numbers are the slider defaults so the figure reproduces the worked example on load. A `FIGURE` block that carries `width:` copies its widths to the row's `widths` and to `data-width` or `data-original-width` in the text; where any image lacks one, `widths` stays empty. Two to four sliders per figure, each carrying the type of its variable as its colour class, or an empty class when untyped. Extra simulations go in a separate list after the required figures, one line each saying what the reader would see; none is built until picked or until `config.md` says the plan decides. Scene above graph for a horizontal scene, graph beside for a vertical one, graph alone when the graph is the idea.
 
 ## 2. The drawing layer
@@ -261,6 +263,37 @@ Q.ket(i?) -> TeX   Q.state(i?) -> {re, im}   Q.bits(i?)   Q.at (the state shown)
 ```js
 F.circuit(d, { wires: 2, probs: true, steps: [{ g: 'H', t: 0 }, { g: 'X', t: 1, c: 0 }],
   inputs: ['00', '01', '10', '11'].map((b) => ({ value: b, label: `|${b}⟩`, state: b })), onDraw: (q) => tex(d.readout, `|\\Psi\\rangle = ${q.ket()}`) });
+```
+
+A debugger (`F.code`, `F.trace`, `F.debug`; the engine in `trace.ts`, the panel in `codepanel.ts`, the design in `docs/design-code-and-debugger.md` §2). The code is page text in the mono, no syntax colouring: only the names in `refs` wear colour, their referents'. A block is a line range; blocks nest by containment (a partial overlap is a console error). An instance of a block is a run of frames on its lines, a call made inside it included, and each loop iteration is one; the reader steps from instance end to instance end at a level of the nesting.
+
+```
+const code = F.code(d, {lang: 'python' | 'javascript', src, blocks: [{id, lines: [a, b], label, touches: [names]}], refs: {name: () => F.ref(id)}})
+                                          the shown code beside the canvas (stacked in a narrow pane); the block shown wears a band, its
+                                          label is the figure's note, the lines the last step ran are dotted in the gutter; refs are read
+                                          in draw, so write each as a function
+const frames = F.trace((at) => { …; at(L, {i, j, s}, ['compare', i, j]); … })   the figure's own JS copy of the shown code, numbered as
+                                          shown: a frame is "line L finished; these are the variables now", an optional event after;
+                                          at.enter(fn) / at.leave() around a call; snapshots capped at 64 items, 3 levels, 5,000 frames
+const dbg = F.debug(d, {code, trace | inputs: [{value, label, trace}], level, beat = 1.4, watch, draw(g)})
+                                          the transport: play, the timeline over the stops of the level (a dot each), step, step into,
+                                          step out, speed; ← on a step button goes back one stop; inputs are a choice that swaps the trace;
+                                          the readout is the watch (the frame's variables, or those `watch` names; `watch: false` for none)
+g = {ctx, frame, prev, k, block, level, levels, touched, executed, p, stop, stops, input, num(name)}   draw's argument: the frame
+                                          shown and the one it came from, k 0 … 1 eased between them, num(name) a number eased by k
+dbg.step() .back() .into() .out() .go({p, level}) .set(frames)   dbg.cursor  dbg.laid (the trace over its blocks)
+F.ds.strip(ctx, {y, values, base: 0 | 1, x, w, cell, h, dim, name}) -> S   array cells, indices beneath; base 1 draws a sentinel a₀;
+                                          S.x(i) the centre of cell i, fractional between cells; S.l S.r S.t S.b S.cell
+F.ds.pointer(ctx, S, [{at, name, color}], {side})   arrows to the cells at fractional positions, names at their tails; pointers
+                                          sharing a cell stand side by side over it and ease apart
+F.ds.region(ctx, S, {from, to, color, kind: 'shade' | 'bracket', label, side})   an invariant's shading or the window's bracket
+F.ds.counts(ctx, S, {counts: {key: n}, y, color, name, hot})   the count row under a variable window
+```
+```js
+const code = F.code(d, { src: SRC, blocks: [{ id: 'init', lines: [2, 3], label: 'start at both ends', touches: ['i', 'j'] }, …],
+  refs: { i: () => F.ref('l'), j: () => F.ref('r') } });
+F.debug(d, { code, inputs: [{ value: 'hit', label: 'hit', trace: run(A, 10) }, { value: 'miss', label: 'miss', trace: run(A, 13) }],
+  draw: (g) => { const S = F.ds.strip(g.ctx, { y: 230, values: A }); F.ds.pointer(g.ctx, S, [{ at: g.num('i'), name: 'i', color: F.ref('l') }, { at: g.num('j'), name: 'j', color: F.ref('r') }]); } });
 ```
 
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
