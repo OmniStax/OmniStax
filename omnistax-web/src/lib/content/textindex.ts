@@ -8,6 +8,7 @@
    prints, tags dropped and rendered maths folded back to the $…$ it was written
    as. Pure. */
 import { plainText } from './fragment';
+import { withoutNoteMarks } from './plain';
 
 /* One block of prose: the qualified id of the span it lies in ("16.3-shm-period"; the
    page's own id when it lies in none), the heading over that span, and its text. */
@@ -46,8 +47,9 @@ export const textBlocks = (html: string, page: string): readonly TextBlockDTO[] 
   const emit = (): void => {
     if (block === null) return;
     const b = block; block = null;
-    const text = plainText(b.html); if (text === '') return;
-    const s = span(); const heading = HEADINGS.has(b.tag);
+    const heading = HEADINGS.has(b.tag);
+    const text = plainText(heading ? withoutNoteMarks(b.html) : b.html); if (text === '') return;
+    const s = span();
     if (heading) s.head = text;
     out.push({ span: s.id === null ? page : `${page}-${s.id}`, head: heading ? text : s.head, text });
   };

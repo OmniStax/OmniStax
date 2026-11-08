@@ -13,7 +13,7 @@ import type { Neighbours } from './roles';
 import { ICON } from '../icons';
 import { aiMarkHtml } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
-import { TAG, plainText } from './plain';
+import { TAG, plainText, withoutNoteMarks } from './plain';
 import { type Locale, matchLocale, tIn } from '../i18n/index';
 
 /* The catalog a book's pages are written in: its language's, else English (a book in a language the app has no catalog for). */
@@ -270,7 +270,7 @@ export const noteExercise = (e: ExerciseDTO, rows: readonly FootnoteRowDTO[], by
 export type SpanHead = { readonly id: string; readonly title: string };
 const SPAN_HEAD = /<section\b[^>]*\bid="([^"]+)"[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\/h2>/g;
 export const spanHeads = (html: string): readonly SpanHead[] =>
-  [...html.matchAll(SPAN_HEAD)].map(([, id, head]) => ({ id, title: plainText(head) })).filter((h) => h.title !== '');
+  [...html.matchAll(SPAN_HEAD)].map(([, id, head]) => ({ id, title: plainText(withoutNoteMarks(head)) })).filter((h) => h.title !== '');
 
 /* The pages either side of this one, by address and by the name they are listed under. */
 export type PageLink = { readonly url: string; readonly label: string };

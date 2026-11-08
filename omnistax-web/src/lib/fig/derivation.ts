@@ -156,7 +156,7 @@ export function model(D: DerivationDTO) {
   visit(last); N.forEach((_, i) => visit(i));
   /* the eyebrow word: the book's example where the record works one, else plural where more than one result is an end */
   const ends = N.filter((_, i) => !nodes.some((m) => m.steps.includes(i))).length;
-  const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1 and A.1.2 */
+  const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+[A-Z]?)\b/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1, A.1.2 and 7.4.1B */
   const label = ex ? msg('fig.derivation.example', { n: ex[1] }) : ends > 1 ? msg('fig.derivation.many') : msg('fig.derivation.one');
   /* the conditions a start line holds by, less the fact or result it is: a line is not its own condition */
   const holds = N.map((n, i) => n.then.uses.filter((u) => { const a = n.assumes[u]; return !a || (a.step !== undefined ? a.step !== thenFrom[i] : nodes[i]!.factOf.get(u) !== nodes[i]!.thenFact); }));

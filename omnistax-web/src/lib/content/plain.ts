@@ -9,6 +9,11 @@ export const mapText = (html: string, f: (text: string) => string): string => {
 };
 /* The text one fragment of a head reads as: tags dropped, prerendered math back to the $…$ it was written as, entities decoded, whitespace collapsed.
    A tag walk, as in linkFigureRefs: KaTeX markup is a tree whose visual branch repeats the symbols, so inside it only the TeX annotation is kept. */
+/* A heading may carry a note's marker after its words (root rule 13): the marker names no part of the heading,
+   so a heading's name, in the outline, the search index or a card, is read without it. */
+export const NOTE_MARK = /<sup\b[^>]*\bclass="fn\b[^"]*"[^>]*>[\s\S]*?<\/sup>/g;
+export const NOTE_MARK_SELECTOR = 'sup.fn';
+export const withoutNoteMarks = (html: string): string => html.replace(NOTE_MARK, '');
 const KATEX = /^<span\b[^>]*\bclass="katex/;
 const TEX = /^<annotation\b[^>]*x-tex/;
 const unesc = (s: string): string => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');

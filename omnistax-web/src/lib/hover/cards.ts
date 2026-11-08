@@ -14,7 +14,7 @@ import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
 import { symOf, typeOf, symbolTarget, otherMeanings, rowInForce } from './data';
-import { plainText } from '../content/plain';
+import { NOTE_MARK_SELECTOR, plainText } from '../content/plain';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
 import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, functionCard, matchEquation, firstSentence, swatchOf } from './resolve';
@@ -43,8 +43,8 @@ const chapterData = (ref: SectionRef) => { const dir = registry.chapterOf(ref)?.
 /* A heading's text without the MathML twin of its math, and without the example number. */
 export const headingText = (h: Element | null | undefined): string | undefined => {
   if (!h) return undefined;
-  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove());
-  return c.textContent?.replace(/\s+/g, ' ').replace(/^Example [\d.]+ · /, '').trim();
+  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll(`.katex-mathml, ${NOTE_MARK_SELECTOR}`).forEach((m) => m.remove());
+  return c.textContent?.replace(/\s+/g, ' ').replace(/^Example (?:\d+|[A-Z])(?:\.\d+)+[A-Z]? · /, '').trim();
 };
 const spanTitle = (book: BookId, id: SpanId): string | undefined => headingText(findEl(book, id)?.querySelector('h2, h3'));
 /* The name a list of places gives a span: the heading as the book prints it,
@@ -52,7 +52,7 @@ const spanTitle = (book: BookId, id: SpanId): string | undefined => headingText(
    A span of a section not yet loaded has no heading here, and is left unnamed. */
 export const spanName = (book: BookId, id: SpanId): string | undefined => {
   const h = findEl(book, id)?.querySelector('h2, h3'); if (!h) return undefined;
-  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll(`.katex-mathml, ${NOTE_MARK_SELECTOR}`).forEach((m) => m.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim();
 };
 /* Spans as places: the named ones by heading, and the unnamed ones of a section not
    yet loaded gathered into one place per section, named by the section's title. */
