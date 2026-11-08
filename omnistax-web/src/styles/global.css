@@ -492,3 +492,30 @@ article.page .try{height:36px;padding:0 18px;font-size:0.9rem;text-decoration:no
 .dv-dot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;border:1.5px dotted var(--muted);background:var(--bg);padding:0;cursor:pointer;z-index:2}
 .dv-dot:hover{border-color:var(--ink)}
 .dv-dot.at{border-style:solid;border-color:var(--ink);background:var(--ink)}
+/* a debugger figure (fig/codepanel.ts, F.debug): the code left of the drawing, stacked when the pane is narrow.
+   The code is page text in the mono; no syntax colouring, only the referents' names wear colour. */
+.dbg-row{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+.dbg-row>.cp{flex:0 1 auto;min-width:0;max-width:100%;border-right:1px solid var(--rule)}
+.dbg-draw{flex:1 1 28rem;min-width:0;position:relative;align-self:center}
+.cp{display:flex;flex-direction:column;font-family:var(--mono);font-size:0.8rem;background:var(--panel);color:var(--ink)}
+.cp-body{flex:1;overflow-x:auto}
+.cp-src{--cp-pad:10px;position:relative;margin:0;padding:var(--cp-pad) 0;font:inherit;line-height:var(--cp-lh,1.5em);background:transparent;border:0;overflow:visible}
+.cp-line{display:block;position:relative;padding-right:14px;white-space:pre}
+.cp-no{display:inline-block;width:3.4em;padding-right:1.2em;text-align:right;color:var(--muted);opacity:.55;user-select:none}
+.cp-line.ran .cp-no{opacity:1}
+.cp-line.ran .cp-no::before{content:"";position:absolute;left:7px;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:var(--muted)}
+.cp-line.at .cp-no{color:var(--ink)}
+.cp-line.at .cp-no::before{content:"";position:absolute;left:6px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--ink)}
+.cp-band{position:absolute;left:0;right:0;top:0;height:0;background:var(--soft2);border-left:3px solid var(--ink);opacity:0;pointer-events:none;transition:top .35s cubic-bezier(0.45,0,0.55,1),height .35s cubic-bezier(0.45,0,0.55,1),opacity .2s}
+.cp-band.on{opacity:1}
+.cp-var{font-weight:600}
+.cp-var.touched,.dbg-var.touched .dbg-name{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.cp-note{min-height:2.4em;padding:6px 14px 8px;border-top:1px solid var(--rule);font-family:var(--figure);font-size:0.95rem;line-height:1.4;color:var(--ink)}
+.cp-note[data-lines]::before{content:attr(data-lines);margin-right:.7em;font-family:var(--sans);font-size:0.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dbg-watch{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 20px;font-family:var(--mono);font-size:0.85rem}
+.dbg-name{font-weight:600}
+@media (prefers-reduced-motion: reduce){.cp-band{transition:none}}
+html.anim-off .cp-band{transition:none}
+/* stepping is not motion: the step buttons stay live when the reader turns animation off */
+html.anim-off .transport.debug .tbtn[class*="dbg-"]{opacity:1;pointer-events:auto}
+html.anim-off .transport.debug .tbtn[class*="dbg-"]:disabled{opacity:.4}

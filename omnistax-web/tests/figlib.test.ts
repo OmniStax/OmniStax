@@ -327,3 +327,57 @@ test('a bg panel encloses its text as the layer shows it', () => {
   const box = FIG.label(ctx, s, 700, 300, { size: 17 });
   assert.ok(box.r - box.l >= tw, 'a label returns the box its text takes');
 });
+
+/* ---------- F.ds: the data-structure primitives of a debugger figure ---------- */
+test('a strip centres its cells, and a 1-based strip draws the sentinel a₀ before index 1', () => {
+  const ctx = stub(400);
+  const S = FIG.ds.strip(ctx, { y: 200, values: [1, 3, 4, 6, 8, 11] });
+  assert.equal(S.n, 6); assert.equal(S.base, 0); assert.equal(S.cell, 84);
+  assert.equal((S.l + S.r) / 2, FIG.LW / 2);
+  assert.equal(S.x(0), S.l + 42); assert.equal(S.x(5), S.r - 42);
+  assert.equal(S.x(2.5), (S.x(2) + S.x(3)) / 2, 'a fractional index lies between its cells');
+  assert.deepEqual(ctx.drawn.filter((d) => d.y === 200).map((d) => d.s), ['1', '3', '4', '6', '8', '11']);
+  assert.deepEqual(ctx.drawn.filter((d) => d.y > 200).map((d) => d.s), ['0', '1', '2', '3', '4', '5'], 'indices under the cells');
+  const one = stub(400), S1 = FIG.ds.strip(one, { y: 200, values: [7, 9], base: 1 });
+  assert.equal(S1.r - S1.l, 3 * S1.cell, 'the sentinel takes a cell');
+  assert.ok(one.drawn.some((d) => d.s === 'a' && Math.abs(d.x - S1.x(0)) < 30), 'a₀ sits in the sentinel cell');
+  assert.deepEqual(one.drawn.filter((d) => d.y === 200 && d.s !== 'a').map((d) => d.s), ['7', '9']);
+  const tight = FIG.ds.strip(stub(), { y: 200, values: Array.from({ length: 40 }, (_, k) => k), w: 1200 });
+  assert.equal(tight.cell, 30, 'a long array shrinks its cells to the width');
+});
+
+test('pointers sharing a cell stand side by side, and ease back to the middle as they part', () => {
+  const lean = (ps: { at: number; name: string }[]) => FIG.ds.stackOf(ps).map((x) => Math.round(x * 1000) / 1000);
+  assert.deepEqual(lean([{ at: 0, name: 'i' }, { at: 5, name: 'j' }]), [0, 0]);
+  assert.deepEqual(lean([{ at: 3, name: 'i' }, { at: 3, name: 'j' }]), [-0.22, 0.22]);
+  assert.deepEqual(lean([{ at: 3, name: 'i' }, { at: 3.5, name: 'j' }]), [-0.11, 0.11]);
+  assert.deepEqual(lean([{ at: 2, name: 'a' }, { at: 2, name: 'b' }, { at: 2, name: 'c' }]), [-0.44, 0, 0.44]);
+  const ctx = stub(400), S = FIG.ds.strip(ctx, { y: 200, values: [1, 2, 3, 4] });
+  const up = FIG.ds.pointer(ctx, S, [{ at: 1, name: 'i' }, { at: 1, name: 'j' }]);
+  assert.ok(up[0].x < S.x(1) && up[1].x > S.x(1), 'either side of the cell\'s middle');
+  assert.ok(up[1].x - up[0].x < S.cell, 'both over the one cell');
+  assert.ok(up[0].y < S.t, 'above the strip');
+  const down = FIG.ds.pointer(ctx, S, { at: 2.25, name: 'k' }, { side: 'below' });
+  assert.equal(down[0].x, S.x(2.25)); assert.ok(down[0].y > S.b + 20, 'below, clear of the index row');
+});
+
+test('a region spans its cells, and the count row centres under the strip', () => {
+  const ctx = stub(400), S = FIG.ds.strip(ctx, { y: 200, values: ['a', 'b', 'c', 'a', 'b'] });
+  const r = FIG.ds.region(ctx, S, { from: 1, to: 3, color: '#336699' });
+  assert.equal(r.l, S.x(1) - S.cell / 2); assert.equal(r.r, S.x(3) + S.cell / 2);
+  assert.deepEqual(FIG.ds.region(ctx, S, { from: 3, to: 1, color: '#336699', kind: 'bracket', label: 'window' }), r, 'either order');
+  assert.ok(ctx.drawn.some((d) => d.s === 'window'));
+  const C = FIG.ds.counts(ctx, S, { counts: { a: 2, b: 1, c: 0 } });
+  assert.equal((C.l + C.r) / 2, (S.l + S.r) / 2);
+  assert.ok(C.x('a') < C.x('b') && C.x('b') < C.x('c'));
+  assert.ok(C.y > S.b, 'under the strip');
+  assert.deepEqual(ctx.drawn.filter((d) => d.y === C.y + 30).map((d) => d.s), ['2', '1', '0']);
+});
+
+test('F.trace records a figure\'s frames, and F.debug, F.code and F.ds are on the library', () => {
+  const fr = FIG.trace((at) => { const xs = [3]; at(1, { xs }); xs.push(4); at(2, { xs }, ['grow', 4]); });
+  assert.deepEqual(fr.map((f) => f.vars.xs), [[3], [3, 4]]);
+  assert.deepEqual(fr[1].ev, ['grow', 4]);
+  for (const k of ['debug', 'code', 'trace'] as const) assert.equal(typeof FIG[k], 'function');
+  for (const k of ['strip', 'pointer', 'region', 'counts'] as const) assert.equal(typeof FIG.ds[k], 'function');
+});
