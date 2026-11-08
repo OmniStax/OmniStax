@@ -7,6 +7,8 @@
   import type { SessionId } from '../../lib/practice/model';
   import { mathHtml } from '../actions/math';
   import ChoiceAnswer from './ChoiceAnswer.svelte';
+  import CodeAnswer from './CodeAnswer.svelte';
+  import { evidenceOf } from '../../lib/code/check';
   import AiTag from '../practice/AiTag.svelte';
   import { exerciseName } from '../../lib/practice/labels';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
@@ -91,12 +93,17 @@
   const linked = $derived(linkedDrawing(at));
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? i18n.t('exercises.card.drawing') : null);
   const scratch = (e?: MouseEvent): void => { void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
+  /* A choice and a code card answer by their own buttons; the rest show a solution and the reader marks it.
+     No AI grades either: a choice has its key, and code has its tests. */
+  const selfMarked = $derived(a.type !== 'choice' && a.type !== 'code');
+  /* Giving up on code before a pass is −1 and shows the solution (code/check.ts, evidenceOf). */
+  const giveUp = (): void => { solutionOpen = true; const e = evidenceOf({ kind: 'giveUp', passed: recorded === true }); if (e !== null) record(e, false); };
   let gradeFailed = $state<string | null>(null);
   let graded = $state<Graded | null>(null);
-  const aiGrading = $derived(!inline && !review && !!session && practice.settings.grading === 'ai' && a.type !== 'choice' && !!sol && gradeFailed === null);
+  const aiGrading = $derived(!inline && !review && !!session && practice.settings.grading === 'ai' && selfMarked && !!sol && gradeFailed === null);
   let answered = $state('');
   const onGraded = (g: Graded, answer: string): void => { graded = g; answered = answer; solutionOpen = true; record(g.verdict === 'right', false); };
-  const revealable = $derived(a.type !== 'choice' && !!sol && !solutionOpen && !completed && !aiGrading);
+  const revealable = $derived(selfMarked && !!sol && !solutionOpen && !completed && !aiGrading);
   const hintable = $derived(!review && !!hint && !hintShown && !completed);
   /* The files beside this exercise, under _practice: its scratch drawing, and its notes and chats. */
   const KIND_ICON: Readonly<Record<string, string>> = { note: ICON.note, drawing: ICON.drawing, chat: ICON.chat };
@@ -172,6 +179,10 @@
   {:else if a.type === 'choice'}
     <ChoiceAnswer answer={a} name="c-{section}-{ex.id}" locked={outcome} oncheck={(v: Verdict) => record(v.ok, false)} tools={inline ? undefined : scratchpad} />
     {#if completed && sol}{@render solution()}{/if}
+  {:else if a.type === 'code'}
+    {#if hintShown}{@render hintBlock()}{/if}
+    <CodeAnswer answer={a} {book} {section} ex={ex.id} locked={completed} onpass={() => record(true, false)} ongiveup={giveUp} tools={inline ? undefined : scratchpad} />
+    {#if (completed || solutionOpen) && sol}{@render solution()}{/if}
   {:else if sol}
     {#if hintShown}{@render hintBlock()}{/if}
     {#if solutionOpen || completed}
@@ -192,9 +203,9 @@
   {#if !review && aiGrading && !completed}
     {#if hintable}<div class="actions">{@render hintButton()}</div>{/if}
     <AiGrade {ex} {at} ongraded={onGraded} onfail={(why) => (gradeFailed = why)} />
-  {:else if !review && ((!inline && a.type !== 'choice') || revealable || hintable)}
+  {:else if !review && ((!inline && selfMarked) || revealable || hintable)}
     <div class="actions">
-      {#if !inline}{@render scratchpad()}{/if}
+      {#if !inline && selfMarked}{@render scratchpad()}{/if}
       {#if hintable}{@render hintButton()}{/if}
       {#if revealable}<button type="button" class="btn primary reveal-btn" onclick={() => (solutionOpen = true)}>{i18n.t('exercises.card.showSolution')}</button>{/if}
     </div>
@@ -281,6 +292,7 @@
   .mark{color:var(--ink);font-size:1rem;line-height:0;margin-left:2px}
   .link{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
   .solution-block{border-top:1px solid var(--rule);margin-top:16px;padding-top:12px}
+  .solution-block .body :global(pre.code){font-family:var(--mono);font-size:0.8rem;line-height:1.5;margin:4px 0 0;padding:8px 12px;overflow:auto;background:var(--soft);border-radius:6px}
   .solution-block .eyebrow{display:flex;align-items:center;gap:4px;margin-bottom:4px}
   .selfcheck{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
   .selfcheck .ask{color:var(--muted);margin-right:4px}

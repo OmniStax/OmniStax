@@ -52,7 +52,8 @@ const key = (a: AnswerDTO): string =>
   a.type === 'number' ? `${a.value} ${a.unit}${a.tol ? ` (tolerance ${a.tol * 100}%)` : ''}`.trim()
     : a.type === 'multi' ? a.parts.map((p) => `${p.part}: ${p.value} ${p.unit}`.trim()).join('; ')
       : a.type === 'choice' ? `option ${a.correct + 1}: ${a.options[a.correct] ?? ''}`
-        : 'an explanation';
+        : a.type === 'code' ? `code that passes ${a.tests.length} tests${a.bound ? ` in at most ~${a.bound} steps` : ''}`
+          : 'an explanation';
 
 export const gradeAsk = (prompt: string, answer: AnswerDTO, text: string, drawing: boolean): string => [
   `Exercise:\n${prompt}`,

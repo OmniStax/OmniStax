@@ -211,8 +211,16 @@ ANSWER_FIELDS = {
     "multi": {"type", "parts", "solution", "generated_by"},
     "choice": {"type", "options", "correct", "hint", "solution", "generated_by"},
     "open": {"type", "hint", "solution", "generated_by"},
+    "code": {"type", "python", "javascript", "tests", "compare", "tol", "bound", "grow", "hint", "solution", "generated_by"},
 }
 PART_FIELDS = {"part", "value", "unit", "tol", "hint"}
+# A code answer nests a row per language and a table of tests; each is strict too.
+CODE_LANG_FIELDS = {"entry", "starter", "reference", "generated_by"}
+CODE_TEST_FIELDS = {"args", "expect", "raises", "stdin", "stdout", "visible", "generated_by"}
+CODE_LANGS = ("python", "javascript")
+CODE_COMPARES = ("exact", "unordered", "tokens")
+GROWTHS = ("1", "log n", "n", "n log n", "n^2", "n^3", "2^n")
+GENERATED_BY = ("source", "ai")
 
 
 def validate_answer(answer: dict) -> None:
@@ -230,6 +238,59 @@ def validate_answer(answer: dict) -> None:
             bad = set(part) - PART_FIELDS if isinstance(part, dict) else {"(not an object)"}
             if bad:
                 raise Refused(f"answer part {i} does not take {', '.join(sorted(bad))}; a part's fields are {', '.join(sorted(PART_FIELDS))}")
+    if kind == "code":
+        validate_code(answer)
+
+
+def code_form(test: dict):
+    """A test's form, "call" or "stdin", or None where it is of no one form (schema.ts, codeFormOf)."""
+    call, stdin = "args" in test, "stdin" in test or "stdout" in test
+    if call and not stdin:
+        return "call" if ("expect" in test) != ("raises" in test) else None
+    if stdin and not call:
+        return "stdin" if "stdin" in test and "stdout" in test and "expect" not in test and "raises" not in test else None
+    return None
+
+
+def validate_code(answer: dict) -> None:
+    """What the schema's codeIssues says about a code answer, said before the write instead of after it."""
+    langs = [lang for lang in CODE_LANGS if lang in answer]
+    if not langs:
+        raise Refused("a code answer names no language: give python, javascript or both")
+    for lang in langs:
+        row = answer[lang]
+        bad = set(row) - CODE_LANG_FIELDS if isinstance(row, dict) else {"(not an object)"}
+        if bad:
+            raise Refused(f"answer.{lang} does not take {', '.join(sorted(bad))}; its fields are {', '.join(sorted(CODE_LANG_FIELDS))}")
+        if not isinstance(row.get("reference"), str):
+            raise Refused(f"answer.{lang} has no reference; the build runs it against the tests")
+        if row.get("generated_by", "source") not in GENERATED_BY:
+            raise Refused(f"answer.{lang}.generated_by is {row['generated_by']!r}; it must be source or ai")
+    tests = answer.get("tests")
+    if not isinstance(tests, list) or len(tests) < 2:
+        raise Refused("a code answer's tests are a list of at least two")
+    forms = []
+    for i, test in enumerate(tests):
+        bad = set(test) - CODE_TEST_FIELDS if isinstance(test, dict) else {"(not an object)"}
+        if bad:
+            raise Refused(f"answer test {i} does not take {', '.join(sorted(bad))}; a test's fields are {', '.join(sorted(CODE_TEST_FIELDS))}")
+        form = code_form(test)
+        if form is None:
+            raise Refused(f"answer test {i} is of no one form: args with expect or raises, or stdin with stdout")
+        if test.get("generated_by", "source") not in GENERATED_BY:
+            raise Refused(f"answer test {i}'s generated_by is {test['generated_by']!r}; it must be source or ai")
+        forms.append(form)
+    if len(set(forms)) > 1:
+        raise Refused("a code answer mixes test forms: every test is a call, or every test is stdin and stdout")
+    for lang in langs:
+        if (forms[0] == "call") != ("entry" in answer[lang]):
+            raise Refused(f"answer.{lang} names no entry, which a call needs" if forms[0] == "call" else f"answer.{lang} names an entry, and a program read on stdin has none")
+    if answer.get("compare", "exact") not in CODE_COMPARES:
+        raise Refused(f"a code answer's compare is {answer['compare']!r}; it must be one of {', '.join(CODE_COMPARES)}")
+    if answer.get("bound", "n") not in GROWTHS:
+        raise Refused(f"a code answer's bound is {answer['bound']!r}; it must be one of {', '.join(GROWTHS)}")
+    if ("bound" in answer) != ("grow" in answer):
+        raise Refused("a code answer gives one of bound and grow without the other")
 
 
 # ------------------------------------------------------------ reading the disk

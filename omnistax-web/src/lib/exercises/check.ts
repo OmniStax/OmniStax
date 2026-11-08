@@ -22,7 +22,14 @@ export const checkChoice = (picked: number | null, correct: number, hint?: strin
    the value the answer already carries. An open answer with no solution has nothing
    to compare against, and gets none. */
 export const solutionText = (a: AnswerDTO): string | undefined =>
-  a.solution ?? (a.type === 'number' ? `${a.value} ${a.unit}`.trim() : a.type === 'multi' ? a.parts.map((p) => `${p.part}: ${p.value} ${p.unit}`.trim()).join(' · ') : undefined);
+  a.solution ?? (a.type === 'number' ? `${a.value} ${a.unit}`.trim() : a.type === 'multi' ? a.parts.map((p) => `${p.part}: ${p.value} ${p.unit}`.trim()).join(' · ')
+    : a.type === 'code' ? referenceHtml(a) : undefined);
+/* A code answer with no worked solution shows its reference, the first language's. */
+const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const referenceHtml = (a: Extract<AnswerDTO, { type: 'code' }>): string | undefined => {
+  const ref = (a.python ?? a.javascript)?.reference;
+  return ref === undefined ? undefined : `<pre class="code"><code>${esc(ref)}</code></pre>`;
+};
 
 /* The nudge a card holds back until the reader asks for it. A choice's hint answers a wrong pick instead. */
 export const hintText = (a: AnswerDTO): string | undefined =>

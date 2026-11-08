@@ -4,7 +4,8 @@ import { t } from '../i18n/index';
 import { chord } from '../commands/chord';
 import { isFontId } from '../settings/fonts';
 import { TipStateSchema } from '../tips/model';
-import { AnswerSchema, BLOOM_LEVELS } from '../content/schema';
+import { BLOOM_LEVELS } from '../content/schema';
+import { GeneratedAnswerSchema } from '../practice/generated';
 import { isDictationLang } from '../chat/dictation';
 import { migrateRecords } from './migrate';
 import { DATA_VERSION } from './format';
@@ -42,7 +43,7 @@ const scalarKeys = new Map<string, (value: string) => boolean>([
 const jsonKeys = new Set([
   'omnistax-shortcuts', 'omnistax-practice',
   'omnistax-practice-pages',
-  'omnistax-practice-sessions', 'omnistax-practice-links',
+  'omnistax-practice-sessions', 'omnistax-practice-links', 'omnistax-code-drafts',
   'omnistax-library', 'omnistax-explorer', 'omnistax-notedocs',
   'omnistax-layout', 'omnistax-scopes',
   'omnistax-folded', 'omnistax-hidden-figs',
@@ -84,7 +85,7 @@ export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
   if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key) || key === 'omnistax-drawing-palette') return 'appearance';
   if (key === 'omnistax-shortcuts') return 'shortcuts';
-  if (['omnistax-practice', 'omnistax-practice-sessions', 'omnistax-practice-links'].includes(key)) return 'practice';
+  if (['omnistax-practice', 'omnistax-practice-sessions', 'omnistax-practice-links', 'omnistax-code-drafts'].includes(key)) return 'practice';
   if (key === 'omnistax-library' || key === 'omnistax-explorer' || key === 'omnistax-auto-update') return 'library';
   if (key === 'omnistax-notedocs' || key === 'omnistax-file-index' || key === 'omnistax-filemarks'
     || key === 'omnistax-drawing-index' || key === 'omnistax-scratch-index'
@@ -206,10 +207,10 @@ export const ChatSchema = z.object({
 }).strict();
 
 /* An exercise a model wrote for a concept, kept in IndexedDB and carried
-   whole like a chat. Its answer is the book's own answer shape. */
+   whole like a chat. Its answer is the book's own answer shape, never code. */
 export const GeneratedSchema = z.object({
   id: z.string().min(1).max(40), book: z.string().min(1), section: z.string().min(1), concepts: z.array(z.string().min(1)).min(1),
-  prompt: z.string(), answer: AnswerSchema, bloom: z.enum(BLOOM_LEVELS), facet: z.string(),
+  prompt: z.string(), answer: GeneratedAnswerSchema, bloom: z.enum(BLOOM_LEVELS), facet: z.string(),
   model: z.object({ provider: z.enum(PROVIDERS), model: z.string().min(1) }).strict(),
   created: finite.nonnegative(), uses: finite.nonnegative(),
   request: z.object({ standard: z.boolean(), note: z.string().optional() }).strict(),
@@ -262,6 +263,8 @@ const validators: Readonly<Record<string, z.ZodTypeAny>> = {
   'omnistax-practice': z.object({ attempts: z.array(attempt), shown: z.array(shown), rounds: z.array(round), self, settings: practiceSettings }).strict(),
   'omnistax-practice-pages': z.record(page),
   'omnistax-practice-sessions': z.record(session),
+  /* The code the reader has written into each code exercise, keyed book|section|exercise|language. */
+  'omnistax-code-drafts': z.record(z.string()).refine((d) => Object.keys(d).every((k) => k.split('|').length === 4), { message: 'a code draft is keyed book|section|exercise|language' }),
   'omnistax-practice-links': z.object({ folder: z.string().min(1).nullable(), links: z.record(z.array(z.string().regex(/^(?:note|drawing|chat):[a-z0-9]{8}$/))) }).strict(),
   'omnistax-library': z.array(z.string()),
   'omnistax-explorer': tree,

@@ -48,10 +48,13 @@ export const pickStored = (stored: readonly GeneratedExercise[], concept: string
 
 /* ---------- the model's answer ---------- */
 
+/* A model writes no code exercises: a code answer needs a reference and tests the build has run, and none of
+   that can be checked in the reader's browser. The answer is the book's shape with the code variant refused. */
+export const GeneratedAnswerSchema = AnswerSchema.refine((a) => a.type !== 'code', { message: 'a generated exercise cannot be a code exercise' });
 const bloomOf = (v: unknown): unknown => typeof v === 'string' ? BLOOM_LEVELS.find((b) => b.toLowerCase() === v.trim().toLowerCase()) ?? v : v;
 export const GeneratedItemSchema = z.object({
   prompt: z.string().min(1),
-  answer: z.preprocess((v) => (typeof v === 'object' && v !== null ? { ...v, generated_by: 'ai' } : v), AnswerSchema),
+  answer: z.preprocess((v) => (typeof v === 'object' && v !== null ? { ...v, generated_by: 'ai' } : v), GeneratedAnswerSchema),
   bloom: z.preprocess(bloomOf, z.enum(BLOOM_LEVELS)),
   facet: z.string().min(1),
 }).strip();
