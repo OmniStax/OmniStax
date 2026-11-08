@@ -144,7 +144,10 @@ class Colours {
     const hues = m ? pairsOf(palette, order.length, vision) : null;
     if (!m || !hues) return false;
     const pages = pagesOfBook(m);
-    const got = mode === 'order' ? assignInOrder(order, hues) : assignSmart({ categories: order, colours: hues, pages, fixed: fixedOf(pages), vision, seed: DEFAULT_SEED });
+    const smart = () => assignSmart({ categories: order, colours: hues, pages, fixed: fixedOf(pages), vision, seed: DEFAULT_SEED });
+    /* on the book's own palette and vision, smart is the book's default, its pins included (defaults.ts) */
+    const own = m.colours && palette.id === m.colours.palette && vision === m.colours.vision;
+    const got = mode === 'order' ? assignInOrder(order, hues) : own ? withPins(smart(), m.colours?.pins) : smart();
     const types = order.filter((k) => got.has(k));
     const next = applyHues(setCategories(setVision(this.choices, vision), { palette: palette.id, mode }), types, types.map((k) => got.get(k) as Hue));
     if (!next) return false;

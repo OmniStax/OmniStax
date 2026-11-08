@@ -5,7 +5,7 @@ import { loadBook, mediaRootsOf, withInheritedTypes } from '../src/lib/content/l
 import { bookDir, bookId } from '../src/lib/types/ids';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, checkLanguage, checkTranslationMeta, checkParity,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -230,6 +230,17 @@ test('checkSpans: a span, a cite and a place the text has no id for', () => {
   const ex = { id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', prompt: 'p', answer: { type: 'open' } };
   assert.match(run(checkSpans, { section: { exercises: [{ ...ex, place: { at: 'end' }, cite: 'nowhere' }] } })[0], /cite "nowhere" is no id/);
   assert.match(run(checkSpans, { section: { exercises: [{ ...ex, place: { at: 'inline', after: 'nowhere' } }] } })[0], /place.after "nowhere" is no id/);
+});
+
+test('checkHandLinks: a hand link to an id of this page or another, qualified by its page', () => {
+  const linked = (href: string) => ({ textHtml: `${TEXT}<p>See <a href="#${href}">it</a>.</p>` });
+  assert.deepEqual(run(checkHandLinks, linked('sim-ruler')), []);
+  assert.deepEqual(run(checkHandLinks, linked('16.1-sim-ruler')), []);
+  assert.deepEqual(run(checkHandLinks, linked('fn-n1')), [], 'a note id is the build\'s own');
+  assert.deepEqual(run(checkHandLinks, linked('sim-nowhere')), ['16.1/text.html: links to "#sim-nowhere", but the page has no id "sim-nowhere"']);
+  assert.deepEqual(run(checkHandLinks, linked('16.1-sim-radial')), ['16.1/text.html: links to "#16.1-sim-radial", but the page has no id "sim-radial"']);
+  assert.deepEqual(run(checkHandLinks, linked('16.3-sim-wave')), ['16.1/text.html: links to "#16.3-sim-wave", but page 16.3 is not built']);
+  assert.match(run(checkHandLinks, linked('17.2-sim-wave'))[0], /waits on section "17.2"/);
 });
 
 test('checkFootnotes: every marker names a row, every row has one marker, a book note keeps its number and a correction none', () => {

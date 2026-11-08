@@ -366,6 +366,24 @@ export const checkSpans: Check = (content) =>
     ];
   });
 
+/* A link the builder writes by hand in a page's text, to an item of this page ("#sim-planck") or of
+   another, qualified by that page's id as the build qualifies it ("#6.2-sim-radial", "#5.summary-…"),
+   must land on an id the target page's text carries. A target in a chapter the book has not added yet
+   waits; one in a chapter that is there must be built. The ids the build makes itself (notes) are skipped. */
+const HAND_HREF = /<a\b[^>]*\bhref="#([^"]+)"/g;
+const PAGE_QUALIFIED = /^(\d+\.\w+|intro|summary)-(.+)$/;
+export const checkHandLinks: Check = (content) => {
+  const pages = pagesOf(content), ids = new Map(pages.map((s) => [String(s.dto.id), localIds(s.textHtml)] as const));
+  return pages.flatMap((s) => [...new Set(Array.from(s.textHtml.matchAll(HAND_HREF), (m) => m[1]))].flatMap((href): readonly Finding[] => {
+    const q = PAGE_QUALIFIED.exec(href), page = q ? q[1] : String(s.dto.id), local = q ? q[2] : href;
+    if (RESERVED_NOTE_ID.test(local)) return [];
+    const where = `${s.dto.id}/text.html`, built = ids.get(page);
+    if (!built && waitsOn(content, page)) return [waiting(`${where} href="#${href}"`, page)];
+    if (!built) return [error(where, `links to "#${href}", but page ${page} is not built`)];
+    return built.has(local) ? [] : [error(where, `links to "#${href}", but ${page === String(s.dto.id) ? 'the page' : `page ${page}`} has no id "${local}"`)];
+  }));
+};
+
 /* A note is printed where a marker names it: every marker <sup class="fn" data-note="…"></sup> of the text, the
    summary, another note or an exercise names a row of the footnotes table, and every row has exactly one marker. An exercise's
    marker names a correction, which its card prints. A correction of a figure's original caption names the figure
@@ -897,7 +915,7 @@ export const checkParity = (content: Content, source: Content): readonly Finding
   ];
 };
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
