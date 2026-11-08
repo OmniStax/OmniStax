@@ -21,6 +21,7 @@ export type Mark = (
   | { readonly k: 'segs'; readonly segs: readonly (readonly [V3, V3])[]; readonly color: Color; readonly w?: number }
   | { readonly k: 'arrow'; readonly a: V3; readonly b: V3; readonly color: Color; readonly w?: number }
   | { readonly k: 'dot'; readonly p: V3; readonly color: Color; readonly r?: number; readonly hollow?: boolean }
+  | { readonly k: 'points'; readonly pts: readonly V3[]; readonly color: Color; readonly colors?: readonly Color[]; readonly r?: number }
   | { readonly k: 'label'; readonly s: string; readonly p: V3; readonly color?: Color; readonly cls?: 'tick' | 'bare' }
   | ({ readonly k: 'sheet'; readonly rows: readonly (readonly V3[])[]; readonly color: Color; readonly alpha?: number; readonly param?: (s: number, t: number) => readonly number[] } & Tint)
   | ({ readonly k: 'faces'; readonly faces: readonly (readonly V3[])[]; readonly color: Color; readonly alpha?: number } & Tint)
@@ -337,6 +338,11 @@ export function axes(box: Box3, o: { readonly ticks?: number | readonly [number,
 /* a point, its name, and with drop its feet in the xy-plane and on the axes */
 export const point = (p: V3, color: Color, o: Named & { readonly drop?: boolean; readonly r?: number } = {}): Mark[] => [
   ...(o.drop ? [legs([0, 0, 0], p)] : []), { k: 'dot', p, color, r: o.r }, ...named(o.name, p, color),
+];
+/* A cloud of points, one small lit ball each (r canvas units, 4 by default), drawn as one instanced mesh so
+   thousands cost one draw: a gas in a box, samples of a density. `colors`, where given, one per point. */
+export const points = (pts: readonly V3[], color: Color, o: { readonly r?: number; readonly colors?: readonly Color[]; readonly name?: string } = {}): Mark[] => [
+  { k: 'points', pts, color, ...(o.r === undefined ? {} : { r: o.r }), ...(o.colors ? { colors: o.colors } : {}), ...(o.name ? { name: o.name } : {}) },
 ];
 /* the arrow from a to b, its name at the head, and with drop its components laid from the tail along the axes */
 export const vector = (a: V3, b: V3, color: Color, o: Named & { readonly drop?: boolean; readonly w?: number } = {}): Mark[] => [

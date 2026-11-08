@@ -5,7 +5,7 @@ import { loadBook, mediaRootsOf, withInheritedTypes } from '../src/lib/content/l
 import { bookDir, bookId } from '../src/lib/types/ids';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, checkLanguage, checkTranslationMeta, checkParity,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -494,4 +494,20 @@ test('a translation’s media are its own and then its source’s, and a transla
   assert.deepEqual(mediaRootsOf([source, own], source), [path.join('/root/B', 'media')]);
   assert.deepEqual(mediaRootsOf([source, own], own), [path.join('/root/B/translations/zh-CN', 'media'), path.join('/root/B', 'media')]);
   assert.throws(() => mediaRootsOf([own], own), /translation_of "b" names no book under the content root/);
+});
+
+test('checkAttributeMarkup: a figure\'s original caption may write maths, which the app sets where it shows the caption', () => {
+  assert.deepEqual(run(checkAttributeMarkup, { textHtml: `${TEXT}<figure id="f" data-original-caption="The wavefunction $\\psi(x)$ is red"></figure>` }), []);
+  assert.equal(run(checkAttributeMarkup, { textHtml: `${TEXT}<figure id="f" title="The $x$ axis"></figure>` }).length, 1, 'any other attribute stays plain');
+});
+
+test('checkBareScripts: a book macro bare as a sub- or superscript is a KaTeX error, braced it is not', () => {
+  const book = { symbols: [{ sym: 'a', latex: 'a', macro: '\\ka' }] };
+  assert.deepEqual(run(checkBareScripts, { book, textHtml: `${TEXT}<p>$\\int_0^{\\ka} x\\,dx$ and $e^\\kappa$</p>` }), []);
+  assert.match(run(checkBareScripts, { book, textHtml: `${TEXT}<p>$\\int_0^\\ka x\\,dx$</p>` })[0], /sets \\ka bare as a sub- or superscript/);
+});
+
+test('checkDerivations: a fact the start line restates is used by it', () => {
+  const restated = { ...DRV, nodes: [{ assumes: [{ tex: 'F = ma', src: '1.1' }], then: { tex: '\\mk{m}{m}\\mk{a}{a} = \\mk{f}{F}', uses: [] }, steps: [{ tex: '\\mk{m}{m}\\mk{a}{a} = \\mk{f}{2}', uses: [] }] }] };
+  assert.deepEqual(run(checkDerivations, { section: { derivations: [restated] }, textHtml: HOSTED }), []);
 });

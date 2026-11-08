@@ -790,8 +790,17 @@ function setScripted(host: HTMLElement, s: string): void {
   host.dataset.scripted = s;
   host.replaceChildren(...uniRuns({ s, sub: false }).map((r) => (r.sub || r.sup ? Object.assign(document.createElement(r.sup ? 'sup' : 'sub'), { textContent: r.s }) : document.createTextNode(r.s))));
 }
+/* ħ is set as TeX's \hbar wherever the canvas is in the page: the figure faces carry ħ as the Maltese
+   letter, whose bar is a hairline on the ascender, and at label size it reads as a plain h. */
+const HBAR = /[\u0127\u210f]/;
+function hbarRuns(r: Run, canvas: unknown): Run[] {
+  if (r.html !== undefined || r.sub || r.sup || !HBAR.test(r.s)) return [r];
+  const html = inPage(canvas) ? typeset('\\hbar', canvas) : null;
+  if (html === null) return [r];
+  return r.s.split(/([\u0127\u210f])/).flatMap((part, i): Run[] => (i % 2 ? [{ s: '\\hbar', sub: false, html }] : part ? [{ s: part, sub: false }] : []));
+}
 const runsFor = (s: string, canvas: unknown, tex?: boolean): Run[] =>
-  (tex && s.includes('$') ? runsTex(s, canvas) : SCRIPTS.test(s) ? runsOf(s) : [{ s, sub: false }]).flatMap(uniRuns);
+  (tex && s.includes('$') ? runsTex(s, canvas) : SCRIPTS.test(s) ? runsOf(s) : [{ s, sub: false }]).flatMap(uniRuns).flatMap((r) => hbarRuns(r, canvas));
 /* ---------- the text over the canvas ----------
    What `text` sets on a canvas that is in the page is recorded and shown as the page's own
    text over it (textlayer.ts). A draw's record opens at `begin`, or at its first string on a
@@ -1394,7 +1403,7 @@ function legend(ctx: Ctx, where: Axes | Box, entries: readonly LegendEntry[], o:
   const box: Box = 'box' in where ? where.box : where, ax = 'box' in where ? where : null;
   const outside = o.corner === 'above' || o.corner === 'below', bare = !(o.panel ?? !outside);   /* outside the box it stands on the page itself, as the axis titles do */
   const size = o.size ?? 17, rowH = Math.max(shownH(ctx, size) + 8, 24), gap = 8, pad = bare ? 0 : 10, inset = 12;
-  const textW = (s: string): Logical => (s ? measure(ctx, s, { size }) : 0);
+  const textW = (s: string): Logical => (s ? measure(ctx, s, { size, tex: true }) : 0);
   /* each entry's footprint: the sample, then its name; a ramp is its end words either side of the bar, its name under it */
   const sizes = entries.map((e) => {
     if ((e.kind ?? '') === 'ramp' || e.ramp) { const [a, b] = e.ends ?? ['', '']; return { w: textW(a) + RAMP_W + textW(b) + 2 * 12, h: e.s ? 2 * rowH : rowH }; }
@@ -1435,18 +1444,18 @@ function legend(ctx: Ctx, where: Axes | Box, entries: readonly LegendEntry[], o:
     const z = sizes[i]!, cy = y + rowH / 2, c = e.color ?? PAL.ink, kind = e.ramp ? 'ramp' : e.kind ?? (e.draw ? 'draw' : 'line');
     if (kind === 'ramp') {
       const [a, b] = e.ends ?? ['', ''], x0 = x + textW(a) + (a ? 12 : 0), cols = e.ramp ?? [c];
-      if (a) text(ctx, a, x0 - 12, cy, PAL.muted, { size, align: 'right' });
+      if (a) text(ctx, a, x0 - 12, cy, PAL.muted, { size, align: 'right', tex: true });
       ctx.save(); const g = ctx.createLinearGradient(x0, 0, x0 + RAMP_W, 0);
       cols.forEach((k, j) => g.addColorStop(cols.length > 1 ? j / (cols.length - 1) : 0, k));
       ctx.fillStyle = g; ctx.fillRect(x0, cy - 9, RAMP_W, 18); ctx.strokeStyle = alpha(PAL.ink, 0.4); ctx.lineWidth = 1; ctx.strokeRect(x0, cy - 9, RAMP_W, 18); ctx.restore();
-      if (b) text(ctx, b, x0 + RAMP_W + 12, cy, PAL.muted, { size });
-      if (e.s) text(ctx, e.s, x0 + RAMP_W / 2, cy + rowH, PAL.muted, { size, align: 'center' });
+      if (b) text(ctx, b, x0 + RAMP_W + 12, cy, PAL.muted, { size, tex: true });
+      if (e.s) text(ctx, e.s, x0 + RAMP_W / 2, cy + rowH, PAL.muted, { size, align: 'center', tex: true });
     } else {
       if (kind === 'draw') e.draw!(ctx, x + SAMPLE_W / 2, cy);
       else if (kind === 'swatch') { ctx.save(); ctx.fillStyle = c; ctx.fillRect(x + 8, cy - 8, SAMPLE_W - 16, 16); ctx.restore(); }
       else if (kind === 'dot') dot(ctx, x + SAMPLE_W / 2, cy, c, !e.hollow, 8);
       else line(ctx, x + 2, cy, x + SAMPLE_W - 2, cy, c, e.w ?? 4, e.dash ? [...e.dash] : undefined);
-      text(ctx, e.s, x + SAMPLE_W + 10, cy, PAL.ink, { size });
+      text(ctx, e.s, x + SAMPLE_W + 10, cy, PAL.ink, { size, tex: true });
     }
     if (row) x += z.w + 22; else y += z.h + gap;
   });
@@ -2498,6 +2507,16 @@ function inert(): Obj3 {
   });
   return p;
 }
+/* A label of a 3D stage set at (x, y) and kept whole inside the stage: its foot no higher than the headline
+   band's foot plus its own height, and no part of it past the bottom or a side edge (a point low in the scene
+   once had its label cut off by the stage's edge). A label hangs above its point; a tick or a bare one is
+   centred on it. */
+function pinLabel(e: HTMLElement, x: number, y: number, band: number, w: number, h: number, [wide, tall]: readonly [number, number]): void {
+  const centred = e.classList.contains('tick') || e.classList.contains('bare');
+  const top = Math.min(Math.max(band + tall, y), h > 0 ? h - (centred ? tall / 2 : 0) - 2 : Infinity);
+  const left = w > 0 && wide < w ? Math.min(Math.max(x, wide / 2 + 2), w - wide / 2 - 2) : x;
+  e.style.left = left + 'px'; e.style.top = Math.max(band + tall, top) + 'px';
+}
 const stub = (stage: HTMLElement): View3d => {
   const T = three(), wrap = el('p', 'three-none', msg('fig.three.noWebgl')); stage.appendChild(wrap);
   const nil = (): void => {};
@@ -2644,11 +2663,11 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     if (name) tip.show(e.clientX - s.left, e.clientY - s.top - 12, name); else tip.hide();
   }
 
-  /* a label stands clear of the headline's band: its foot no higher than the band's foot plus its own height */
+  /* a label stands clear of the headline's band (its foot no higher than the band's foot plus its own height) and whole inside the stage */
   function place(): void {
     const w = wrap.clientWidth, h = wrap.clientHeight, t = vec3([0, 0, 0]);
-    const band = head ? head.offsetTop + head.offsetHeight : 0, tall = labels.map((l) => (band ? l.el.offsetHeight : 0));
-    labels.forEach((l, i) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = Math.max(band + tall[i], ((1 - t.y) / 2) * h - l.dy) + 'px'; });
+    const band = head ? head.offsetTop + head.offsetHeight : 0, sizes = labels.map((l) => [l.el.offsetWidth, l.el.offsetHeight] as const);
+    labels.forEach((l, i) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); pinLabel(l.el, ((t.x + 1) / 2) * w, ((1 - t.y) / 2) * h - l.dy, band, w, h, sizes[i]!); });
   }
   function dispose(): void { if (!alive) return; alive = false; views3d.delete(live); densityWatchers.delete(size); ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
   let prev = performance.now(), away = false;
@@ -3169,6 +3188,9 @@ function dashed(pts: readonly SPACE.V3[], on: number, off: number): SPACE.V3[][]
   if (cur.length > 1) out.push(cur);
   return out;
 }
+/* one low ball shared by every point of every cloud: a point is a few pixels across, so 80 faces are round enough */
+let POINT_GEO: Obj3 = null;
+const pointGeo = (): Obj3 => (POINT_GEO ??= new (three()!).IcosahedronGeometry(1, 1));
 const m2r = (p: SPACE.V3): REV.P3 => [p[0], p[2], -p[1]];   /* the book's z-up frame into the y-up frame of the scene and the painter */
 /* A value read through a colour scale of [value, colour] stops, ascending: blended between the two stops
    either side of it, held at the end stops beyond them. Tokens (ink, muted, guide) read the palette. */
@@ -3269,6 +3291,12 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
         for (let j = 0; j + 1 < nj; j++) for (let i = 0; i + 1 < ni; i++) { const k = j * ni + i; idx.push(k, k + 1, k + ni + 1, k, k + ni + 1, k + ni); }
         const cols = vertexTints(m);
         const o = mesh(pos, idx, cols ? shaded(m.alpha ?? 0.8) : mat('lit', m.color, m.alpha ?? 0.8), uv, cols); o.userData.param = m.param; named(m, o);
+      } else if (m.k === 'points') {
+        if (!m.pts.length) return;
+        const tinted = !!m.colors, o = new T.InstancedMesh(pointGeo(), tinted ? mat('lit', '#ffffff') : mat('lit', m.color), m.pts.length), M = new T.Matrix4(), r = (m.r ?? 4) * px;
+        m.pts.forEach((p, i) => { M.makeScale(r, r, r); M.setPosition(p[0], p[1], p[2]); o.setMatrixAt(i, M); if (tinted) { const [cr, cg, cb] = rgbOf(m.colors![i] ?? m.color); o.setColorAt(i, new T.Color(cr, cg, cb)); } });
+        o.instanceMatrix.needsUpdate = true; if (o.instanceColor) o.instanceColor.needsUpdate = true;
+        g.add(o); named(m, o);
       } else if (m.k === 'faces') {
         const pos: number[] = [], tints = vertexTints(m), cols: Color[] = [];
         let at = 0;
@@ -3278,7 +3306,7 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
     });
   }
   function drop(g: Obj3): void {
-    const shared = Object.values(geo());
+    const shared = [...Object.values(geo()), pointGeo()];
     g.traverse((o: Obj3) => { if (o !== g) { o.material?.dispose?.(); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); } });
     g.clear();
   }
@@ -3295,11 +3323,12 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
   }
   function place(): void {
     if (flat) return;
-    const band = headEl ? headEl.offsetTop + headEl.offsetHeight : 0;
-    layers.forEach((L) => L.labs.forEach(({ el: e, p }) => {
+    const band = headEl ? headEl.offsetTop + headEl.offsetHeight : 0, w = v.wrap.clientWidth, h = v.wrap.clientHeight;
+    const all = [...layers.values()].flatMap((L) => L.labs), sizes = all.map(({ el: e }) => [e.offsetWidth, e.offsetHeight] as const);
+    all.forEach(({ el: e, p }, i) => {
       const [x, y] = v.project(p, inner), lift = e.classList.contains('tick') || e.classList.contains('bare') ? 0 : 10;
-      e.style.left = x + 'px'; e.style.top = Math.max(band + e.offsetHeight, y - lift) + 'px';
-    }));
+      pinLabel(e, x, y - lift, band, w, h, sizes[i]!);
+    });
   }
 
   /* ---- the flat view ---- */
@@ -3334,6 +3363,7 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       if (m.k === 'arrow') at(m.b, 22); else if (m.k === 'dot') at(m.p, 16);
       else if (m.k === 'line') m.pts.forEach((p, i) => { if (i % 6 === 0) at(p, 12); });
       else if (m.k === 'sheet') m.rows.forEach((row, j) => row.forEach((p, i) => { if (i % 4 === 0 && j % 4 === 0) at(p, 26); }));
+      else if (m.k === 'points') m.pts.forEach((p, i) => { if (i % 4 === 0) at(p, 10); });
     });
     flatHits.sort((p, q) => p.r - q.r);
     all.forEach((m) => {
@@ -3341,6 +3371,13 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       else if (m.k === 'segs') m.segs.forEach((q) => path(q, m.color, m.w ?? 2));
       else if (m.k === 'arrow') { const a = P(m.a), b = P(m.b); arrow(ctx, a[0], a[1], b[0], b[1], tone(m.color), m.w ?? 5); }
       else if (m.k === 'dot') { const p = P(m.p); dot(ctx, p[0], p[1], tone(m.color), !m.hollow, m.r ?? 8); }
+      else if (m.k === 'points') {
+        ctx.save();
+        m.pts.map((p, i) => ({ q: m2r(p), c: m.colors?.[i] ?? m.color })).sort((a, b) => cam.depth(b.q) - cam.depth(a.q)).forEach(({ q, c }) => {
+          const [x, y] = cam.P(q); ctx.fillStyle = tone(c); ctx.beginPath(); ctx.arc(x, y, m.r ?? 4, 0, 2 * Math.PI); ctx.fill();
+        });
+        ctx.restore();
+      }
     });
     all.forEach((m) => {
       if (m.k !== 'label') return;

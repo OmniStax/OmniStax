@@ -1,3 +1,12 @@
+/* A tag, its quoted attribute values whole (a value may hold a `>` or a `$`), or a comment. A `<` that
+   opens no tag name followed by a space, `>` or `/` (`$a<b$`) is text. */
+export const TAG = /<\/?[A-Za-z][\w:-]*(?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?\/?>|<!--[\s\S]*?-->/g;
+/* The text between the tags, each run handed to f; the tags and their attribute values pass untouched. */
+export const mapText = (html: string, f: (text: string) => string): string => {
+  let out = '', last = 0;
+  for (const m of html.matchAll(TAG)) { out += f(html.slice(last, m.index)) + m[0]; last = m.index! + m[0].length; }
+  return out + f(html.slice(last));
+};
 /* The text one fragment of a head reads as: tags dropped, prerendered math back to the $…$ it was written as, entities decoded, whitespace collapsed.
    A tag walk, as in linkFigureRefs: KaTeX markup is a tree whose visual branch repeats the symbols, so inside it only the TeX annotation is kept. */
 const KATEX = /^<span\b[^>]*\bclass="katex/;

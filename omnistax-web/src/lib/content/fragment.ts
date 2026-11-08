@@ -13,7 +13,7 @@ import type { Neighbours } from './roles';
 import { ICON } from '../icons';
 import { aiMarkHtml } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
-import { plainText } from './plain';
+import { TAG, plainText } from './plain';
 import { type Locale, matchLocale, tIn } from '../i18n/index';
 
 /* The catalog a book's pages are written in: its language's, else English (a book in a language the app has no catalog for). */
@@ -131,8 +131,9 @@ const linkRun = (run: string, figs: ReadonlyMap<FigureNumber, SpanId>): string =
 export const linkFigureRefs = (html: string, figs: ReadonlyMap<FigureNumber, SpanId>): string => {
   if (figs.size === 0) return html;
   let a = 0, eyebrow = -1;   /* open <a> count; span depth since an eyebrow opened, −1 outside one */
-  return html.split(/(<[^>]+>)/).map((part) => {
-    if (!part.startsWith('<')) return a === 0 && eyebrow < 0 ? part.replace(REF, (run) => linkRun(run, figs)) : part;
+  /* split at whole tags, quoted attribute values included, so a caption held in an attribute is never linked into */
+  return html.split(new RegExp(`(${TAG.source})`)).map((part, i) => {
+    if (i % 2 === 0) return a === 0 && eyebrow < 0 ? part.replace(REF, (run) => linkRun(run, figs)) : part;
     if (/^<a\b/i.test(part)) a += 1; else if (/^<\/a>/i.test(part)) a = Math.max(0, a - 1);
     else if (/^<span\b[^>]*\bclass="[^"]*\beyebrow\b/.test(part) && eyebrow < 0) eyebrow = 1;
     else if (/^<span\b/.test(part) && eyebrow >= 0) eyebrow += 1;

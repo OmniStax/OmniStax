@@ -78,7 +78,7 @@ type IconName = keyof typeof ICON;
 
 /* An equation as the reader reads it, for telling whether two lines say the same thing: the term keys,
    spacing commands and grouping braces gone (a brace stays where it holds a command's argument, a
-   script or a second argument), then split at its top-level equals signs. A line that a `then` writes
+   script or a second argument; a book macro, \k…, takes no argument), then split at its top-level equals signs. A line that a `then` writes
    with keys and a fact writes bare, or with its sides swapped, is the same equation. */
 const SPACING = /\\[,;:!]|\\displaystyle|\\quad|\\qquad|\s+/g;
 function unbraced(s: string): string {
@@ -87,13 +87,23 @@ function unbraced(s: string): string {
     if (s[i] !== '{') { out += s[i]; continue; }
     let d = 0, j = i;
     for (; j < s.length; j += 1) { if (s[j] === '{') d += 1; else if (s[j] === '}') { d -= 1; if (!d) break; } }
-    const inner = unbraced(s.slice(i + 1, j)), keep = /[\\A-Za-z_^}]$/.test(out);
+    const inner = unbraced(s.slice(i + 1, j)), keep = /[_^}]$|\\(?!k)[A-Za-z]+$/.test(out);   /* a script, a second argument, a command's argument; a book macro (\k…) takes none */
     out += keep ? `{${inner}}` : inner; i = j;
   }
   return out;
 }
+/* \mk{key}{term} as the term alone, braces and all gone, keys nested in keys too */
+function unkeyed(s: string): string {
+  const group = (i: number): number => { let d = 0; for (let j = i; j < s.length; j += 1) { if (s[j] === '{') d += 1; else if (s[j] === '}') { d -= 1; if (!d) return j; } } return s.length; };
+  let out = '';
+  for (let i = 0; i < s.length; i += 1) {
+    if (s.startsWith('\\mk{', i)) { const k = group(i + 3), e = group(k + 1); out += unkeyed(s.slice(k + 2, e)); i = e; continue; }
+    out += s[i];
+  }
+  return out;
+}
 function sidesOf(tex: string): string[] {
-  const s = unbraced(strip(tex).replace(SPACING, ''));
+  const s = unbraced(unkeyed(tex.replace(SPACING, '')));
   const out: string[] = []; let depth = 0, from = 0;
   for (let i = 0; i < s.length; i += 1) {
     const ch = s[i];
@@ -107,6 +117,10 @@ function sidesOf(tex: string): string[] {
 const factKey = (a: DerivationFactDTO): string => a.text || (() => { const s = sidesOf(a.tex ?? ''); return s.length > 1 ? [...s].sort().join('=') : s[0]!; })();
 /* every side of `a` is a side of `b`: a restates b, or one link of b's chain (b = c out of a = b = c) */
 const within = (a: readonly string[], b: readonly string[]): boolean => a.length > 1 && a.every((x) => b.includes(x));
+/* A start line (`then`) is the fact it restates, and starts from the earlier result it restates whole or one
+   link of; the widget draws each once and the checker counts that fact or result as used by the line. */
+export const restatesFact = (then: string, fact: DerivationFactDTO): boolean => !fact.text && factKey({ tex: then }) === factKey(fact);
+export const restatesResult = (then: string, result: string): boolean => strip(then) === strip(result) || within(sidesOf(then), sidesOf(result));
 
 /* the facts once, numbered in first use; each node's facts and the results it rests on; the order the steps play in.
    A `then` that restates a fact is that fact, and one that restates an earlier result (or a link of its chain)
@@ -117,8 +131,7 @@ export function model(D: DerivationDTO) {
   const resKey = new Map(N.map((_, i) => [strip(result(i)), i] as const));
   const thenFrom = N.map((n, i) => {
     const j = resKey.get(strip(n.then.tex)); if (j !== undefined && j < i) return j;
-    const th = sidesOf(n.then.tex);
-    for (let k = i - 1; k >= 0; k -= 1) if (within(th, sidesOf(result(k)))) return k;
+    for (let k = i - 1; k >= 0; k -= 1) if (restatesResult(n.then.tex, result(k))) return k;
     return -1;
   });
   const facts: Fact[] = [], factId = new Map<string, number>();

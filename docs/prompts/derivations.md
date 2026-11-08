@@ -75,7 +75,7 @@ Rules the sandbox settled, which hold:
 
 ## 5. Checks
 
-Run per derivation before the section is reported: the node must parse; every node has a `then` and at least one step; every key is unique within its line; every `uses` index is in range; every fact is used somewhere; no step of elementary algebra carries a `cap`; every step changes at least one keyed term; no term fades out and returns within one node. `ost check` carries them.
+Run per derivation before the section is reported: the node must parse; every node has a `then` and at least one step; every key is unique within its line; every `uses` index is in range; every fact is used somewhere (a fact or result a node's `then` restates counts as used by that line, which starts from it, so `then.uses` does not list it; `then.uses` lists only the conditions the line holds by); no step of elementary algebra carries a `cap`; every step changes at least one keyed term; no term fades out and returns within one node. `ost check` carries them.
 
 ## 6. The API
 

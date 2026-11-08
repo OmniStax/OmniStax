@@ -17,6 +17,7 @@ import { CORRECTIONS_ID, NOTES_ID, REF, SUMMARY_ID, notedIds, printedNumbers } f
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, ExerciseRowDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
+import { restatesFact, restatesResult } from '../fig/derivation';
 import { isHex, normHex } from '../colours/model';
 import { REFERENT_COUNT } from '../colours/referents';
 import { asidesOf, referentGroups } from '../colours/scopes';
@@ -417,14 +418,16 @@ export const checkFootnotes: Check = (content) =>
     ];
   });
 
-/* An attribute's value is plain text: a "<" or a "$" in it is markup or maths the
-   page renders inside the attribute, which breaks it. The tag pattern reads
-   quoted values whole, so a ">" inside one does not end the tag early. */
+/* An attribute's value is plain text: a "<" in it is markup, and a "$" maths no attribute can show. The build
+   sets no maths inside a tag; the one attribute the app sets maths from is a figure's data-original-caption,
+   which it renders under the page's macros where the book's caption is shown, so a "$" is allowed there. The
+   tag pattern reads quoted values whole, so a ">" inside one does not end the tag early. */
+const MATH_ATTRS: ReadonlySet<string> = new Set(['data-original-caption']);
 const TAG = /<[a-zA-Z][\w-]*((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/g;
 const ATTR = /([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 export const checkAttributeMarkup: Check = (content) =>
   pagesOf(content).flatMap((s) => Array.from(s.textHtml.matchAll(TAG), (t) => Array.from(t[1].matchAll(ATTR))).flat()
-    .flatMap(([, name, dq, sq]) => (/[<$]/.test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a "<" or "$"; an attribute's value is plain text`)] : [])));
+    .flatMap(([, name, dq, sq]) => ((MATH_ATTRS.has(name) ? /</ : /[<$]/).test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a ${MATH_ATTRS.has(name) ? '"<"' : '"<" or "$"'}; an attribute's value is plain text`)] : [])));
 
 /* The figures table and the text say the same thing until the build injects the
    one from the other: one row per <figure> the text draws, no row for a figure
@@ -757,8 +760,24 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
+/* A book macro is a symbol wrapped in its colour and its key, two commands with arguments, so it cannot stand bare
+   as a sub- or superscript: `\int_0^\ka` is a KaTeX error where the page sets it ("Got function with no arguments
+   as superscript"), and only `^{\ka}` sets. Read in the text (the TeX the build keeps beside its maths, and any
+   error it printed), in the section's tables and in its figures. */
+const BARE_SCRIPT = /[_^]\s*\\+(k[A-Za-z]+)/g;
+export const checkBareScripts: Check = (content) => {
+  const macros = new Set(content.book.symbols.flatMap((x) => (x.macro ? [x.macro] : [])));
+  const bare = (where: string, text: string): Finding[] => [...new Set([...text.matchAll(BARE_SCRIPT)].map((m) => `\\${m[1]}`).filter((m) => macros.has(m)))]
+    .map((m) => error(where, `sets ${m} bare as a sub- or superscript; write it in braces, _{${m}} or ^{${m}}`));
+  return pagesOf(content).flatMap((s) => [
+    ...bare(`${s.dto.id}/text.html`, s.textHtml),
+    ...bare(`${s.dto.id}/section.json`, JSON.stringify(s.dto)),
+    ...bare(`${s.dto.id}/figures.js`, s.figuresJs),
+    ...[...s.textHtml.matchAll(/class="katex-error"[^>]*title="([^"]*)"/g)].map((m) => error(`${s.dto.id}/text.html`, `has maths KaTeX cannot set: ${m[1]!.slice(0, 120)}`)),
+  ]);
+};
+
 /* A derivation's host and its row say the same thing, and its nodes rest only on what they list and use all of it. */
-const stripKeys = (tex: string): string => tex.replace(/\\mk\{[^{}]*\}/g, '');
 export const checkDerivations: Check = (content) =>
   pagesOf(content).flatMap((s) => {
     const hosts = new Set(derivationHosts(s.textHtml)), rows = s.dto.derivations;
@@ -766,13 +785,14 @@ export const checkDerivations: Check = (content) =>
       ...rows.flatMap((d) => (hosts.has(`drv-${d.id}`) ? [] : [error(inSection(s, 'derivations', d.id), 'is no <figure class="dv"> of the section’s text')])),
       ...[...hosts].flatMap((id) => (rows.some((d) => `drv-${d.id}` === id) ? [] : [error(`${s.dto.id}/text.html`, `<figure id="${id}"> is no row of the derivations table`)])),
       ...rows.flatMap((d) => {
-        const results = d.nodes.map((m) => stripKeys(m.steps[m.steps.length - 1]!.tex));
+        const results = d.nodes.map((m) => m.steps[m.steps.length - 1]!.tex);
         return d.nodes.flatMap((n, i) => {
           const where = inSection(s, 'derivations', `${d.id}].nodes[${i}`);
           const used = new Set([...n.then.uses, ...n.steps.flatMap((x) => x.uses)]);
           return [
             ...[...used].flatMap((u) => (u < n.assumes.length ? [] : [error(where, `uses assumes[${u}], which it has no entry for`)])),
-            ...n.assumes.flatMap((a, k) => (used.has(k) || (a.step !== undefined && stripKeys(n.then.tex) === results[a.step]) ? [] : [error(where, `assumes[${k}] is never used`)])),
+            /* a fact or result the start line restates is used by it, as the widget starts the node from it (docs/prompts/derivations.md) */
+            ...n.assumes.flatMap((a, k) => (used.has(k) || (a.step !== undefined ? a.step < i && restatesResult(n.then.tex, results[a.step]!) : restatesFact(n.then.tex, a)) ? [] : [error(where, `assumes[${k}] is never used`)])),
             ...n.assumes.flatMap((a, k) => (a.step !== undefined && a.step >= i ? [error(where, `assumes[${k}] rests on node ${a.step}, which comes no earlier`)] : [])),
             ...[n.then.tex, ...n.steps.map((x) => x.tex)].flatMap((l, j) => { const ks = [...l.matchAll(/\\mk\{([^{}]*)\}/g)].map((m) => m[1]); return new Set(ks).size === ks.length ? [] : [error(where, `line ${j} keys a term twice`)]; }),
           ];
@@ -871,7 +891,7 @@ export const checkParity = (content: Content, source: Content): readonly Finding
   ];
 };
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
