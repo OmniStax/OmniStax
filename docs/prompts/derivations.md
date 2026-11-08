@@ -46,6 +46,7 @@ One record per derivation in the section's `derivations` table (`docs/content-fo
     {
       assumes: [                     // every fact and earlier result this node uses, each once
         { tex: '\\kW = \\km\\kg', src: '17.3, Example 17.17' },
+        { tex: 'E_n = \\dfrac{n^2h^2}{8mL^2}', src: '(3.5.12)', drv: '3.5/pib-energy' },   // the result of another derivation: its provenance links to it
         { text: 'The stretch $s$ is measured with the mass at rest at equilibrium.', src: '17.3' },
         { step: 1 },                 // the result of node 1 (0-based)
       ],
@@ -81,4 +82,4 @@ Run per derivation before the section is reported: the node must parse; every no
 
 The app draws every `<figure class="dv">` with `F.derivation(host, record)` from the section's `derivations` table, so sections ship data only. The widget is `src/lib/fig/derivation.ts`, its styles sit under `.dv` in `global.css`, and the build carries the table inside the section's figure module. `check:content` pairs every host with its row and checks each node's facts, uses and keys (`checkDerivations`); `ost check` knows the table's shape.
 
-Nothing in a derivation is clickable but its own controls: provenance, step numbers and the words of a reason are plain text.
+Nothing in a derivation is clickable but its own controls and one link: a fact the book derives in another derivation carries `drv` (that derivation's id, prefixed by its section where it is another one: `"drv": "3.5/pib-energy"`), and its provenance becomes a link that opens that derivation as any link to an item of a page does (rule 29.5). Step numbers and the words of a reason are plain text.

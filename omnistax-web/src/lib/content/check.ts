@@ -17,7 +17,7 @@ import { CORRECTIONS_ID, NOTES_ID, REF, SUMMARY_ID, notedIds, printedNumbers } f
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
 import type { BookDTO, ChapterDTO, ExerciseRowDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
 import { cellNumber } from './sheets';
-import { restatesFact, restatesResult } from '../fig/derivation';
+import { drvTarget, restatesFact, restatesResult } from '../fig/derivation';
 import { isHex, normHex } from '../colours/model';
 import { REFERENT_COUNT } from '../colours/referents';
 import { asidesOf, referentGroups } from '../colours/scopes';
@@ -439,7 +439,8 @@ export const checkAttributeMarkup: Check = (content) =>
    The eyebrow follows from the row. An interactive figure that replaces
    nothing in the book is a Sim, and its eyebrow reads exactly that; one that
    transforms a book figure is still a Figure, and its eyebrow reads "Figure"
-   with every number it carries. A faithful copy reads "Figure" or "Figure N"
+   with every number it carries, or "Figure" alone where the book's figure is
+   unnumbered (the row keeps its image among the originals). A faithful copy reads "Figure" or "Figure N"
    as its number says, and a photograph reads "Figure N". The kind sim names
    the mechanism, a simulation the reader can play with, and the label
    follows from the number. */
@@ -447,7 +448,8 @@ const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefine
 /* What a row's eyebrow must read, or nothing where the row cannot be labelled (a photograph with no number). */
 export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
   const printed = printedNumbers(f);
-  if (f.kind === 'sim') return printed === undefined ? 'Sim' : `Figure ${printed}`;
+  /* a sim that replaces an unnumbered book figure (it keeps the book's image as an original) is a Figure, as a kept unnumbered image is */
+  if (f.kind === 'sim') return printed !== undefined ? `Figure ${printed}` : f.originals.length ? 'Figure' : 'Sim';
   if (f.kind === 'figure') return printed === undefined ? 'Figure' : `Figure ${printed}`;
   return printed === undefined ? undefined : `Figure ${printed}`;
 };
@@ -778,8 +780,10 @@ export const checkBareScripts: Check = (content) => {
 };
 
 /* A derivation's host and its row say the same thing, and its nodes rest only on what they list and use all of it. */
-export const checkDerivations: Check = (content) =>
-  pagesOf(content).flatMap((s) => {
+export const checkDerivations: Check = (content) => {
+  /* every derivation of the book by section, for the facts that link to one elsewhere (`drv`) */
+  const all = new Map<string, ReadonlySet<string>>(pagesOf(content).map((p) => [p.dto.id, new Set(p.dto.derivations.map((d) => d.id))] as const));
+  return pagesOf(content).flatMap((s) => {
     const hosts = new Set(derivationHosts(s.textHtml)), rows = s.dto.derivations;
     return [
       ...rows.flatMap((d) => (hosts.has(`drv-${d.id}`) ? [] : [error(inSection(s, 'derivations', d.id), 'is no <figure class="dv"> of the section’s text')])),
@@ -794,12 +798,14 @@ export const checkDerivations: Check = (content) =>
             /* a fact or result the start line restates is used by it, as the widget starts the node from it (docs/prompts/derivations.md) */
             ...n.assumes.flatMap((a, k) => (used.has(k) || (a.step !== undefined ? a.step < i && restatesResult(n.then.tex, results[a.step]!) : restatesFact(n.then.tex, a)) ? [] : [error(where, `assumes[${k}] is never used`)])),
             ...n.assumes.flatMap((a, k) => (a.step !== undefined && a.step >= i ? [error(where, `assumes[${k}] rests on node ${a.step}, which comes no earlier`)] : [])),
+            ...n.assumes.flatMap((a, k) => { const t = drvTarget(a.drv, s.dto.id); return !t ? [] : !all.has(t.sec) ? [warning(where, `assumes[${k}] links to a derivation of section ${t.sec}, which is not built`)] : all.get(t.sec)!.has(t.id) ? [] : [error(where, `assumes[${k}] links to derivation "${t.id}", which section ${t.sec} has no row for`)]; }),
             ...[n.then.tex, ...n.steps.map((x) => x.tex)].flatMap((l, j) => { const ks = [...l.matchAll(/\\mk\{([^{}]*)\}/g)].map((m) => m[1]); return new Set(ks).size === ks.length ? [] : [error(where, `line ${j} keys a term twice`)]; }),
           ];
         });
       }),
     ];
   });
+};
 /* ---------- the language a book is written in, and the book a translation translates ---------- */
 
 /* A book says what language it is written in: it is the lang of every page and what the library lists the edition under. */

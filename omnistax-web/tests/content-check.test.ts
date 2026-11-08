@@ -511,3 +511,9 @@ test('checkDerivations: a fact the start line restates is used by it', () => {
   const restated = { ...DRV, nodes: [{ assumes: [{ tex: 'F = ma', src: '1.1' }], then: { tex: '\\mk{m}{m}\\mk{a}{a} = \\mk{f}{F}', uses: [] }, steps: [{ tex: '\\mk{m}{m}\\mk{a}{a} = \\mk{f}{2}', uses: [] }] }] };
   assert.deepEqual(run(checkDerivations, { section: { derivations: [restated] }, textHtml: HOSTED }), []);
 });
+
+test('checkDerivations: a fact links to a derivation that exists', () => {
+  const linked = (drv: string) => ({ ...DRV, nodes: [{ ...DRV.nodes[0], assumes: [{ ...DRV.nodes[0].assumes[0], drv }, DRV.nodes[0].assumes[1]] }] });
+  assert.deepEqual(run(checkDerivations, { section: { derivations: [linked('tug')] }, textHtml: HOSTED }), []);
+  assert.match(run(checkDerivations, { section: { derivations: [linked('rope')] }, textHtml: HOSTED })[0], /links to derivation "rope", which section 16.1 has no row for/);
+});

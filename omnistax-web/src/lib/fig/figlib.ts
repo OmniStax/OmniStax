@@ -954,7 +954,10 @@ function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): Axes 
   const k = arrivalAt(ctx), grow = during(k, 0, 0.25), fade = during(k, 0.15, 0.4);
   ctx.save(); ctx.globalAlpha *= fade;
   /* nice: ticks at round values for whatever range this frame has, as a zoom needs */
-  const at = (r: Range, n: number): { vals: number[]; dec: number } => n <= 0 ? { vals: [], dec: 0 } : o.nice ? ticks(r[0], r[1], n) : { vals: Array.from({ length: n + 1 }, (_, i) => r[0] + ((r[1] - r[0]) * i) / n), dec: 0 };
+  /* evenly spaced ticks are labelled to as many decimals as their values need (−1.5 to 1.5 in steps of 0.5 reads 0.5, not 1) */
+  const decOf = (vals: readonly number[]): number => { for (let d = 0; d < 6; d += 1) if (vals.every((v) => Math.abs(v * 10 ** d - Math.round(v * 10 ** d)) < 1e-6 * Math.max(1, Math.abs(v * 10 ** d)))) return d; return 6; };
+  const even = (r: Range, n: number): { vals: number[]; dec: number } => { const vals = Array.from({ length: n + 1 }, (_, i) => r[0] + ((r[1] - r[0]) * i) / n), step = Math.abs(r[1] - r[0]) / n; return { vals, dec: Math.min(decOf(vals), Math.max(0, Math.ceil(-Math.log10(step)) + 1)) }; };   /* thirds read to one place past the step's */
+  const at = (r: Range, n: number): { vals: number[]; dec: number } => n <= 0 ? { vals: [], dec: 0 } : o.nice ? ticks(r[0], r[1], n) : even(r, n);
   const tx = at(xr, nx), ty = at(yr, ny);
   tx.vals.forEach((v) => { if (v !== xr[0]) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, tx.dec), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); });
   ty.vals.forEach((v) => { if (v !== yr[0]) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, ty.dec), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); });
@@ -2133,6 +2136,18 @@ function turning(host: HTMLElement, first: string, ms: number, cur: () => string
 }
 
 const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
+/* An option's label may write maths as $…$ (|ψ⟩ = $Ne^{ikx}$): on a button each run is set by KaTeX under the
+   page's macros; a dropdown's <option> holds text only, so there the run is read plain, its scripts dropped to
+   the line. A label with no $ is the words as written. */
+const TEX_PARTS = /(\$[^$]+\$)/;
+function optionLabel(host: HTMLElement, label: string, at: Element): void {
+  if (!label.includes('$')) { host.innerHTML = label; return; }
+  host.replaceChildren(...label.split(TEX_PARTS).filter(Boolean).map((part) => {
+    if (!(part.startsWith('$') && part.endsWith('$') && part.length > 1)) return document.createTextNode(part);
+    const m = el('span', 'seg-tex'); tex(m, part.slice(1, -1), false, { at, values: false }); return m;
+  }));
+}
+const plainLabel = (label: string): string => label.replace(/\$([^$]+)\$/g, (_, t: string) => plain(t.replace(/[_^]/g, '')));
 const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : msg('fig.choice'));
 /* A control's name is set before it joins the figure, so it is set under the macros of the page its host stands in. */
 function ctlLabel(lab: HTMLElement, o: ChoiceOpts, host: HTMLElement): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label, false, { at: host }); lab.appendChild(name); }
@@ -2159,7 +2174,7 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
   };
   const build = (): void => {
     buttons = list.map((c) => {
-      const b = el('button', 'segbtn', c.label); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
+      const b = el('button', 'segbtn'); optionLabel(b, c.label, host); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
       b.addEventListener('click', () => pick(c.value, false)); return b;
     });
     row.replaceChildren(...buttons); mark();
@@ -2186,7 +2201,7 @@ function select(host: HTMLElement, o: ChoiceOpts): Picker {
   const lab = el('label', 'ctl-pick'); ctlLabel(lab, o, host);
   const sel = el('select', 'ctl-select'); sel.setAttribute('aria-label', ariaOf(o));
   let list = o.options;
-  const build = (): void => sel.replaceChildren(...list.map((c) => { const op = el('option'); op.value = c.value; op.textContent = c.label; return op; }));
+  const build = (): void => sel.replaceChildren(...list.map((c) => { const op = el('option'); op.value = c.value; op.textContent = plainLabel(c.label); return op; }));
   build(); sel.value = o.value ?? list[0]?.value ?? '';
   let v = sel.value;
   const tw = turning(host, v, o.ms ?? TURN_MS, () => v);

@@ -56,6 +56,8 @@ angleArc(ctx,{x,y},r,a0,a1,text,labeller) an angle's arc, its two arms and its n
 fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the greatest extents the sliders reach
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
+axes(..., {nx: 4})                        nx + 1 evenly spaced ticks, labelled to the decimals their values need ([−1.5, 1.5] by 0.75 reads
+                                          −1.50 … 1.50; fx and fy write a label themselves)
 axes(..., {nx: 0})                        nx or ny 0 draws that axis with no ticks or tick labels
 axes(..., {nice: true})                   about nx, ny ticks on round values of this frame's range, labelled to their step's decimals: a zoom
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
@@ -159,9 +161,13 @@ Controls beyond the slider (root rule 26.1):
 
 ```
 choice(host,{label,options:[{value,label}],value,aria,onInput,ms}) -> {value,set,drive,k,from,mix,a,off}   a discrete state as a button row, arrow keys walk it
+                                          an option's label may write maths as $…$ (|ψ⟩ = $Ne^{ikx}$), set by KaTeX on a button and read
+                                          plain in a dropdown
 select(host,{label,options,value,aria,onInput,ms}) -> the same handle            the same as a dropdown where a row would wrap
   k 0..1 since the last change; mix(f) blends f(from) to f(value); a(v), off(v,shift) fade and slide the parts only v has
 picker.options(list, value?)                                                       a new option list: the value stays where the list has it, else value, else the first; no input event
+A slider's value is `.v` (a number: `V.v`); a choice's or a select's is `.value` (a string: `K.value`, `+N.value` for a number).
+The two names are kept apart on purpose: the library tells a slider from a picker by which one it has.
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
 ctl(d.controls,{..., fmt: (v) => string})                                          the value as the reader reads it, unit included, in place of
                                                                                    dec and unit: a log slider shows the quantity itself
@@ -318,4 +324,4 @@ Readout: `tex(d.readout, ...)` writes the equation with the current numbers thro
 
 ## 5. Check, once
 
-Build into an outDir outside the repo, serve it, and run a headless Playwright pass with the Node package (`require('playwright')` in a `.cjs` script; it is installed globally, so run the script with `NODE_PATH` set to the global node_modules, `/opt/node-tools/node_modules` here; Python has no Playwright; `python3 -m http.server <port> -d <outDir>` serves a build) over the page in light and dark: no console or page error, every `<img>` with `naturalWidth > 0`, every `figure.sim` with a canvas, a `.transport` on moving figures only and none on still ones, every eyebrow reading "Sim" or "Figure N.M" as its row says. Screenshot every figure once at 1400 wide in both themes at its slider extremes, then one pass of fixes for labels touching, non-round ticks, text clipped at an edge or drawn outside the canvas, a label under the headline. A figure that moves or morphs is judged from frames, not from its end state: capture each change mid-way (about 40 %) and at rest, in light and dark, and once with reduced motion, and look at them as a reader. Read the caption and the plan line again against what the figure now does. Do not loop.
+Build into an outDir outside the repo, serve it, and run a headless Playwright pass with the Node package (`require('playwright')` in a `.cjs` script; it is installed globally, so run the script with `NODE_PATH` set to the global node_modules, `/opt/node-tools/node_modules` here; Python has no Playwright; `python3 -m http.server <port> -d <outDir>` serves a build) over the page in light and dark: no console or page error, every `<img>` with `naturalWidth > 0`, every `figure.sim` with a canvas, a `.transport` on moving figures only and none on still ones, every eyebrow reading "Sim", "Figure N.M", or "Figure" alone for a sim that replaces an unnumbered book figure (its row keeps the image in `originals`), as its row says. Screenshot every figure once at 1400 wide in both themes at its slider extremes, then one pass of fixes for labels touching, non-round ticks, text clipped at an edge or drawn outside the canvas, a label under the headline. A figure that moves or morphs is judged from frames, not from its end state: capture each change mid-way (about 40 %) and at rest, in light and dark, and once with reduced motion, and look at them as a reader. Read the caption and the plan line again against what the figure now does. Do not loop.

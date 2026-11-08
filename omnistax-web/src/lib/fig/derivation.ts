@@ -125,6 +125,13 @@ export const restatesResult = (then: string, result: string): boolean => strip(t
 /* the facts once, numbered in first use; each node's facts and the results it rests on; the order the steps play in.
    A `then` that restates a fact is that fact, and one that restates an earlier result (or a link of its chain)
    starts from that result, so the reader meets each equation once. */
+/* where a fact's `drv` points: a derivation of this section by its id, or of another as `3.5/pib-energy` */
+export const drvTarget = (drv: string | undefined, here: string): { readonly sec: string; readonly id: string } | null => {
+  if (!drv) return null;
+  const cut = drv.lastIndexOf('/');
+  return cut < 0 ? { sec: here, id: drv } : { sec: drv.slice(0, cut), id: drv.slice(cut + 1) };
+};
+
 export function model(D: DerivationDTO) {
   const N = D.nodes, lines = N.map((n) => [n.then.tex, ...n.steps.map((s) => s.tex)]);
   const result = (i: number): string => lines[i]![lines[i]!.length - 1]!;
@@ -238,7 +245,11 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const FE: HTMLElement[] = facts.map((f, fi) => {
     const c = el('div', 'dv-node dv-fact' + (f.tex ? ' eq' : '') + (f.then ? ' then' : ''));
     const m = c.appendChild(el('span', 'dv-m')); if (f.tex) T(m, strip(f.tex)); else words(m, f.text ?? '');
-    sticker(c, 'dv-fno', String(fi + 1)); if (f.src && !own.has(f.src)) sticker(c, 'dv-prov', paren(f.src));
+    sticker(c, 'dv-fno', String(fi + 1));
+    /* a fact the book derives elsewhere links to that derivation (rule 29.5): its provenance, or the section's number, opens it as any link to an item of a page does */
+    const there = drvTarget(f.drv, root.dataset.sec ?? '');
+    if (there) { const a = c.appendChild(el('a', 'dv-prov xref dv-drv')); a.href = `#${there.sec}-drv-${there.id}`; a.textContent = paren(f.src ?? there.sec); }
+    else if (f.src && !own.has(f.src)) sticker(c, 'dv-prov', paren(f.src));
     return c;
   });
   const stageOf = (R: Row): HTMLElement => R.stage.querySelector<HTMLElement>('.tm > .katex') || R.stage;
@@ -339,7 +350,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
     world.style.transform = `translate(${cam.x.toFixed(2)}px,${cam.y.toFixed(2)}px) scale(${cam.s.toFixed(4)})`;
   }
   let drag: { x: number; y: number } | null = null;
-  view.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY }; view.setPointerCapture(e.pointerId); view.classList.add('panning'); });
+  view.addEventListener('pointerdown', (e) => { if (e.button !== 0 || (e.target as Element).closest('a[href]')) return;   /* a fact's link to its derivation is followed, not panned */ drag = { x: e.clientX, y: e.clientY }; view.setPointerCapture(e.pointerId); view.classList.add('panning'); });
   view.addEventListener('pointermove', (e) => { if (!drag) return; user.x += e.clientX - drag.x; user.y += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; poke(); });
   const drop = (): void => { drag = null; view.classList.remove('panning'); };
   view.addEventListener('pointerup', drop); view.addEventListener('pointercancel', drop);

@@ -337,6 +337,7 @@ export const DerivationFactSchema = z.object({
   text: z.string().optional().describe('The fact as a sentence in the book\u2019s voice, `$\u2026$` for inline maths; absent where the fact is an equation or an earlier result.'),
   step: z.number().int().min(0).optional().describe('The 0-based index of the earlier node whose result this fact is; absent where the fact is an equation or a sentence.'),
   src: z.string().optional().describe('Where the book states the fact: a section, an equation number, a table, a figure or an example, as the book prints it. Absent on a given of the example itself and on an earlier result.'),
+  drv: z.string().regex(/^(?:(?:\d+|[A-Z])(?:\.\d+)*\/)?[\w-]+$/).optional().describe('The derivation this fact is the result of, where the book derives it elsewhere (rule 29.5): its id, prefixed by its section where that is another one, as `3.5/pib-energy`. The fact\u2019s provenance becomes a link that opens that derivation.'),
 }).strict().refine((a) => [a.tex, a.text, a.step].filter((x) => x !== undefined).length === 1, { message: 'a fact is one equation, one sentence or one earlier result' });
 export type DerivationFactDTO = z.infer<typeof DerivationFactSchema>;
 

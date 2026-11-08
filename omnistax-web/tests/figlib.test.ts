@@ -371,3 +371,14 @@ test('a colour scale holds at its ends and passes through its stops', () => {
   assert.equal(FIG.space.tint(sc, 1), '#ff0000');
   assert.equal(FIG.space.tint(sc, 0), '#ffffff', 'a stop is its own colour; between stops the two blend (mixColor, in the page)');
 });
+
+test('evenly spaced ticks are labelled to the decimals their values need', () => {
+  const ctx = stub();
+  FIG.axes(ctx, { l: 100, r: 1300, t: 100, b: 500 }, [0, 1], [-1.5, 1.5], { nx: 2, ny: 6 });
+  const s = ctx.drawn.map((d) => d.s);
+  assert.ok(['−1.5', '−0.5', '0.0', '0.5', '1.5'].every((x) => s.includes(x)), s.join(' '));
+  assert.ok(['0', '0.5', '1'].every((x) => s.includes(x)) || ['0.0', '0.5', '1.0'].every((x) => s.includes(x)));
+  const thirds = stub();
+  FIG.axes(thirds, { l: 100, r: 1300, t: 100, b: 500 }, [0, 1], [0, 10], { nx: 1, ny: 3 });
+  assert.ok(thirds.drawn.some((d) => d.s === '3.3'), 'thirds read one place past the step');
+});
