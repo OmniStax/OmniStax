@@ -15,7 +15,9 @@ import { inheritedTypes, splitSub } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
 import { CORRECTIONS_ID, NOTES_ID, REF, SUMMARY_ID, notedIds, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
-import type { BookDTO, ChapterDTO, ExerciseRowDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
+import { CODE_LANGS, codeIssues, type BookDTO, type ChapterDTO, type ExerciseRowDTO, type FigureRowDTO, type FrontPageRefDTO, type SectionDTO } from './schema';
+import type { Lang } from '../code/types';
+import { growBody } from '../code/grow';
 import { cellNumber } from './sheets';
 import { isHex, normHex } from '../colours/model';
 import { REFERENT_COUNT } from '../colours/referents';
@@ -416,6 +418,34 @@ export const checkFootnotes: Check = (content) =>
         .map((id) => error(text, `carries the id "${id}", which the build keeps for the notes`)),
     ];
   });
+
+/* A code answer, read without running it (`npm run check:code` runs it): what the schema says of its
+   shape, at least one test the reader sees and one they do not, the entry each language names defined
+   in its reference, and a grow that parses as JavaScript. An answer in JavaScript alone works once the
+   JavaScript runner lands, and is a warning until then. */
+const defines = (lang: Lang, code: string, entry: string): boolean => {
+  const name = entry.replace(/[$]/g, '\\$');
+  return lang === 'python'
+    ? new RegExp(`^\\s*(?:async\\s+)?def\\s+${name}\\s*\\(|^${name}\\s*=`, 'm').test(code)
+    : new RegExp(`\\bfunction\\s*\\*?\\s*${name}\\s*\\(|\\b(?:const|let|var)\\s+${name}\\s*=`).test(code);
+};
+const RUNNABLE: readonly Lang[] = ['python'];
+export const checkCodeAnswers: Check = (content) =>
+  pagesOf(content).flatMap((s) => s.dto.exercises.flatMap((e) => {
+    const a = e.answer; if (a.type !== 'code') return [];
+    const where = inSection(s, 'exercises', e.id);
+    const langs = CODE_LANGS.filter((l) => a[l] !== undefined);
+    let growOk = true;
+    if (a.grow !== undefined) { try { void new Function('rand', growBody(a.grow, 1)); } catch { growOk = false; } }
+    return [
+      ...codeIssues(a).map((what) => error(where, `answer ${what}`)),
+      ...(a.tests.some((x) => x.visible) ? [] : [error(where, 'answer has no visible test, so Run has nothing to run')]),
+      ...(a.tests.some((x) => !x.visible) ? [] : [error(where, 'answer has no hidden test, so Submit checks nothing Run did not')]),
+      ...langs.flatMap((l) => { const entry = a[l]?.entry; return entry !== undefined && !defines(l, a[l]?.reference ?? '', entry) ? [error(where, `answer.${l}.reference does not define ${entry}, which the tests call`)] : []; }),
+      ...(growOk ? [] : [error(where, 'answer.grow does not parse as a JavaScript function (n, rand) => input')]),
+      ...(langs.some((l) => RUNNABLE.includes(l)) ? [] : [warning(where, `answer is in ${langs.join(' and ')} only, which the app cannot run yet`)]),
+    ];
+  }));
 
 /* An attribute's value is plain text: a "<" or a "$" in it is markup or maths the
    page renders inside the attribute, which breaks it. The tag pattern reads
@@ -871,7 +901,7 @@ export const checkParity = (content: Content, source: Content): readonly Finding
   ];
 };
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta, checkCodeAnswers];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

@@ -423,6 +423,66 @@ const PartSchema = z.object({
   tol: z.number().positive().optional().describe('The relative tolerance the answer is checked to, as a fraction such as 0.00001; two percent where absent.'),
   hint: z.string().optional().describe('A nudge the reader can ask for before seeing the answer.'),
 }).strict();
+/* A code answer: a function the tests call, or a program that reads stdin and
+   writes stdout, in either language, checked by running it (src/lib/code/). */
+export const GROWTHS = ['1', 'log n', 'n', 'n log n', 'n^2', 'n^3', '2^n'] as const;
+export type Growth = (typeof GROWTHS)[number];
+export const CODE_LANGS = ['python', 'javascript'] as const;
+export const CODE_COMPARES = ['exact', 'unordered', 'tokens'] as const;
+const CodeLangSchema = z.object({
+  entry: z.string().optional().describe('The function the tests call, in this language. Absent where the answer is a program the tests feed on stdin.'),
+  starter: z.string().default('').describe('What the editor opens with.'),
+  reference: z.string().describe('A solution that passes every test and, where the answer names a bound, grows no faster than it; the build runs it (npm run check:code).'),
+  generated_by: GEN.describe('Whether the reference comes from the source or was written by the AI that built the section.'),
+}).strict();
+const CodeTestSchema = z.object({
+  args: z.array(z.unknown()).optional().describe('The arguments the entry is called with, as JSON. With expect or raises.'),
+  expect: z.unknown().optional().describe('The value the call returns, as JSON: a tuple is a list, a set a sorted list, None is null.'),
+  raises: z.string().optional().describe('The name of the exception the call raises, such as ValueError, instead of returning.'),
+  stdin: z.string().optional().describe('What the program reads on stdin. With stdout.'),
+  stdout: z.string().optional().describe('What the program writes; trailing spaces and blank lines at the end are not compared unless compare is exact.'),
+  visible: z.boolean().default(false).describe('Whether the reader sees the test and Run runs it. Hidden tests run on Submit; they ship to the reader\u2019s device, so hidden is not secret.'),
+  generated_by: GEN.describe('Whether the test comes from the source or was written by the AI that built the section.'),
+}).strict();
+export type CodeTestDTO = z.infer<typeof CodeTestSchema>;
+export type CodeLangDTO = z.infer<typeof CodeLangSchema>;
+/* A test is one of three forms: a call and its value, a call and the error it raises, or stdin and stdout. */
+export type CodeForm = 'call' | 'stdin';
+export const codeFormOf = (t: CodeTestDTO): CodeForm | null => {
+  const call = t.args !== undefined, stdin = t.stdin !== undefined || t.stdout !== undefined;
+  if (call && !stdin) return (t.expect !== undefined) !== (t.raises !== undefined) ? 'call' : null;
+  if (stdin && !call) return t.stdin !== undefined && t.stdout !== undefined && t.expect === undefined && t.raises === undefined ? 'stdin' : null;
+  return null;
+};
+const CodeAnswerSchema = z.object({
+  type: z.literal('code').describe('Code the reader writes, run against tests in their browser: a function the tests call, or a program reading stdin.'),
+  python: CodeLangSchema.optional().describe('The exercise in Python.'),
+  javascript: CodeLangSchema.optional().describe('The exercise in JavaScript.'),
+  tests: z.array(CodeTestSchema).min(2).describe('The tests, one list for every language, all of one form; at least one visible and one hidden.'),
+  compare: z.enum(CODE_COMPARES).optional().describe('How a result is compared: exact (the default), unordered (the top level of the returned list as a multiset), or tokens (stdout word by word).'),
+  tol: z.number().positive().optional().describe('The relative tolerance a float in a result is checked to, as a fraction such as 0.00001; one in a billion where absent.'),
+  bound: z.enum(GROWTHS).optional().describe('The growth of steps with n a passing solution may not exceed, checked by counting lines run on the inputs grow builds. With grow.'),
+  grow: z.string().optional().describe('A JavaScript function (n, rand) => input that builds a worst-case input of size n: the argument list for a function, or the stdin text for a program. rand() is a seeded number in [0, 1) and rand.int(lo, hi) a seeded integer between them. With bound.'),
+  hint: z.string().optional().describe('A nudge the reader can ask for before seeing the answer.'),
+  solution: z.string().optional().describe('The worked answer, as the book gives it or as the AI wrote it; the reference code where absent.'),
+  generated_by: GEN,
+}).strict();
+export type CodeAnswerDTO = z.infer<typeof CodeAnswerSchema>;
+/* What the zod types cannot say about a code answer, said once here so that every reader of the schema gets it. */
+export const codeIssues = (a: CodeAnswerDTO): readonly string[] => {
+  const langs = CODE_LANGS.filter((l) => a[l] !== undefined);
+  const forms = a.tests.map(codeFormOf);
+  const form = forms[0] ?? null;
+  return [
+    ...(langs.length === 0 ? ['names no language: give python, javascript or both'] : []),
+    ...forms.flatMap((f, i) => (f === null ? [`tests[${i}] is of no one form: args with expect or raises, or stdin with stdout`] : [])),
+    ...(forms.every((f) => f !== null) && forms.some((f) => f !== form) ? ['mixes test forms: every test is a call, or every test is stdin and stdout'] : []),
+    ...(form === null ? [] : langs.flatMap((l) => (form === 'call') === (a[l]?.entry === undefined) ? [form === 'call' ? `${l} names no entry, which a call needs` : `${l} names an entry, and a program read on stdin has none`] : [])),
+    ...((a.bound === undefined) !== (a.grow === undefined) ? ['gives one of bound and grow without the other'] : []),
+    ...(a.compare === 'tokens' && form === 'call' ? ['compares tokens, which only stdout has'] : []),
+    ...(a.compare === 'unordered' && form === 'stdin' ? ['compares unordered, which only a returned list can be'] : []),
+  ];
+};
 export const AnswerSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('number').describe('One number, checked to within two percent unless it names a tolerance.'),
@@ -454,7 +514,10 @@ export const AnswerSchema = z.discriminatedUnion('type', [
     solution: z.string().optional().describe('The answer the book gives, which the reader compares their own against.'),
     generated_by: GEN,
   }).strict(),
-]);
+  CodeAnswerSchema,
+]).superRefine((a, ctx) => {
+  if (a.type === 'code') codeIssues(a).forEach((message) => ctx.addIssue({ code: z.ZodIssueCode.custom, message }));
+});
 export type AnswerDTO = z.infer<typeof AnswerSchema>;
 
 const ExerciseFigureSchema = z.object({
@@ -554,6 +617,8 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   exercise_concepts: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercise_concepts', schema: ExerciseConceptSchema, note: 'Which concepts each exercise tests, and what it is worth for them.' },
   place: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].place', schema: PlaceSchema, note: 'Where an exercise is set: at the end with the problem set, or inline after a span.' },
   answer: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer', schema: AnswerSchema, note: 'An exercise\u2019s answer, one shape per way of checking it.' },
+  code_languages: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer.python, javascript', schema: CodeLangSchema, note: 'A code answer in one language: the function its tests call, what the editor opens with, and the reference the build runs.' },
+  code_tests: { level: 'section', file: '<chapter>/<section>/section.json', field: 'exercises[].answer.tests', schema: CodeTestSchema, note: 'One test of a code answer, in one of three forms: args and expect, args and raises, or stdin and stdout. A value is JSON, which a returned tuple, set or None is read as.' },
   footnotes: { level: 'section', file: '<chapter>/<section>/section.json', field: 'footnotes', schema: FootnoteSchema, note: 'The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="\u2026"></sup>` in the text, the summary or another note\u2019s html: the book\u2019s footnotes under the book\u2019s numbers, and OmniStax\u2019s corrections of the book, numbered [1], [2]\u2026 by the app and AI-marked. A correction may also stand in an exercise\u2019s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section\u2019s end; or name a figure, whose original caption it corrects.' },
   ai: { level: 'section', file: '<chapter>/<section>/section.json', field: 'ai', schema: AiCreditSchema, note: 'The AI the section was built with, by role.' },
   derivations: { level: 'section', file: '<chapter>/<section>/section.json', field: 'derivations', schema: DerivationSchema, note: 'The derivations the section draws as graphs of facts and results worked in place; each is hosted by a `<figure class="dv" id="drv-<id>">` in the text.' },

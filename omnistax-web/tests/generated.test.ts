@@ -75,6 +75,17 @@ test('the generated parser reads every good item, names a bad one, and fails wit
   assert.match(parseGenerated('```json\n{"prompt": 1}\n```').errors[0], /array/);
 });
 
+test('a model writes no code exercises: the parser and the backup refuse a code answer', async () => {
+  const codeItem = { prompt: 'Write f.', facet: 'f', bloom: 'Apply', answer: { type: 'code', python: { entry: 'f', reference: 'def f(): return 1' }, tests: [{ args: [], expect: 1, visible: true }, { args: [], expect: 1 }] } };
+  const read = parseGenerated(fence([codeItem]));
+  assert.equal(read.items.length, 0);
+  assert.match(read.errors[0], /cannot be a code exercise/);
+  const { GeneratedSchema } = await import('../src/lib/backup/schema');
+  const stored = { id: 'abc', book: 'b', section: '1.1', concepts: ['c'], prompt: 'p', answer: { ...codeItem.answer, generated_by: 'ai' }, bloom: 'Apply', facet: 'f', model: { provider: 'openai', model: 'm' }, created: 1, uses: 0, request: { standard: true } };
+  assert.equal(GeneratedSchema.safeParse(stored).success, false);
+  assert.equal(GeneratedSchema.safeParse({ ...stored, answer: { type: 'open', generated_by: 'ai' } }).success, true);
+});
+
 test('the grade parser reads a verdict and feedback, and says why when it cannot', () => {
   assert.deepEqual(parseGrade(fence({ verdict: 'Partial', feedback: ' The unit is off. ' })), { verdict: 'partial', feedback: 'The unit is off.' });
   assert.deepEqual(parseGrade('{"verdict":"right","feedback":"Yes."}'), { verdict: 'right', feedback: 'Yes.' });

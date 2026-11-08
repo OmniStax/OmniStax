@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { loadBook, mediaRootsOf, withInheritedTypes } from '../src/lib/content/load';
 import { bookDir, bookId } from '../src/lib/types/ids';
-import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
+import { AnswerSchema, BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  checkAnchors, checkCodeAnswers, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, checkLanguage, checkTranslationMeta, checkParity,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -494,4 +494,37 @@ test('a translation’s media are its own and then its source’s, and a transla
   assert.deepEqual(mediaRootsOf([source, own], source), [path.join('/root/B', 'media')]);
   assert.deepEqual(mediaRootsOf([source, own], own), [path.join('/root/B/translations/zh-CN', 'media'), path.join('/root/B', 'media')]);
   assert.throws(() => mediaRootsOf([own], own), /translation_of "b" names no book under the content root/);
+});
+
+/* ---------- code answers ---------- */
+
+const CODE = { type: 'code', python: { entry: 'two_sum', reference: 'def two_sum(nums, target):\n    return None\n' }, tests: [{ args: [[1], 2], expect: null, visible: true }, { args: [[2], 4], expect: null }] };
+const codeEx = (answer: object) => ({ section: { exercises: [{ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'How far?', answer }] } });
+
+test('the schema takes a code answer of one form and refuses what its shape cannot be', () => {
+  const ok = AnswerSchema.parse(CODE);
+  assert.equal(ok.type === 'code' && ok.tests[1].visible, false, 'a test is hidden unless it says otherwise');
+  assert.equal(ok.type === 'code' && ok.python?.starter, '');
+  const refused = (o: object): string => { const r = AnswerSchema.safeParse({ ...CODE, ...o }); return r.success ? '' : r.error.issues.map((i) => i.message).join('; '); };
+  assert.match(refused({ python: undefined }), /names no language/);
+  assert.match(refused({ tests: [CODE.tests[0]] }), /at least 2|>=2/i);
+  assert.match(refused({ tests: [CODE.tests[0], { stdin: '1', stdout: '2' }] }), /mixes test forms/);
+  assert.match(refused({ tests: [{ args: [1] }, CODE.tests[1]] }), /tests\[0\] is of no one form/);
+  assert.match(refused({ python: { reference: 'x' } }), /python names no entry/);
+  assert.match(refused({ bound: 'n' }), /bound and grow/);
+  assert.match(refused({ bound: 'n^4', grow: '(n) => [n]' }), /Invalid enum value/);
+  assert.match(refused({ compare: 'tokens' }), /only stdout has/);
+  assert.match(refused({ tests: [{ ...CODE.tests[0], hidden: true }, CODE.tests[1]] }), /Unrecognized key/);
+});
+
+test('checkCodeAnswers: a visible and a hidden test, the entry defined, grow that parses, and a language the app can run', () => {
+  assert.deepEqual(run(checkCodeAnswers, codeEx(CODE)), []);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, tests: CODE.tests.map((t) => ({ ...t, visible: true })) })), ['16.1/section.json exercises[p1]: answer has no hidden test, so Submit checks nothing Run did not']);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, tests: CODE.tests.map((t) => ({ ...t, visible: false })) })), ['16.1/section.json exercises[p1]: answer has no visible test, so Run has nothing to run']);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, python: { entry: 'twoSum', reference: 'def two_sum(): pass' } })), ['16.1/section.json exercises[p1]: answer.python.reference does not define twoSum, which the tests call']);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, bound: 'n', grow: '(n, rand) => [[...Array(n).keys()], -1]' })), []);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, bound: 'n', grow: '(n, rand) => [[' })), ['16.1/section.json exercises[p1]: answer.grow does not parse as a JavaScript function (n, rand) => input']);
+  const js = run(checkCodeAnswers, codeEx({ ...CODE, python: undefined, javascript: { entry: 'twoSum', reference: 'function twoSum(nums, target) { return null; }' } }));
+  assert.deepEqual(js, ['16.1/section.json exercises[p1]: answer is in javascript only, which the app cannot run yet']);
+  assert.deepEqual(said(errorsOf(checkContent(fixture(codeEx(CODE))))), [], 'a code card in the smallest book is no error anywhere else');
 });

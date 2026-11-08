@@ -283,7 +283,7 @@ The exercises the section sets.
 | `cite` | `string?` | no | The local id of the passage the exercise turns on, which the card can show the reader. |
 | `figure` | `{ src, alt?, caption? }?` | no | A book figure the problem refers to, kept in the card. |
 | `prompt` | `string` | yes | The question as the book asks it. |
-| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", hint?, solution?, generated_by? }` | yes | The answer and how it is checked. |
+| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", hint?, solution?, generated_by? } \| { type: "code", python?, javascript?, tests, compare?, tol?, bound?, grow?, hint?, solution?, generated_by? }` | yes | The answer and how it is checked. |
 
 ### `exercise_concepts`
 
@@ -358,6 +358,47 @@ An exercise’s answer, one shape per way of checking it.
 | `hint` | `string?` | no | A nudge the reader can ask for before seeing the answer. |
 | `solution` | `string?` | no | The answer the book gives, which the reader compares their own against. |
 | `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
+
+**`type = "code"`** — Code the reader writes, run against tests in their browser: a function the tests call, or a program reading stdin.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `type` | `"code"` | yes | Code the reader writes, run against tests in their browser: a function the tests call, or a program reading stdin. |
+| `python` | `{ entry?, starter?, reference, generated_by? }?` | no | The exercise in Python. |
+| `javascript` | `{ entry?, starter?, reference, generated_by? }?` | no | The exercise in JavaScript. |
+| `tests` | `{ args?, expect?, raises?, stdin?, stdout?, visible?, generated_by? }[]` | yes | The tests, one list for every language, all of one form; at least one visible and one hidden. |
+| `compare` | `"exact" \| "unordered" \| "tokens"?` | no | How a result is compared: exact (the default), unordered (the top level of the returned list as a multiset), or tokens (stdout word by word). |
+| `tol` | `number?` | no | The relative tolerance a float in a result is checked to, as a fraction such as 0.00001; one in a billion where absent. |
+| `bound` | `"1" \| "log n" \| "n" \| "n log n" \| "n^2" \| "n^3" \| "2^n"?` | no | The growth of steps with n a passing solution may not exceed, checked by counting lines run on the inputs grow builds. With grow. |
+| `grow` | `string?` | no | A JavaScript function (n, rand) => input that builds a worst-case input of size n: the argument list for a function, or the stdin text for a program. rand() is a seeded number in [0, 1) and rand.int(lo, hi) a seeded integer between them. With bound. |
+| `hint` | `string?` | no | A nudge the reader can ask for before seeing the answer. |
+| `solution` | `string?` | no | The worked answer, as the book gives it or as the AI wrote it; the reference code where absent. |
+| `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
+
+### `code_languages`
+
+A code answer in one language: the function its tests call, what the editor opens with, and the reference the build runs.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `entry` | `string?` | no | The function the tests call, in this language. Absent where the answer is a program the tests feed on stdin. |
+| `starter` | `string` | no | What the editor opens with. |
+| `reference` | `string` | yes | A solution that passes every test and, where the answer names a bound, grows no faster than it; the build runs it (npm run check:code). |
+| `generated_by` | `"source" \| "ai"` | no | Whether the reference comes from the source or was written by the AI that built the section. |
+
+### `code_tests`
+
+One test of a code answer, in one of three forms: args and expect, args and raises, or stdin and stdout. A value is JSON, which a returned tuple, set or None is read as.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `args` | `unknown[]?` | no | The arguments the entry is called with, as JSON. With expect or raises. |
+| `expect` | `unknown?` | no | The value the call returns, as JSON: a tuple is a list, a set a sorted list, None is null. |
+| `raises` | `string?` | no | The name of the exception the call raises, such as ValueError, instead of returning. |
+| `stdin` | `string?` | no | What the program reads on stdin. With stdout. |
+| `stdout` | `string?` | no | What the program writes; trailing spaces and blank lines at the end are not compared unless compare is exact. |
+| `visible` | `boolean` | no | Whether the reader sees the test and Run runs it. Hidden tests run on Submit; they ship to the reader’s device, so hidden is not secret. |
+| `generated_by` | `"source" \| "ai"` | no | Whether the test comes from the source or was written by the AI that built the section. |
 
 ### `footnotes`
 

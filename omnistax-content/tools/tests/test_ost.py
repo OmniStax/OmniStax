@@ -404,5 +404,48 @@ class TestMerge(Fixture):
         self.assertEqual(self.read(os.path.join(self.book, "ch01", "book-rows.json")), before)
 
 
+class TestCodeAnswer(unittest.TestCase):
+    """`validate_answer` on the code variant, which needs no book: the same rules as the schema's codeIssues."""
+    CALL = {"type": "code", "python": {"entry": "two_sum", "reference": "def two_sum(a, t): ..."},
+            "tests": [{"args": [[1, 2], 3], "expect": [0, 1], "visible": True}, {"args": [[1], 5], "raises": "ValueError"}]}
+    STDIN = {"type": "code", "python": {"reference": "print(input())"},
+             "tests": [{"stdin": "a\n", "stdout": "a\n", "visible": True}, {"stdin": "b\n", "stdout": "b\n"}]}
+
+    def refused(self, answer, pattern):
+        with self.assertRaisesRegex(ost.Refused, pattern):
+            ost.validate_answer(answer)
+
+    def test_a_call_and_a_program_are_taken(self):
+        ost.validate_answer(self.CALL)
+        ost.validate_answer(self.STDIN)
+        ost.validate_answer({**self.CALL, "bound": "n", "grow": "(n, rand) => [[...Array(n).keys()], -1]", "compare": "unordered", "tol": 1e-6})
+        ost.validate_answer({**self.CALL, "javascript": {"entry": "twoSum", "reference": "function twoSum(a, t) {}"}})
+
+    def test_a_field_the_answer_its_language_or_its_test_does_not_take_is_refused(self):
+        self.refused({**self.CALL, "value": 1}, "does not take value")
+        self.refused({**self.CALL, "python": {**self.CALL["python"], "lang": "py"}}, r"answer.python does not take lang")
+        self.refused({**self.CALL, "tests": [{**self.CALL["tests"][0], "hidden": True}, self.CALL["tests"][1]]}, "answer test 0 does not take hidden")
+
+    def test_no_language_no_reference_or_too_few_tests_is_refused(self):
+        self.refused({k: v for k, v in self.CALL.items() if k != "python"}, "names no language")
+        self.refused({**self.CALL, "python": {"entry": "f"}}, "has no reference")
+        self.refused({**self.CALL, "tests": self.CALL["tests"][:1]}, "at least two")
+
+    def test_a_test_is_of_one_form_and_every_test_of_the_same(self):
+        self.refused({**self.CALL, "tests": [{"args": [1]}, self.CALL["tests"][1]]}, "test 0 is of no one form")
+        self.refused({**self.CALL, "tests": [{"args": [1], "expect": 1, "raises": "E"}, self.CALL["tests"][1]]}, "test 0 is of no one form")
+        self.refused({**self.CALL, "tests": [self.CALL["tests"][0], {"stdin": "x", "stdout": "y"}]}, "mixes test forms")
+
+    def test_an_entry_goes_with_a_call_and_never_with_a_program(self):
+        self.refused({**self.CALL, "python": {"reference": "x"}}, "names no entry")
+        self.refused({**self.STDIN, "python": {"entry": "main", "reference": "x"}}, "names an entry")
+
+    def test_bound_is_a_known_growth_and_comes_with_grow(self):
+        self.refused({**self.CALL, "bound": "n^4", "grow": "(n) => [n]"}, "bound is 'n\\^4'")
+        self.refused({**self.CALL, "bound": "n"}, "bound and grow")
+        self.refused({**self.CALL, "grow": "(n) => [n]"}, "bound and grow")
+        self.refused({**self.CALL, "compare": "sorted"}, "compare is 'sorted'")
+
+
 if __name__ == "__main__":
     unittest.main()

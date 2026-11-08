@@ -22,6 +22,13 @@ test('hintText holds back an open, number or multi hint, and leaves a choice its
   assert.equal(hintText({ type: 'choice', options: ['a'], correct: 0, hint: 'No.', generated_by: 'source' }), undefined);
   assert.equal(hintText({ type: 'open', generated_by: 'source' }), undefined);
 });
+test('a code answer with no worked solution shows its reference, escaped', () => {
+  const tests = [{ args: [1], expect: 1, visible: true, generated_by: 'source' as const }, { args: [2], expect: 2, visible: false, generated_by: 'source' as const }];
+  const python = { entry: 'f', starter: '', reference: 'def f(x):\n    return x if x < 3 else 0\n', generated_by: 'source' as const };
+  assert.equal(solutionText({ type: 'code', python, tests, generated_by: 'source' }), '<pre class="code"><code>def f(x):\n    return x if x &lt; 3 else 0\n</code></pre>');
+  assert.equal(solutionText({ type: 'code', python, tests, solution: 'Keep x.', generated_by: 'source' }), 'Keep x.');
+  assert.equal(hintText({ type: 'code', python, tests, hint: 'Return it.', generated_by: 'source' }), 'Return it.');
+});
 test('a named tolerance tightens the check', () => {
   assert.ok(!nearly(1, 0.99995, 0.00001));
   assert.ok(nearly(0.99995, 0.99995, 0.00001));

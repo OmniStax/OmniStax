@@ -93,6 +93,7 @@ export const files = {
   'files.sync.record.pomodoros': 'Pomodoro log',
   'files.sync.record.practice': 'Exercise answers, concept mastery and practice settings',
   'files.sync.record.practiceLinks': 'Notes, chats and scratch pages tied to exercises',
+  'files.sync.record.codeDrafts': 'The code you have written in code exercises',
   'files.sync.record.practicePages': 'What each practice tab shows',
   'files.sync.record.practiceSessions': 'Practice sessions',
   'files.sync.record.scopes': 'Where each companion view is pinned',

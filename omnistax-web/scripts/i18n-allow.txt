@@ -8,6 +8,8 @@
 # The content format: zod schemas, the TABLES notes the docs generator prints
 # and the parse errors check:content reports to a book's author, not UI.
 ^src/lib/content/schema\.ts:
+# The JavaScript an answer's grow function is wrapped in, run in a worker or a vm: code, not UI.
+^src/lib/code/grow\.ts:\d+: Math\.random = rand;
 # Font family names and CSS font stacks (product names, never translated).
 ^src/lib/settings/fonts\.ts:
 # The product's own name.

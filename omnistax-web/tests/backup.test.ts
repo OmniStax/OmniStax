@@ -145,3 +145,9 @@ test('the reader’s language travels with the appearance records, and only a la
   assert.deepEqual(parseBackupText(backup([{ key: 'omnistax-lang', value: 'fr', category: 'appearance' }])).skipped.map((r) => r.key), ['omnistax-lang']);
   assert.equal(validReaderRecord({ key: 'omnistax-lang', value: 'zh-CN', category: 'reading' }), false);
 });
+
+test('code drafts are a practice record keyed book|section|exercise|language', () => {
+  assert.equal(categoryOf('omnistax-code-drafts'), 'practice');
+  assert.equal(recordProblem({ key: 'omnistax-code-drafts', value: JSON.stringify({ 'b|2.3|p1|python': 'x = 1' }) }), null);
+  assert.notEqual(recordProblem({ key: 'omnistax-code-drafts', value: JSON.stringify({ 'b|p1': 'x' }) }), null);
+});
