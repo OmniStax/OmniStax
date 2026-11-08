@@ -1,6 +1,6 @@
 # Design: code exercises and block-stepping figures
 
-Status: proposed, 2026-11-08, for review. Nothing is implemented. Written for
+Status: approved 2026-11-08 (all four review decisions: yes). Implementation starts with slices 0–2. Written for
 the CS book (`OmniStax/cs-interview-prep-ultra`, its `METHOD.md` §1, §2.3 and
 decisions 16, 17, 19). The user approved app changes for exactly these two
 features. Everything else goes into a shared library, with as little change
@@ -370,7 +370,7 @@ O(n²).
 - **Bundle size.** The language packs and acorn load only when a code card
   mounts.
 
-## Decisions for review
+## Decisions (approved 2026-11-08)
 
 1. "Correct but too slow" counts as not passed. Recommended: yes.
 2. Giving up before a pass records −1; failed submits record nothing.
