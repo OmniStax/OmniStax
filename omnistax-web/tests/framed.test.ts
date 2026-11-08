@@ -182,7 +182,7 @@ test('checkPages: an introduction page must be named by the chapter or the book 
   const ch = CONTENT.chapters[0];
   const unnamed: Content = { ...CONTENT, chapters: [{ ...ch, dto: { ...ch.dto, intro: undefined } }] };
   assert.deepEqual(said(unnamed), ['2.intro/section.json: is the intro of chapter 2, which names no intro of its own']);
-  assert.deepEqual(said(withIntro({ chapter: '3' })), ['3.intro/section.json: belongs to chapter 2 and names chapter "3"']);
+  assert.deepEqual(said(withIntro({ chapter: '3' })), ['3.intro/section.json: belongs to chapter 2 and names chapter "3"', '2.1/text.html: links to "#2.intro-fig-bird", but page 2.intro is not built'], 'the intro moved, so the figure link into it no longer lands');
   const strayed: Content = { ...CONTENT, intro: { ...CONTENT.intro!, dto: SectionSchema.parse({ id: 'intro', chapter: '2', title: 'Preface', built: 'd' }) } };
   assert.deepEqual(said(strayed), ['2.intro/section.json: belongs to the book and names chapter "2"']);
 });
