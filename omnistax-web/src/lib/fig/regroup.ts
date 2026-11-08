@@ -9,7 +9,7 @@ export const layoutPlan = <T>(before: readonly T[], after: readonly T[]): Layout
   leave: before.filter((x) => !after.includes(x)),
 });
 
-export type SliderRange = { readonly min: number; readonly max: number; readonly step: number; readonly value?: number; readonly unit?: string; readonly dec?: number };
+export type SliderRange = { readonly min: number; readonly max: number; readonly step: number; readonly value?: number; readonly unit?: string; readonly dec?: number; readonly fmt?: (v: number) => string };
 /* A frame of the range at k: its ends and the thumb's place along the track ease together; the
    value it reads, its unit and its decimals are the nearer end's, so the text never shows a blend. */
 export type RangeFrame = { readonly min: number; readonly max: number; readonly frac: number; readonly near: SliderRange; readonly done: boolean };

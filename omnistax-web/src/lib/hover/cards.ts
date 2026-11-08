@@ -13,7 +13,7 @@ import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, s
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
-import { symOf, typeOf, symbolTarget, otherMeanings } from './data';
+import { symOf, typeOf, symbolTarget, otherMeanings, rowInForce } from './data';
 import { plainText } from '../content/plain';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
@@ -100,7 +100,7 @@ type Named = { readonly sym?: string; readonly variable?: VariableDTO; readonly 
 const definition = (book: BookId, c: ConceptDTO, from: Named): Card => {
   const sym = from.sym ?? c.symbol;
   const rows = registry.variables(book).filter((v) => v.concept === c.id && v.sym === sym);
-  const v = from.variable ?? rows.find((x) => x.section === from.section) ?? rows[0];
+  const v = from.variable ?? rowInForce(rows, sym ?? '', from.section) ?? rows[0];
   const redefined = !!from.variable && (!!from.variable.redefines || !!from.elsewhere);
   return definitionCard({
     concept: c, tex: sym ? registry.manifest(book).symbols[sym] ?? sym : undefined, unit: v?.unit || undefined,

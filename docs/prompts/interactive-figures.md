@@ -36,11 +36,21 @@ line(ctx,x1,y1,x2,y2,color,w=3,dash)      arrow(ctx,x1,y1,x2,y2,color,w=4)
 dot(ctx,x,y,color,filled=true,r=9)        text(ctx,s,x,y,color,{size=22,weight,align,base,bg})
 measure(ctx,s,{size=22,weight}) -> width  the width text() gives s, subscripts included; never set ctx.font to measure
 text(ctx,'m^2 and F_{net}',...)           _x or _{…} sets a subscript and ^x or ^{…} a superscript, smaller and lowered or raised
+text(ctx,'energy (10⁻²⁰ J)',...)          Unicode super- and subscripts (⁻²⁰, cm⁻¹, ν₀) are set the same way, in the figure font, in every
+                                          string text sets (axis titles, labels, notes, a legend) and in a slider's value
 headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count; a $…$ run is set
                                           as TeX under the figure's macros (\k symbols wear their colours), and v.headline does the same
 label(ctx,s,x,y,{side,size,color,gap,leader}) -> box   one label beside one thing, clamped inside the canvas, leadered
 hbracket(ctx,x1,x2,y,color,label,{side})  vbracket(ctx,x,y1,y2,color,label,side,{side})  label clamped when the span is short
 note(ctx,box,text,avoid) -> box           a sentence in whichever corner of a graph box the forbidden boxes leave clear
+legend(ctx,where,entries,{corner,avoid,row,size,panel,lab}) -> box   the key (root 26.6, 26.7): one entry per kind, a sample beside
+                                          its name, in a page-coloured panel. where is an axes or a box. An entry {s, color, w, dash} is a
+                                          stroke; kind 'swatch' a fill, 'dot' a marker (hollow); {ramp: [colours], ends: [lo, hi], s} a
+                                          colour scale with its end words, its name under it; draw(ctx, x, y) paints its own sample in a
+                                          44 by 22 slot. corner tl | tr | bl | br | top | bottom inside the box, or above (flush right, on
+                                          the y title's line) | below (flush left, on the x title's line), one row and no panel; without
+                                          corner it takes the clearest inside corner, scored on avoid and on the curves of entries that
+                                          carry their function f, and keeps it while no other corner is clearer. No figure hand-rolls a key
 angleArc(ctx,{x,y},r,a0,a1,text,labeller) an angle's arc, its two arms and its name at the bisector
 fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the greatest extents the sliders reach
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
@@ -53,10 +63,11 @@ curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) 
 Graphs of functions take the `ax` that `axes` returns (`{X, Y, box, xr, yr}`), are clipped to its box and arrive like `curve`:
 
 ```
-plot(ctx,ax,f,color,{w=5,x,holes,dots,poles})   y = f(x) on x (default ax.xr), drawn honestly: chords refined where it is steep,
+plot(ctx,ax,f,color,{w=5,x,holes,dots,poles,dash})   y = f(x) on x (default ax.xr), drawn honestly: chords refined where it is steep,
                                           no line across a jump or a pole, the domain's edge found where f stops being finite;
                                           holes [x | [x,y]] open circles (y the limit by default), dots [[x,y]] filled points,
-                                          poles [x] dashed asymptotes (the break needs no listing)
+                                          poles [x] dashed asymptotes (the break needs no listing); dash [on, off] dashes the curve
+                                          ([10, 10] for a prediction or a part beside the whole); no figure dashes by hand
 plot(ctx,ax,[{f,x:[a,b],ends:'[)'}, ...],color,o)   piecewise: each piece on its interval, ends written as intervals are:
                                           [ ] filled, ( ) open at the one-sided limit, - or nothing unmarked
 shade(ctx,ax,f,g,a,b,color,{alpha=0.25}) -> ∫(f − g)   the region between f and g (a function or a level, 0 the axis) on [a,b]
@@ -151,7 +162,10 @@ select(host,{label,options,value,aria,onInput,ms}) -> the same handle           
   k 0..1 since the last change; mix(f) blends f(from) to f(value); a(v), off(v,shift) fade and slide the parts only v has
 picker.options(list, value?)                                                       a new option list: the value stays where the list has it, else value, else the first; no input event
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
-slider.range({min,max,step,value,unit,dec})                                         eases to a new range; the detent ticks are redrawn for it, those outside it dropped
+ctl(d.controls,{..., fmt: (v) => string})                                          the value as the reader reads it, unit included, in place of
+                                                                                   dec and unit: a log slider shows the quantity itself
+                                                                                   (fmt: (lg) => `${sci(10 ** lg)} m/s`); also the screen reader's words
+slider.range({min,max,step,value,unit,dec,fmt})                                     eases to a new range; the detent ticks are redrawn for it, those outside it dropped
 ctl / choice / select {..., key}                                                   the id a note stores the value under; default the cls ("choice" for a picker), then cls-2, cls-3
   a track under 120 px drops to its own line below its name and value (rule 26.12); keep names short rather than lean on it
 hover(d.stage, () => [{x,y,r,name}], canvas?) -> {hide}                           names under the pointer where labels would crowd (rule 26.6); canvas picks which of the stage's canvases
@@ -211,6 +225,11 @@ F.space.graph(f,region,color,{n,grid,alpha,levels,floor,levelColor,lift})   z = 
                                           [c, ...] are its level curves drawn on z = floor (and on the surface with lift); drag reports [x, y]
 F.space.tangent(f,x0,y0,color,{size})     the tangent plane at (x0, y0) as a square patch, and the point
 F.space.surface(r,U,V,color,{n,grid,alpha})   r(u, v) with its grid curves; drag reports [u, v]
+{k: 'sheet', rows, values, scale: [[v, colour], ...]}   shaded smoothly: a value at every vertex read through the colour stops and
+                                          interpolated across each face (or colors, a colour per vertex laid out as rows); the same on
+                                          'faces' (values per face per vertex); depth sorting and the orbit bound are unchanged, and the
+                                          flat view paints each face in its vertices' mean. F.space.tint(scale, v) is the colour of v, for
+                                          a flat view and a legend ramp; no figure bands a surface into steps of colour
 F.space.normals(r,U,V,color,{n,len})      unit normals r_u × r_v on a grid     F.space.patch(r,u,v,du,dv,color) the patch, t_u Δu, t_v Δv
 F.space.plane(p,n,color,{box,size,alpha}) the plane through p square to n, cut by the box or a square    F.space.line(p,d,color,{t,box})
 F.space.field(F,box,color,{n,scale})      arrows of a field in space on an n³ grid, the longest 0.9 of a cell

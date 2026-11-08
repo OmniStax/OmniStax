@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
-import { conceptsOfChapter, coverageOf, exercisesOf, macroExpansion, macroTypesOf, metaOf, pageMacrosOf, splitSub, typesWorn } from '../src/lib/content/load';
+import { conceptsOfChapter, coverageOf, exercisesOf, macroExpansion, macroTypesOf, metaOf, pageMacrosOf, pageRowsOf, splitSub, typesWorn } from '../src/lib/content/load';
 import { prerenderMath } from '../src/lib/math/prerender';
 
 /* The tables as the three files write them, small enough to read whole: a book
@@ -105,6 +105,19 @@ test('a page sets a symbol by its variables row there, and splits the subscript 
   assert.deepEqual(pageMacrosOf([F, L], [row('F_x', { type: 'force', ref: 'tug-1' })]), { '\\kFx': '\\htmlClass{kv-force}{\\htmlData{sym=F_x}{F_{\\htmlData{ref=tug-1}{x}}}}' });
   assert.deepEqual(pageMacrosOf([F, L], [row('F_x', {})]), { '\\kFx': 'F_x' }, 'a row of no type sets the symbol in ink there');
   assert.equal(macroExpansion(F), '\\htmlClass{kv-force}{\\htmlData{sym=F_x}{F_x}}');
+});
+
+test('a page sets a symbol by the meaning in force there: its own row, else the latest before it, never a later one', () => {
+  const V = { sym: 'V', latex: 'V', macro: '\\kV', type: 'energy' } as never;
+  const row = (section: string, extra: object) => ({ sym: 'V', meaning: '', unit: '', section, ...extra }) as never;
+  const rows = [row('1.3', { type: 'potential', ref: 'plate' }), row('1.8', { type: 'energy', redefines: true })];
+  const potential = '\\htmlClass{kv-potential}{\\htmlData{sym=V}{V}}';
+  assert.deepEqual(pageMacrosOf([V], pageRowsOf(rows, '1.3')), { '\\kV': potential }, '1.3 sets its own row');
+  assert.deepEqual(pageMacrosOf([V], pageRowsOf(rows, '1.5')), { '\\kV': potential }, '1.5 has no row: 1.3\'s is in force, its referent left behind');
+  assert.deepEqual(pageMacrosOf([V], pageRowsOf(rows, '1.8')), {}, '1.8 redefines it as the book sets it');
+  assert.deepEqual(pageMacrosOf([V], pageRowsOf(rows, '1.2')), {}, 'before 1.3 the book\'s own, never 1.3\'s or 1.8\'s');
+  assert.equal(pageRowsOf(rows, '1.3')[0]!.ref, 'plate', 'its own page keeps its referent');
+  assert.equal(pageRowsOf(rows, '1.5')[0]!.ref, undefined);
 });
 
 test('a macro wears on a page the type its expansion there sets: the row\'s, else the symbol\'s, never ink', () => {
