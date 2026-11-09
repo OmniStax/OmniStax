@@ -3801,7 +3801,7 @@ const DICON = {
   into: '<svg viewBox="0 0 24 24"><path d="M10 3h4v9h3.5L12 18l-5.5-6H10z"/><rect x="4" y="19" width="16" height="3" rx="1"/></svg>',
   out: '<svg viewBox="0 0 24 24"><path d="M10 21h4v-9h3.5L12 6l-5.5 6H10z"/><rect x="4" y="2" width="16" height="3" rx="1"/></svg>',
 };
-/* a value as the watch writes it: Python's spelling, since the shown code is Python unless it says otherwise */
+/* a value as the watch writes it: Python's spelling where the code shown is Python, else null, true and false */
 const watchValue = (v: TR.Value | undefined, py = true): string =>
   v === undefined ? '' : v === null ? (py ? 'None' : 'null') : typeof v === 'string' ? JSON.stringify(v) : typeof v === 'boolean' ? (py ? (v ? 'True' : 'False') : String(v))
     : typeof v === 'object' ? (Array.isArray(v) ? `[${v.map((x) => watchValue(x, py)).join(', ')}]` : `{${Object.entries(v).map(([k, x]) => `${k}: ${watchValue(x, py)}`).join(', ')}}`) : String(v);
@@ -3814,7 +3814,10 @@ function code(d: { readonly stage: HTMLElement; readonly c: HTMLCanvasElement | 
 }
 type DebugSim = { readonly stage: HTMLElement; readonly fig: HTMLElement; readonly controls: HTMLElement; readonly readout: HTMLElement; readonly c: HTMLCanvasElement | null };
 function debugFig(d: DebugSim, o: DebugOpts): Debug {
-  const cp = o.code, beat = o.beat ?? 1.4, inputs = o.inputs ?? [], py = cp.lang === 'python';
+  const cp = o.code, beat = o.beat ?? 1.4, inputs = o.inputs ?? [];
+  /* the watch spells values as the language shown does, and a switch of language redraws it on the same stop */
+  const py = (): boolean => cp.lang === 'python';
+  cp.onLang(() => { dots(); touch(d.fig); });
   let inValue = o.value ?? inputs[0]?.value ?? null;
   const traceNow = (): readonly TR.Frame[] => inputs.find((x) => x.value === inValue)?.trace ?? o.trace ?? inputs[0]?.trace ?? [];
   const levelOf = (l: TR.Laid): number => Math.max(0, Math.min(l.stops.length - 1, o.level ?? TR.defaultLevel(l)));
@@ -3855,7 +3858,7 @@ function debugFig(d: DebugSim, o: DebugOpts): Debug {
     const p = S[i], b = TR.blockAt(laid, p, level);
     if (i === 0) return msg('fig.debug.start');
     if (b) return msg('fig.debug.after', { label: b.label ?? b.id });
-    return i === S.length - 1 ? msg('fig.debug.end') : msg('fig.code.line', { n: laid.frames[p]?.line ?? 0 });
+    return i === S.length - 1 ? msg('fig.debug.end') : msg('fig.code.line', { n: cp.shownLine(laid.frames[p]?.line ?? 0) });
   };
   function dots(): void {
     const s = d.fig.querySelector<HTMLInputElement>('.transport .scrub'); if (!s) return;
@@ -3886,7 +3889,7 @@ function debugFig(d: DebugSim, o: DebugOpts): Debug {
       const s = el('span', 'dbg-var'), nm = s.appendChild(el('span', 'dbg-name')); nm.textContent = n;
       const c = cp.colour(n); if (c) nm.style.color = c;
       s.classList.toggle('touched', touched.has(n));
-      s.appendChild(document.createTextNode(` = ${watchValue(f.vars[n], py)}`)); return s;
+      s.appendChild(document.createTextNode(` = ${watchValue(f.vars[n], py())}`)); return s;
     }));
   }
 

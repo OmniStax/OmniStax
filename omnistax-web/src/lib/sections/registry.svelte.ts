@@ -7,6 +7,7 @@
    chapter's concepts and symbols are loaded on their own, since a view scoped
    to a chapter or to the book wants them before any of its sections is open. */
 import type { SectionMetaDTO, ExerciseDTO, ConceptsDTO, ConceptDTO, CoverageDTO, VariableDTO, BookManifest, SectionEntry, ChapterEntry, DerivationDTO } from '../content/schema';
+import { codeSets } from './codesets';
 import { type BookId, type SectionId, type ChapterId, type GroupKey, type ItemId, type DocKind, type SectionRef, type SecKey, type PageItem, bookId, sectionId, sectionRef, secKey, itemKey, parseItemKey, bookOfItem, figItem, aboutItem, whatsNewItem, downloadItem } from '../types/ids';
 import { noteDocs } from '../notes/docs.svelte';
 import { explorer } from '../explorer/store.svelte';
@@ -255,7 +256,7 @@ class Registry {
   private prepare(root: HTMLElement, ref: SectionRef): void {
     if (root.dataset.math !== 'rendered') this.figFor?.(ref.book).renderMath(root);
     this.mountExercises(root, ref);
-    this.splitButtons(root, ref); originalButtons(root); foldControls(root); this.bootFigures(root, ref); this.bootDerivations(root, ref); decorateProse(root); this.figFor?.(ref.book).paintRefs(root); dragFigures(root, ref);
+    this.splitButtons(root, ref); originalButtons(root); foldControls(root); codeSets(root, ref.book); this.bootFigures(root, ref); this.bootDerivations(root, ref); decorateProse(root); this.figFor?.(ref.book).paintRefs(root); dragFigures(root, ref);
     this.decorate(root);
   }
   /* A root the shell built itself — one exercise in a tab of its own — asks for the

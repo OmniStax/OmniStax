@@ -466,3 +466,32 @@ One move of a node’s work.
 | `uses` | `number[]` | no | The 0-based indices into the node’s `assumes` of the facts and earlier results this move relies on; empty for a move of pure algebra. |
 | `cap` | `string?` | no | Why the move is allowed, one or two sentences in the book’s voice, only for a move beyond grade-school algebra or a non-obvious reason a fact applies. |
 | `map` | `record of string \| string[]?` | no | Where one key splits into several or several merge into one on this move: each old key to its new key or keys, so each part travels to its place. |
+
+## `text.html`: code sets
+
+A code listing the book offers in several languages is one `<div class="code-set">`
+holding one `<pre data-lang>` per language. The reader sees one at a time, the
+book's code language (Python until they choose another, kept per book), and a
+button group on the set's head switches every listing of the book, the figures'
+code panels included. A lone `<pre>` outside a set stays as it is.
+
+```html
+<div class="code-set">
+  <pre data-lang="python"><code>def two_sum(nums, target): …</code></pre>
+  <pre data-lang="java" data-ai="claude-opus-5-5 high"><code>int[] twoSum(int[] nums, int target) { … }</code></pre>
+</div>
+```
+
+| attribute | on | required | description |
+| --- | --- | --- | --- |
+| `class="code-set"` | `<div>` | yes | Marks the set. It holds nothing but its `<pre>` elements; the build adds the head. |
+| `data-no-python` | `<div>` | where Python is absent | Why the set has no Python, the default, in a few words. |
+| `data-lang` | `<pre>` | yes | One of `python`, `java`, `cpp`, `javascript`, each at most once in a set; the buttons stand in that order, labelled Python, Java, C++, JavaScript. |
+| `data-ai` | `<pre>` | on a translation | What translated a variant the source does not print: the model's API id and, after a space, the effort (`low`, `medium`, `high`, `max`). The variant wears the AI mark, whose hover names them. A variant the source prints carries none. |
+
+A variant holds its code escaped as HTML inside `<code>`, with no math: a dollar
+sign is `&#36;`. The check fails a set with an unknown or repeated language, no
+Python and no `data-no-python`, a `data-ai` it cannot read, math, or anything
+beside its `<pre>` elements, and warns on a set every variant of which carries
+`data-ai`. A debugger figure's code panel takes the same languages through
+`F.code` (`docs/prompts/interactive-figures.md`).

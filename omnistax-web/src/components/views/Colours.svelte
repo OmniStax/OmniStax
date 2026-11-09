@@ -23,6 +23,8 @@
   import { HIGHLIGHT_KEYS, HIGHLIGHT_LABELS, HIGHLIGHT_PARENT, heldOffBy, type HighlightKey } from '../../lib/settings/highlights';
   import { highlights } from '../../lib/settings/highlights.svelte';
   import SymbolList from './SymbolList.svelte';
+  import { LISTING_LABELS, LISTING_LANGS } from '../../lib/code/langs';
+  import { codeLangs } from '../../lib/settings/codelang.svelte';
 
   const scoped = getContext<() => Target>('scope');
   const book = $derived(scoped()?.book ?? null);
@@ -181,6 +183,15 @@
       {/each}
     </ul>
 
+    {#if manifest.listings && book}
+      {@const codeLang = codeLangs.of(book)}
+      <div class="eyebrow">{i18n.t('views.colours.codeLanguage')}</div>
+      <p class="note explain">{i18n.t('views.colours.codeLanguageExplain')}</p>
+      <div class="code-langs" role="radiogroup" aria-label={i18n.t('views.colours.codeLanguage')}>
+        {#each LISTING_LANGS as l (l)}<button type="button" role="radio" aria-checked={l === codeLang} class:on={l === codeLang} onclick={() => codeLangs.set(book, l)}>{LISTING_LABELS[l]}</button>{/each}
+      </div>
+    {/if}
+
     <div class="eyebrow">{i18n.t('views.colours.quantities')}</div>
     <p class="note explain">{i18n.t('views.colours.quantitiesExplain')}</p>
     {#if !hlValues.concepts}
@@ -313,6 +324,11 @@
   .strip{display:flex;height:14px;border-radius:4px;overflow:hidden;margin-bottom:10px}
   .strip i{flex:1;display:block}
   .rows{list-style:none;padding:0;margin:0 0 14px}
+  .code-langs{display:inline-flex;margin:0 0 18px;border:1px solid var(--rule);border-radius:6px;overflow:hidden;font-size:0.84rem}
+  .code-langs button{border:0;background:transparent;color:var(--muted);font:inherit;padding:3px 12px;cursor:pointer}
+  .code-langs button + button{border-left:1px solid var(--rule)}
+  .code-langs button.on{background:var(--soft);color:var(--ink);font-weight:600}
+  .code-langs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .rows > li{border-bottom:1px solid var(--rule)}
   .row{display:flex;align-items:center;gap:8px;padding:6px 0}
   /* the row being carried, and the line that says where it would land */

@@ -133,7 +133,39 @@ from it and what the validator checks is in
 [content-tables.md](content-tables.md).
 `;
 
-export const document = (): string => [HEAD, ...LEVELS.map(level)].join('\n');
+/* What text.html may hold beside the tables is not a schema; the one part of it with attributes of its own
+   to get right is written here, beside the tables, and checked by check:content (content/codeset.ts). */
+const TEXT_PARTS = `## \`text.html\`: code sets
+
+A code listing the book offers in several languages is one \`<div class="code-set">\`
+holding one \`<pre data-lang>\` per language. The reader sees one at a time, the
+book's code language (Python until they choose another, kept per book), and a
+button group on the set's head switches every listing of the book, the figures'
+code panels included. A lone \`<pre>\` outside a set stays as it is.
+
+\`\`\`html
+<div class="code-set">
+  <pre data-lang="python"><code>def two_sum(nums, target): …</code></pre>
+  <pre data-lang="java" data-ai="claude-opus-5-5 high"><code>int[] twoSum(int[] nums, int target) { … }</code></pre>
+</div>
+\`\`\`
+
+| attribute | on | required | description |
+| --- | --- | --- | --- |
+| \`class="code-set"\` | \`<div>\` | yes | Marks the set. It holds nothing but its \`<pre>\` elements; the build adds the head. |
+| \`data-no-python\` | \`<div>\` | where Python is absent | Why the set has no Python, the default, in a few words. |
+| \`data-lang\` | \`<pre>\` | yes | One of \`python\`, \`java\`, \`cpp\`, \`javascript\`, each at most once in a set; the buttons stand in that order, labelled Python, Java, C++, JavaScript. |
+| \`data-ai\` | \`<pre>\` | on a translation | What translated a variant the source does not print: the model's API id and, after a space, the effort (\`low\`, \`medium\`, \`high\`, \`max\`). The variant wears the AI mark, whose hover names them. A variant the source prints carries none. |
+
+A variant holds its code escaped as HTML inside \`<code>\`, with no math: a dollar
+sign is \`&#36;\`. The check fails a set with an unknown or repeated language, no
+Python and no \`data-no-python\`, a \`data-ai\` it cannot read, math, or anything
+beside its \`<pre>\` elements, and warns on a set every variant of which carries
+\`data-ai\`. A debugger figure's code panel takes the same languages through
+\`F.code\` (\`docs/prompts/interactive-figures.md\`).
+`;
+
+export const document = (): string => [HEAD, ...LEVELS.map(level), TEXT_PARTS].join('\n');
 
 /* ---------- the command ---------- */
 

@@ -43,6 +43,8 @@ export const views: Readonly<Record<keyof typeof source, string>> = {
   'views.colours.backToBookFor': '将 {name} 恢复为教材的颜色',
   'views.colours.backToDefaultOff': '恢复为教材的默认值（关）',
   'views.colours.backToDefaultOn': '恢复为教材的默认值（开）',
+  'views.colours.codeLanguage': '代码语言',
+  'views.colours.codeLanguageExplain': '本书的每段代码都以这种语言显示。在任何一段代码上切换，这里也会随之改变。',
   'views.colours.colorCode': '颜色编码',
   'views.colours.colorOf': '{name} 的颜色',
   'views.colours.conceptsOff': '这本教材的“概念”已关闭，因此这些颜色不会显示在它的页面上。',

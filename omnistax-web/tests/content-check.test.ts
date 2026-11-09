@@ -5,7 +5,7 @@ import { loadBook, mediaRootsOf, withInheritedTypes } from '../src/lib/content/l
 import { bookDir, bookId } from '../src/lib/types/ids';
 import { AnswerSchema, BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  checkAnchors, checkCodeAnswers, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  checkAnchors, checkCodeAnswers, checkCodeSets, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkFootnotes, checkAttributeMarkup, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
   citedNumbers, contentOf, errorsOf, checkLanguage, checkTranslationMeta, checkParity,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -527,4 +527,23 @@ test('checkCodeAnswers: a visible and a hidden test, the entry defined, grow tha
   const js = run(checkCodeAnswers, codeEx({ ...CODE, python: undefined, javascript: { entry: 'twoSum', reference: 'function twoSum(nums, target) { return null; }' } }));
   assert.deepEqual(js, ['16.1/section.json exercises[p1]: answer is in javascript only, which the app cannot run yet']);
   assert.deepEqual(said(errorsOf(checkContent(fixture(codeEx(CODE))))), [], 'a code card in the smallest book is no error anywhere else');
+});
+
+test('checkCodeSets: one <pre data-lang> per language, Python or a reason, a translation naming its maker, no math', () => {
+  const set = (inner: string, attrs = ''): Parts => ({ textHtml: `${TEXT}<div class="code-set"${attrs}>${inner}</div>` });
+  const py = '<pre data-lang="python"><code>x = 1</code></pre>', java = '<pre data-lang="java" data-ai="claude-opus-5-5 high"><code>int x = 1;</code></pre>';
+  const where = '16.1/text.html code set 1: ';
+  assert.deepEqual(run(checkCodeSets), []);
+  assert.deepEqual(run(checkCodeSets, set(py + java)), []);
+  assert.deepEqual(run(checkCodeSets, set(java.replace(' data-ai="claude-opus-5-5 high"', ''), ' data-no-python="the source prints Java only"')), []);
+  assert.deepEqual(run(checkCodeSets, set(java)), [`${where}has no Python, the default; add it or say why in data-no-python`, `${where}has no variant the source prints: every <pre> carries data-ai`]);
+  assert.deepEqual(run(checkCodeSets, set(py + py)), [`${where}has two <pre data-lang="python">`]);
+  assert.deepEqual(run(checkCodeSets, set(`${py}<pre data-lang="rust"><code>let x = 1;</code></pre>`)), [`${where}has a <pre data-lang="rust">, and the languages are python, java, cpp and javascript`]);
+  assert.deepEqual(run(checkCodeSets, set(`${py}<pre><code>x</code></pre>`)), [`${where}has a <pre> with no data-lang`]);
+  assert.deepEqual(run(checkCodeSets, set(py + java.replace('claude-opus-5-5 high', 'claude-opus-5-5 huge'))), [`${where}<pre data-lang="java"> has data-ai="claude-opus-5-5 huge", which is not "<model id>" or "<model id> <low|medium|high|max>"`]);
+  assert.deepEqual(run(checkCodeSets, set(py.replace('x = 1', 'x = $a$'))), [`${where}<pre data-lang="python"> holds math, which code never does: a dollar sign in code is &#36;`]);
+  assert.deepEqual(run(checkCodeSets, set(`<p>Two sums.</p>${py}`)), [`${where}holds "<p>Two sums.</p>" beside its <pre> elements, and a code set holds only <pre data-lang>`]);
+  assert.deepEqual(run(checkCodeSets, set(py, ' data-no-python="why"')), [`${where}has Python and says data-no-python`]);
+  /* a <pre> outside a set is the text's own and is left alone */
+  assert.deepEqual(run(checkCodeSets, { textHtml: `${TEXT}<pre><code>$x$</code></pre>` }), []);
 });

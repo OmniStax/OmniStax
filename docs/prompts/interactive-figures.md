@@ -268,10 +268,24 @@ F.circuit(d, { wires: 2, probs: true, steps: [{ g: 'H', t: 0 }, { g: 'X', t: 1, 
 A debugger (`F.code`, `F.trace`, `F.debug`; the engine in `trace.ts`, the panel in `codepanel.ts`, the design in `docs/design-code-and-debugger.md` §2). The code is page text in the mono, no syntax colouring: only the names in `refs` wear colour, their referents'. A block is a line range; blocks nest by containment (a partial overlap is a console error). An instance of a block is a run of frames on its lines, a call made inside it included, and each loop iteration is one; the reader steps from instance end to instance end at a level of the nesting.
 
 ```
-const code = F.code(d, {lang: 'python' | 'javascript', src, blocks: [{id, lines: [a, b], label, touches: [names]}], refs: {name: () => F.ref(id)}})
+const code = F.code(d, {lang: 'python' | 'java' | 'cpp' | 'javascript', src, blocks: [{id, lines: [a, b], label, touches: [names]}], refs: {name: () => F.ref(id)}})
                                           the shown code beside the canvas (stacked in a narrow pane); the block shown wears a band, its
                                           label is the figure's note, the lines the last step ran are dotted in the gutter; refs are read
                                           in draw, so write each as a function
+F.code(d, {src: {python, java, cpp, javascript}, canonical = 'python', lineMap: {java: {L: l | [l, …]}, …},
+           ai: {java: '<model id> <effort>', …}, blocks: [{id, lines: [a, b] | {python: [a, b], java: [c, e]}, …}],
+           refs: {name: …} | {python: {two_sum: …}, java: {twoSum: …}}})
+                                          the same code in several languages (METHOD decision 20 of the CS book): a button group on the
+                                          panel's head, Python, Java, C++, JavaScript, sets the book's code language, which every panel
+                                          and code set of the book follows (Python where a listing lacks the choice); a switch keeps the
+                                          stop. The trace is recorded in the canonical language's lines; lineMap carries each canonical
+                                          line to the other language's line or lines (absent, the lines are the same), so the band, the
+                                          gutter dots and the line the stop rests on follow the language shown. A block keeps one id and
+                                          gives its lines per language where the mapped span would be wrong (the canonical's required).
+                                          A language the source does not print names its translator in `ai` and wears the AI mark;
+                                          refs per language where the names differ; the watch shows the trace's (canonical) names
+                                          and spells values as the shown language does (None/True in Python, null/true otherwise).
+                                          code.lang (shown), code.langs, code.setLang(l) (this panel only), code.onLang(f)
 const frames = F.trace((at) => { …; at(L, {i, j, s}, ['compare', i, j]); … })   the figure's own JS copy of the shown code, numbered as
                                           shown: a frame is "line L finished; these are the variables now", an optional event after;
                                           at.enter(fn) / at.leave() around a call; snapshots capped at 64 items, 3 levels, 5,000 frames

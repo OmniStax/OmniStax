@@ -15,6 +15,7 @@ export const content = {
   'content.ai.sentence.text': 'The text was transformed by {text}.',
   'content.ai.with': ', with ',
   'content.chapter.eyebrow': 'Chapter {id} · {title}',
+  'content.code.language': 'Code language',
   'content.corrections': 'Corrections',
   'content.credit.access': ' Access for free at {url}.',
   'content.credit.by': ' by {authors}',

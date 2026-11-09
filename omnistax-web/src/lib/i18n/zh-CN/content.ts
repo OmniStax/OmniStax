@@ -13,6 +13,7 @@ export const content: Readonly<Record<keyof typeof source, string>> = {
   'content.ai.sentence.text': '文本由 {text} 改造。',
   'content.ai.with': ' 与 ',
   'content.chapter.eyebrow': '第{id}章 · {title}',
+  'content.code.language': '代码语言',
   'content.corrections': '勘误',
   'content.credit.access': '可在 {url} 免费获取。',
   'content.credit.by': '，{authors} 著',

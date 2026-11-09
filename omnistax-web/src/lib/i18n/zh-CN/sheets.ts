@@ -35,6 +35,7 @@ export const sheets: Readonly<Record<keyof typeof source, string>> = {
   'fig.circuit.starts': '{wire} 初态为 {state}',
   'fig.circuit.stepOn': '{wires} 上的 {what}',
   'fig.code.label': '代码',
+  'fig.code.language': '代码语言',
   'fig.code.line': '第 {n} 行',
   'fig.code.lines': '第 {a}–{b} 行',
   'fig.debug.after': '之后：{label}',

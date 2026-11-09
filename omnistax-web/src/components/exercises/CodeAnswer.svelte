@@ -1,6 +1,6 @@
 <script lang="ts">
   /* A code card's answer: the editor, a language toggle where the exercise has
-     both, and Run, Submit and Give up. Run runs the visible tests and records
+     both (opening on the book's code language where the card can run it), and Run, Submit and Give up. Run runs the visible tests and records
      nothing. Submit runs them all and then, where the answer names a bound,
      counts how the steps grow; only a pass within the bound is evidence, and a
      failed or too-slow submit leaves the card open to try again. Giving up
@@ -14,6 +14,7 @@
   import { pythonReady, pythonRunner } from '../../lib/code/python';
   import CodeEditor from './CodeEditor.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
+  import { codeLangs } from '../../lib/settings/codelang.svelte';
 
   let { answer, book, section, ex, locked = false, onpass, ongiveup, tools }: {
     answer: CodeAnswerDTO; book: string; section: string; ex: string;
@@ -24,7 +25,9 @@
   const LANG_NAMES: Readonly<Record<Lang, string>> = { python: 'Python', javascript: 'JavaScript' };
   const langs = $derived(CODE_LANGS.filter((l) => answer[l] !== undefined));
   let chosen = $state<Lang | null>(null);
-  const lang = $derived<Lang>(chosen ?? langs.find((l) => RUNNERS[l]) ?? langs[0] ?? 'python');
+  /* the book's code language, which every listing shows, where the card has it and can run it */
+  const preferred = $derived(((l: string): Lang | undefined => langs.find((x) => x === l && RUNNERS[x]))(codeLangs.of(book)));
+  const lang = $derived<Lang>(chosen ?? preferred ?? langs.find((l) => RUNNERS[l]) ?? langs[0] ?? 'python');
   const spec = $derived(answer[lang]);
   const starter = $derived(spec?.starter ?? '');
   const runner = $derived(RUNNERS[lang]);
