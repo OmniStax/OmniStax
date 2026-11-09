@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { textBlocks } from '../src/lib/content/textindex';
+import { spanHeads } from '../src/lib/content/fragment';
 
 /* A page as the build sees it: a lead outside every span, two sections, an example inside
    the second, a sim with a head and a caption, a nested list, and maths already rendered. */
@@ -48,4 +49,12 @@ test('a block stands under the last heading of its span, and a heading under its
 test('a figure gives only its head and its caption; empty blocks are dropped', () => {
   const blocks = textBlocks('<section id="a"><figure id="f"><p>hidden prose</p><figcaption></figcaption></figure><p> </p><p>kept</p></section>', '2.1');
   assert.deepEqual(blocks.map((b) => b.text), ['kept']);
+});
+
+test('a note\'s marker after a heading\'s words is no part of the heading\'s name', () => {
+  const page = '<section id="s"><h2>First-Order Terms<sup class="fn correction" id="7.4-fnref-c"><a href="#7.4-fn-c">[1]</a></sup></h2><p>Text.<sup class="fn correction" id="7.4-fnref-d"><a href="#7.4-fn-d">[2]</a></sup></p></section>';
+  const [h, p] = textBlocks(page, '7.4');
+  assert.equal(h!.text, 'First-Order Terms');
+  assert.equal(p!.head, 'First-Order Terms');
+  assert.equal(spanHeads('<section id="s"><h2>First-Order Terms<sup class="fn" data-note="c"></sup></h2></section>')[0]!.title, 'First-Order Terms');
 });

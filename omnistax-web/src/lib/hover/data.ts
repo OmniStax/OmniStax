@@ -35,10 +35,28 @@ export const typeOf = (el: Element): KvType | null => {
   return glyph ? kvTypeFromClass(classOf(glyph)) : null;
 };
 
+/* Sections in the book's order: 1.3 before 1.8 before 1.10, by their numbers. */
+export const sectionOrder = (a: string, b: string): number => {
+  const x = a.split('.').map(Number), y = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i += 1) {
+    const d = (x[i] ?? -1) - (y[i] ?? -1);
+    if (d) return Number.isNaN(d) ? a.localeCompare(b) : d;
+  }
+  return 0;
+};
+/* The row a symbol takes at a section: its row there, else its latest row in an earlier section.
+   A later section's row is never in force: the book has not redefined the symbol yet. */
+export const rowInForce = <V extends { readonly sym: string; readonly section: string }>(vars: readonly V[], sym: string, section: string): V | undefined =>
+  vars.filter((v) => v.sym === sym && sectionOrder(v.section, section) <= 0)
+    .reduce<V | undefined>((best, v) => (best && sectionOrder(best.section, v.section) >= 0 ? best : v), undefined);
+/* Every symbol's row in force at a section, one per symbol. */
+export const rowsInForce = <V extends { readonly sym: string; readonly section: string }>(vars: readonly V[], section: string): V[] =>
+  [...new Set(vars.map((v) => v.sym))].flatMap((sym) => { const v = rowInForce(vars, sym, section); return v ? [v] : []; });
+
 /* The variable a key names. A chapter may define one symbol per section (x in 2.1 and again in 2.5);
-   the one from `section` wins when given, else the first. */
+   at a section it is the row in force there, and without a section the first. */
 export const lookupVariable = (vars: readonly VariableDTO[], sym: SymKey, section?: string): VariableDTO | undefined =>
-  (section !== undefined ? vars.find((v) => v.sym === sym && v.section === section) : undefined) ?? vars.find((v) => v.sym === sym);
+  section !== undefined ? rowInForce(vars, sym, section) : vars.find((v) => v.sym === sym);
 
 /* What a hovered symbol opens: the concept its row names, where the row names
    one the book has, else the row alone, which is a symbol that names no concept. */
@@ -77,10 +95,10 @@ export const differentMeaning = (a: VariableDTO, b: VariableDTO): boolean => {
   return shared / Math.max(1, Math.min(x.size, y.size)) < (cjk ? CJK_OVERLAP : OVERLAP);
 };
 
-/* The rows elsewhere in the chapter that give `sym` another meaning than the row of `section`. */
+/* The rows elsewhere in the chapter that give `sym` another meaning than the row in force at `section`. */
 export const otherMeanings = (vars: readonly VariableDTO[], sym: SymKey, section: string): readonly VariableDTO[] => {
-  const own = vars.find((v) => v.sym === sym && v.section === section);
-  return own ? vars.filter((v) => v.sym === sym && v.section !== section && differentMeaning(own, v)) : [];
+  const own = rowInForce(vars, sym, section);
+  return own ? vars.filter((v) => v.sym === sym && v !== own && v.section !== section && differentMeaning(own, v)) : [];
 };
 
 /* Pairs of rows in one chapter that give one symbol two meanings, unless the later

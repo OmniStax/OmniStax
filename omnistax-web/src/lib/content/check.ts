@@ -19,6 +19,7 @@ import { CODE_LANGS, codeIssues, isNonCommercial, type ExercisesNcDTO, type Book
 import type { Lang } from '../code/types';
 import { growBody } from '../code/grow';
 import { cellNumber } from './sheets';
+import { drvTarget, restatesFact, restatesResult } from '../fig/derivation';
 import { isHex, normHex } from '../colours/model';
 import { REFERENT_COUNT } from '../colours/referents';
 import { asidesOf, referentGroups } from '../colours/scopes';
@@ -371,6 +372,24 @@ export const checkSpans: Check = (content) =>
     ];
   });
 
+/* A link the builder writes by hand in a page's text, to an item of this page ("#sim-planck") or of
+   another, qualified by that page's id as the build qualifies it ("#6.2-sim-radial", "#5.summary-…"),
+   must land on an id the target page's text carries. A target in a chapter the book has not added yet
+   waits; one in a chapter that is there must be built. The ids the build makes itself (notes) are skipped. */
+const HAND_HREF = /<a\b[^>]*\bhref="#([^"]+)"/g;
+const PAGE_QUALIFIED = /^(\d+\.\w+|intro|summary)-(.+)$/;
+export const checkHandLinks: Check = (content) => {
+  const pages = pagesOf(content), ids = new Map(pages.map((s) => [String(s.dto.id), localIds(s.textHtml)] as const));
+  return pages.flatMap((s) => [...new Set(Array.from(s.textHtml.matchAll(HAND_HREF), (m) => m[1]))].flatMap((href): readonly Finding[] => {
+    const q = PAGE_QUALIFIED.exec(href), page = q ? q[1] : String(s.dto.id), local = q ? q[2] : href;
+    if (RESERVED_NOTE_ID.test(local)) return [];
+    const where = `${s.dto.id}/text.html`, built = ids.get(page);
+    if (!built && waitsOn(content, page)) return [waiting(`${where} href="#${href}"`, page)];
+    if (!built) return [error(where, `links to "#${href}", but page ${page} is not built`)];
+    return built.has(local) ? [] : [error(where, `links to "#${href}", but ${page === String(s.dto.id) ? 'the page' : `page ${page}`} has no id "${local}"`)];
+  }));
+};
+
 /* A note is printed where a marker names it: every marker <sup class="fn" data-note="…"></sup> of the text, the
    summary, another note or an exercise names a row of the footnotes table, and every row has exactly one marker. An exercise's
    marker names a correction, which its card prints. A correction of a figure's original caption names the figure
@@ -451,14 +470,16 @@ export const checkCodeAnswers: Check = (content) =>
     ];
   }));
 
-/* An attribute's value is plain text: a "<" or a "$" in it is markup or maths the
-   page renders inside the attribute, which breaks it. The tag pattern reads
-   quoted values whole, so a ">" inside one does not end the tag early. */
+/* An attribute's value is plain text: a "<" in it is markup, and a "$" maths no attribute can show. The build
+   sets no maths inside a tag; the one attribute the app sets maths from is a figure's data-original-caption,
+   which it renders under the page's macros where the book's caption is shown, so a "$" is allowed there. The
+   tag pattern reads quoted values whole, so a ">" inside one does not end the tag early. */
+const MATH_ATTRS: ReadonlySet<string> = new Set(['data-original-caption']);
 const TAG = /<[a-zA-Z][\w-]*((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/g;
 const ATTR = /([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 export const checkAttributeMarkup: Check = (content) =>
   pagesOf(content).flatMap((s) => Array.from(s.textHtml.matchAll(TAG), (t) => Array.from(t[1].matchAll(ATTR))).flat()
-    .flatMap(([, name, dq, sq]) => (/[<$]/.test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a "<" or "$"; an attribute's value is plain text`)] : [])));
+    .flatMap(([, name, dq, sq]) => ((MATH_ATTRS.has(name) ? /</ : /[<$]/).test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a ${MATH_ATTRS.has(name) ? '"<"' : '"<" or "$"'}; an attribute's value is plain text`)] : [])));
 
 /* A code set (codeset.ts): one listing in several languages, one <pre data-lang> each, Python present or the
    set saying why, a translation naming what translated it, and no math. */
@@ -565,7 +586,8 @@ export const checkNcCards: Check = (content) => {
    The eyebrow follows from the row. An interactive figure that replaces
    nothing in the book is a Sim, and its eyebrow reads exactly that; one that
    transforms a book figure is still a Figure, and its eyebrow reads "Figure"
-   with every number it carries. A faithful copy reads "Figure" or "Figure N"
+   with every number it carries, or "Figure" alone where the book's figure is
+   unnumbered (the row keeps its image among the originals). A faithful copy reads "Figure" or "Figure N"
    as its number says, and a photograph reads "Figure N", or carries no eyebrow
    where it has no number. The kind sim names
    the mechanism, a simulation the reader can play with, and the label
@@ -574,7 +596,8 @@ const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefine
 /* What a row's eyebrow must read, or nothing where the row cannot be labelled (a photograph with no number). */
 export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
   const printed = printedNumbers(f);
-  if (f.kind === 'sim') return printed === undefined ? 'Sim' : `Figure ${printed}`;
+  /* a sim that replaces an unnumbered book figure (it keeps the book's image as an original) is a Figure, as a kept unnumbered image is */
+  if (f.kind === 'sim') return printed !== undefined ? `Figure ${printed}` : f.originals.length ? 'Figure' : 'Sim';
   if (f.kind === 'figure') return printed === undefined ? 'Figure' : `Figure ${printed}`;
   return printed === undefined ? undefined : `Figure ${printed}`;
 };
@@ -889,29 +912,50 @@ export const checkPrereqCycles: Check = (content) =>
   prereqLoops(content.book.conceptPrereqs).map((loop) =>
     error('book.json concept_prereqs', `closes a loop, each concept resting on the one before: ${loop.join(' → ')}`));
 
+/* A book macro is a symbol wrapped in its colour and its key, two commands with arguments, so it cannot stand bare
+   as a sub- or superscript: `\int_0^\ka` is a KaTeX error where the page sets it ("Got function with no arguments
+   as superscript"), and only `^{\ka}` sets. Read in the text (the TeX the build keeps beside its maths, and any
+   error it printed), in the section's tables and in its figures. */
+const BARE_SCRIPT = /[_^]\s*\\+(k[A-Za-z]+)/g;
+export const checkBareScripts: Check = (content) => {
+  const macros = new Set(content.book.symbols.flatMap((x) => (x.macro ? [x.macro] : [])));
+  const bare = (where: string, text: string): Finding[] => [...new Set([...text.matchAll(BARE_SCRIPT)].map((m) => `\\${m[1]}`).filter((m) => macros.has(m)))]
+    .map((m) => error(where, `sets ${m} bare as a sub- or superscript; write it in braces, _{${m}} or ^{${m}}`));
+  return pagesOf(content).flatMap((s) => [
+    ...bare(`${s.dto.id}/text.html`, s.textHtml),
+    ...bare(`${s.dto.id}/section.json`, JSON.stringify(s.dto)),
+    ...bare(`${s.dto.id}/figures.js`, s.figuresJs),
+    ...[...s.textHtml.matchAll(/class="katex-error"[^>]*title="([^"]*)"/g)].map((m) => error(`${s.dto.id}/text.html`, `has maths KaTeX cannot set: ${m[1]!.slice(0, 120)}`)),
+  ]);
+};
+
 /* A derivation's host and its row say the same thing, and its nodes rest only on what they list and use all of it. */
-const stripKeys = (tex: string): string => tex.replace(/\\mk\{[^{}]*\}/g, '');
-export const checkDerivations: Check = (content) =>
-  pagesOf(content).flatMap((s) => {
+export const checkDerivations: Check = (content) => {
+  /* every derivation of the book by section, for the facts that link to one elsewhere (`drv`) */
+  const all = new Map<string, ReadonlySet<string>>(pagesOf(content).map((p) => [p.dto.id, new Set(p.dto.derivations.map((d) => d.id))] as const));
+  return pagesOf(content).flatMap((s) => {
     const hosts = new Set(derivationHosts(s.textHtml)), rows = s.dto.derivations;
     return [
       ...rows.flatMap((d) => (hosts.has(`drv-${d.id}`) ? [] : [error(inSection(s, 'derivations', d.id), 'is no <figure class="dv"> of the section’s text')])),
       ...[...hosts].flatMap((id) => (rows.some((d) => `drv-${d.id}` === id) ? [] : [error(`${s.dto.id}/text.html`, `<figure id="${id}"> is no row of the derivations table`)])),
       ...rows.flatMap((d) => {
-        const results = d.nodes.map((m) => stripKeys(m.steps[m.steps.length - 1]!.tex));
+        const results = d.nodes.map((m) => m.steps[m.steps.length - 1]!.tex);
         return d.nodes.flatMap((n, i) => {
           const where = inSection(s, 'derivations', `${d.id}].nodes[${i}`);
           const used = new Set([...n.then.uses, ...n.steps.flatMap((x) => x.uses)]);
           return [
             ...[...used].flatMap((u) => (u < n.assumes.length ? [] : [error(where, `uses assumes[${u}], which it has no entry for`)])),
-            ...n.assumes.flatMap((a, k) => (used.has(k) || (a.step !== undefined && stripKeys(n.then.tex) === results[a.step]) ? [] : [error(where, `assumes[${k}] is never used`)])),
+            /* a fact or result the start line restates is used by it, as the widget starts the node from it (docs/prompts/derivations.md) */
+            ...n.assumes.flatMap((a, k) => (used.has(k) || (a.step !== undefined ? a.step < i && restatesResult(n.then.tex, results[a.step]!) : restatesFact(n.then.tex, a)) ? [] : [error(where, `assumes[${k}] is never used`)])),
             ...n.assumes.flatMap((a, k) => (a.step !== undefined && a.step >= i ? [error(where, `assumes[${k}] rests on node ${a.step}, which comes no earlier`)] : [])),
+            ...n.assumes.flatMap((a, k) => { const t = drvTarget(a.drv, s.dto.id); return !t ? [] : !all.has(t.sec) ? [warning(where, `assumes[${k}] links to a derivation of section ${t.sec}, which is not built`)] : all.get(t.sec)!.has(t.id) ? [] : [error(where, `assumes[${k}] links to derivation "${t.id}", which section ${t.sec} has no row for`)]; }),
             ...[n.then.tex, ...n.steps.map((x) => x.tex)].flatMap((l, j) => { const ks = [...l.matchAll(/\\mk\{([^{}]*)\}/g)].map((m) => m[1]); return new Set(ks).size === ks.length ? [] : [error(where, `line ${j} keys a term twice`)]; }),
           ];
         });
       }),
     ];
   });
+};
 /* ---------- the language a book is written in, and the book a translation translates ---------- */
 
 /* A book says what language it is written in: it is the lang of every page and what the library lists the edition under. */
@@ -1003,7 +1047,7 @@ export const checkParity = (content: Content, source: Content): readonly Finding
   ];
 };
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta, checkCodeAnswers, checkCodeSets, checkProvenance, checkNcCards];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta, checkCodeAnswers, checkCodeSets, checkProvenance, checkNcCards];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

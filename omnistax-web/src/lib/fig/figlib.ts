@@ -58,7 +58,7 @@ export type Pt = readonly [Logical, Logical];                 /* a projected poi
 type ViewOpts = { yaw: number; pitch: number; dist: number; cx: Logical; cy: Logical };
 export type View = { P: (p: Vec3) => Pt; shade: (n: Vec3) => number };
 type TextOpts = { size?: number; weight?: number; italic?: boolean; align?: CanvasTextAlign; base?: CanvasTextBaseline; bg?: Color; tex?: boolean };
-type CtlOpts = { label: string; cls: string; key?: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
+type CtlOpts = { label: string; cls: string; key?: string; min: number; max: number; step: number; value: number; unit: string; dec?: number; fmt?: (v: number) => string; aria?: string; detents?: readonly Detent[]; snap?: boolean; specials?: readonly Special[]; onInput?: () => void; disabled?: boolean };
 type AxesOpts = { xl?: string; yl?: string; xc?: Color; yc?: Color; nx?: number; ny?: number; fx?: (v: number) => string; fy?: (v: number) => string; nice?: boolean };
 
 const $ = <T extends Element = Element>(s: string, r: ParentNode = document): T | null => r.querySelector<T>(s);
@@ -116,8 +116,8 @@ const withAuto = lazy((): Promise<AutoRender> => autoChunk().then((m) => m.defau
    (a derivation builds its cards before it mounts them, and a detached card would read only the book's). */
 export type TexOpts = { readonly values?: boolean; readonly at?: Element };
 function tex(el: HTMLElement, s: string, display = false, o: TexOpts = {}): void {
-  const opts = KOPT(el.isConnected || !o.at ? el : o.at);
-  withKatex((katex) => { katex.render(s, el, { ...opts, displayMode: display }); fitReadout(el); if (o.values !== false) texGlow(el); });
+  /* the page's macros are read when the TeX is set, so an element that has joined its page since the call takes that page's */
+  withKatex((katex) => { katex.render(s, el, { ...KOPT(el.isConnected || !o.at ? el : o.at), displayMode: display }); fitReadout(el); if (o.values !== false) texGlow(el); });
 }
 /* A readout wider than its box where it cannot break (a table of rows, one long product) is set
    smaller until it fits, though never below the figure text's floor. */
@@ -457,11 +457,15 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const inp = el('input'); inp.type = 'range'; inp.className = 's-' + o.cls; inp.min = String(o.min); inp.max = String(o.max); inp.step = String(o.step); inp.value = String(o.value);
   inp.setAttribute('aria-label', o.aria ?? ariaOfLabel(o.label));
   const val = el('span', 'ctl-val kv-' + o.cls);
-  let unit = o.unit, dec = o.dec ?? 1, held: number | null = null;
+  let unit = o.unit, dec = o.dec ?? 1, shownAs = o.fmt, held: number | null = null;
   const sp = specialsOf(inp, o);
-  const upd = () => { val.textContent = fmt(held ?? +inp.value, dec) + ' ' + unit; sp.lit(); };
+  /* the value as the reader reads it: the figure's own formatter where it has one (a log slider showing the
+     speed itself, a value in powers of ten), else the number to dec places and the unit; the same words are
+     what a screen reader says for the thumb */
+  const valueText = (x: number): string => (shownAs ? shownAs(x) : unit ? `${fmt(x, dec)} ${unit}` : fmt(x, dec));
+  const upd = () => { const t = valueText(held ?? +inp.value); setScripted(val, t); inp.setAttribute('aria-valuetext', t); sp.lit(); };
   inp.addEventListener('input', () => { held = null; sp.snap(); upd(); o.onInput?.(); });
-  const face = (t: string): HTMLElement => { const f = el('span', 'ctl-face'); f.dataset.tex = t; tex(f, t); name.appendChild(f); return f; };
+  const face = (t: string): HTMLElement => { const f = el('span', 'ctl-face'); f.dataset.tex = t; tex(f, t, false, { at: parent }); name.appendChild(f); return f; };
   const faceOf = (t: string): HTMLElement => Array.from(name.children as HTMLCollectionOf<HTMLElement>).find((f) => f.dataset.tex === t) ?? face(t);
   let current = face(o.label), lastLabelKey = '';
   const relabelAt = (a: string, b: string, k: number): void => {
@@ -486,12 +490,12 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
   const within = (r: SliderRange, x: number): number => Math.min(r.max, Math.max(r.min, x));
   const settle = (r: SliderRange, x: number): void => {
     inp.min = String(r.min); inp.max = String(r.max); inp.step = String(r.step); inp.value = String(within(r, x));
-    unit = r.unit ?? unit; dec = r.dec ?? dec; held = null; sp.place(); upd();
+    unit = r.unit ?? unit; dec = r.dec ?? dec; shownAs = r.fmt ?? shownAs; held = null; sp.place(); upd();
     if (ticks) { const t = ticksOf(detentsIn(r), r); ticks.replaceWith(t); ticks = t; }
   };
   const frame = (f: RangeFrame, x: number): void => {
     inp.step = 'any'; inp.min = String(f.min); inp.max = String(f.max); inp.value = String(f.min + f.frac * (f.max - f.min));
-    unit = f.near.unit ?? unit; dec = f.near.dec ?? dec; held = x; upd();
+    unit = f.near.unit ?? unit; dec = f.near.dec ?? dec; shownAs = f.near.fmt ?? shownAs; held = x; upd();
   };
   let lastRangeKey = '', easing = 0;
   const rangeAt = (a: SliderRange, b: SliderRange, k: number): void => {
@@ -501,7 +505,7 @@ function ctl(parent: HTMLElement, o: CtlOpts): Slider {
     if (f.done) settle(f.near, k < 0.5 ? va : vb); else frame(f, k < 0.5 ? va : vb);
   };
   const range = (r: SliderRange): void => {
-    const was: SliderRange = { min: +inp.min, max: +inp.max, step: +inp.step || 1, unit, dec }, x = held ?? +inp.value, to = within(r, r.value ?? x);
+    const was: SliderRange = { min: +inp.min, max: +inp.max, step: +inp.step || 1, unit, dec, ...(shownAs ? { fmt: shownAs } : {}) }, x = held ?? +inp.value, to = within(r, r.value ?? x);
     lastRangeKey = ''; cancelAnimationFrame(easing);
     if (REDUCED) { settle(r, to); return; }
     const t0 = performance.now(), go = { ...r, value: to };
@@ -761,8 +765,45 @@ function runsTex(s: string, canvas: unknown): Run[] {
     return html === null ? [{ s: plain(part), sub: false }] : [{ s: part, sub: false, html }];
   });
 }
+/* Unicode's own super- and subscript characters (10⁻²⁰, cm⁻¹, ν₀) are set as the `^` and `_` runs are:
+   the ordinary character, smaller and raised or lowered, in the figure font. Few faces carry the
+   Unicode forms, and a fallback face draws them in another size and weight (⁻²⁰ read as "-2o"). */
+const SUPS_U = '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ', SUPS_P = '0123456789+\u2212=()ni';
+const SUBS_U = '₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ', SUBS_P = '0123456789+\u2212=()aeoxəhklmnpst';
+const UNI_SCRIPT = new RegExp(`[${SUPS_U}]+|[${SUBS_U}]+`, 'g');
+const plainScript = (t: string): string => Array.from(t).map((ch) => { const i = SUPS_U.indexOf(ch), j = SUBS_U.indexOf(ch); return i >= 0 ? SUPS_P[i] : j >= 0 ? SUBS_P[j] : ch; }).join('');
+const hasUniScript = (s: string): boolean => { UNI_SCRIPT.lastIndex = 0; return UNI_SCRIPT.test(s); };
+function uniRuns(r: Run): Run[] {
+  if (r.html !== undefined || !hasUniScript(r.s)) return [r];
+  if (r.sub || r.sup) return [{ ...r, s: plainScript(r.s) }];   /* already small: the characters only */
+  const out: Run[] = []; let last = 0, m: RegExpExecArray | null; UNI_SCRIPT.lastIndex = 0;
+  while ((m = UNI_SCRIPT.exec(r.s))) {
+    if (m.index > last) out.push({ s: r.s.slice(last, m.index), sub: false });
+    const up = SUPS_U.includes(m[0][0]!);
+    out.push({ s: plainScript(m[0]), sub: !up, sup: up });
+    last = UNI_SCRIPT.lastIndex;
+  }
+  if (last < r.s.length) out.push({ s: r.s.slice(last), sub: false });
+  return out;
+}
+/* the same for page text a figure sets outside its canvas (a slider's value): <sup> and <sub> in the figure font */
+function setScripted(host: HTMLElement, s: string): void {
+  if (!hasUniScript(s)) { delete host.dataset.scripted; if (host.textContent !== s || host.childElementCount) host.textContent = s; return; }
+  if (host.dataset.scripted === s) return;
+  host.dataset.scripted = s;
+  host.replaceChildren(...uniRuns({ s, sub: false }).map((r) => (r.sub || r.sup ? Object.assign(document.createElement(r.sup ? 'sup' : 'sub'), { textContent: r.s }) : document.createTextNode(r.s))));
+}
+/* ħ is set as TeX's \hbar wherever the canvas is in the page: the figure faces carry ħ as the Maltese
+   letter, whose bar is a hairline on the ascender, and at label size it reads as a plain h. */
+const HBAR = /[\u0127\u210f]/;
+function hbarRuns(r: Run, canvas: unknown): Run[] {
+  if (r.html !== undefined || r.sub || r.sup || !HBAR.test(r.s)) return [r];
+  const html = inPage(canvas) ? typeset('\\hbar', canvas) : null;
+  if (html === null) return [r];
+  return r.s.split(/([\u0127\u210f])/).flatMap((part, i): Run[] => (i % 2 ? [{ s: '\\hbar', sub: false, html }] : part ? [{ s: part, sub: false }] : []));
+}
 const runsFor = (s: string, canvas: unknown, tex?: boolean): Run[] =>
-  tex && s.includes('$') ? runsTex(s, canvas) : SCRIPTS.test(s) ? runsOf(s) : [{ s, sub: false }];
+  (tex && s.includes('$') ? runsTex(s, canvas) : SCRIPTS.test(s) ? runsOf(s) : [{ s, sub: false }]).flatMap(uniRuns).flatMap((r) => hbarRuns(r, canvas));
 /* ---------- the text over the canvas ----------
    What `text` sets on a canvas that is in the page is recorded and shown as the page's own
    text over it (textlayer.ts). A draw's record opens at `begin`, or at its first string on a
@@ -916,7 +957,10 @@ function axes(ctx: Ctx, box: Box, xr: Range, yr: Range, o: AxesOpts = {}): Axes 
   const k = arrivalAt(ctx), grow = during(k, 0, 0.25), fade = during(k, 0.15, 0.4);
   ctx.save(); ctx.globalAlpha *= fade;
   /* nice: ticks at round values for whatever range this frame has, as a zoom needs */
-  const at = (r: Range, n: number): { vals: number[]; dec: number } => n <= 0 ? { vals: [], dec: 0 } : o.nice ? ticks(r[0], r[1], n) : { vals: Array.from({ length: n + 1 }, (_, i) => r[0] + ((r[1] - r[0]) * i) / n), dec: 0 };
+  /* evenly spaced ticks are labelled to as many decimals as their values need (−1.5 to 1.5 in steps of 0.5 reads 0.5, not 1) */
+  const decOf = (vals: readonly number[]): number => { for (let d = 0; d < 6; d += 1) if (vals.every((v) => Math.abs(v * 10 ** d - Math.round(v * 10 ** d)) < 1e-6 * Math.max(1, Math.abs(v * 10 ** d)))) return d; return 6; };
+  const even = (r: Range, n: number): { vals: number[]; dec: number } => { const vals = Array.from({ length: n + 1 }, (_, i) => r[0] + ((r[1] - r[0]) * i) / n), step = Math.abs(r[1] - r[0]) / n; return { vals, dec: Math.min(decOf(vals), Math.max(0, Math.ceil(-Math.log10(step)) + 1)) }; };   /* thirds read to one place past the step's */
+  const at = (r: Range, n: number): { vals: number[]; dec: number } => n <= 0 ? { vals: [], dec: 0 } : o.nice ? ticks(r[0], r[1], n) : even(r, n);
   const tx = at(xr, nx), ty = at(yr, ny);
   tx.vals.forEach((v) => { if (v !== xr[0]) line(ctx, X(v), box.t, X(v), box.b, PAL.rule, 1.5); text(ctx, o.fx ? o.fx(v) : fmt(v, tx.dec), X(v), box.b + 26, PAL.muted, { size: 17, align: 'center' }); });
   ty.vals.forEach((v) => { if (v !== yr[0]) line(ctx, box.l, Y(v), box.r, Y(v), PAL.rule, 1.5); text(ctx, o.fy ? o.fy(v) : fmt(v, ty.dec), box.l - 14, Y(v), PAL.muted, { size: 17, align: 'right' }); });
@@ -967,7 +1011,8 @@ function blendCurve(ctx: Ctx, fa: (t: number) => number, fb: (t: number) => numb
    and at a point the function takes off its curve. A piecewise function is a list of pieces, each
    on its own interval with its ends written as an interval is ('[)', '(]', '[]', '()'). */
 export type PlotPiece = { readonly f: (x: number) => number; readonly x: Range; readonly ends?: string };
-export type PlotOpts = { w?: number; x?: Range; holes?: readonly (number | readonly [number, number])[]; dots?: readonly (readonly [number, number])[]; poles?: readonly number[] };
+/* dash: the curve dashed, on and off in canvas units ([10, 10] for a prediction or a part beside the whole, root style) */
+export type PlotOpts = { w?: number; x?: Range; holes?: readonly (number | readonly [number, number])[]; dots?: readonly (readonly [number, number])[]; poles?: readonly number[]; dash?: readonly number[] };
 const PLOT_PAD = 6;
 const clipTo = (ctx: Ctx, box: Box, right = box.r): void => { ctx.beginPath(); ctx.rect(box.l - PLOT_PAD, box.t - PLOT_PAD, right - box.l + 2 * PLOT_PAD, box.b - box.t + 2 * PLOT_PAD); ctx.clip(); };
 function plot(ctx: Ctx, ax: Axes, fn: ((x: number) => number) | readonly PlotPiece[], color: Color, o: PlotOpts = {}): void {
@@ -976,7 +1021,8 @@ function plot(ctx: Ctx, ax: Axes, fn: ((x: number) => number) | readonly PlotPie
   const pieces: readonly PlotPiece[] = typeof fn === 'function' ? [{ f: fn, x: o.x ?? ax.xr }] : fn;
   ctx.save(); clipTo(ctx, box, reach);
   (o.poles ?? []).forEach((p) => line(ctx, X(p), box.t, X(p), box.b, PAL.muted, 2, [10, 10]));
-  ctx.strokeStyle = color; ctx.lineWidth = o.w ?? 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.strokeStyle = color; ctx.lineWidth = o.w ?? 5; ctx.lineJoin = 'round'; ctx.lineCap = o.dash ? 'butt' : 'round';
+  if (o.dash) ctx.setLineDash([...o.dash]);
   pieces.forEach((p) => trace(p.f, p.x[0], p.x[1], ax).forEach((run) => {
     ctx.beginPath(); run.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
   }));
@@ -1335,6 +1381,92 @@ function note(ctx: Ctx, box: Box, s: string, avoid: readonly Box[] = [], size = 
   const best = corners.map(boxAt).reduce((a, b) => (overlap(b) < overlap(a) ? b : a));
   text(ctx, s, (best.l + best.r) / 2, (best.t + best.b) / 2, PAL.muted, { size, align: 'center', bg: PAL.panel });
   return best;
+}
+
+/* ---------- a legend ----------
+   The key to what a figure draws more than once or cannot name in place (root 26.6 and 26.7):
+   one entry per kind, a sample beside its name, set in a panel the colour of the page. A sample is
+   a stroke (`line`, solid or with `dash`, at `w`), a filled `swatch`, a `dot` (hollow on request),
+   a colour scale (`ramp`: its colours spread evenly, `ends` the words at its two ends, the name
+   under its middle), or whatever `draw(ctx, x, y)` paints in a 44 by 22 slot. Placed in `where`,
+   a graph's axes or a box: in the corner the figure names; `above` the box on one row flush right
+   or `below` it flush left (the lines the axis titles stand on, clear of them); or by default in
+   the corner of the box that the boxes in `avoid` and the curves of the entries that carry their
+   function `f` leave clearest, kept there from frame to frame while no other corner is clearer.
+   Text goes through `text`, so it is page text in the figure font. Returns the box it took; a
+   labeller given as `lab` takes it too. */
+export type LegendEntry = {
+  readonly s: string; readonly color?: Color; readonly kind?: 'line' | 'swatch' | 'dot' | 'ramp';
+  readonly dash?: readonly number[]; readonly w?: number; readonly hollow?: boolean;
+  readonly ramp?: readonly Color[]; readonly ends?: readonly [string, string];
+  readonly f?: (x: number) => number; readonly draw?: (ctx: Ctx, x: Logical, y: Logical) => void;
+};
+type LegendCorner = 'tl' | 'tr' | 'bl' | 'br' | 'top' | 'bottom' | 'above' | 'below';
+export type LegendOpts = { readonly corner?: LegendCorner; readonly avoid?: readonly Box[]; readonly row?: boolean; readonly size?: number; readonly panel?: boolean; readonly lab?: Labeller };
+const SAMPLE_W = 44, RAMP_W = 240;
+const legendKept = new WeakMap<object, Map<string, LegendCorner>>();
+function legend(ctx: Ctx, where: Axes | Box, entries: readonly LegendEntry[], o: LegendOpts = {}): Box {
+  const box: Box = 'box' in where ? where.box : where, ax = 'box' in where ? where : null;
+  const outside = o.corner === 'above' || o.corner === 'below', bare = !(o.panel ?? !outside);   /* outside the box it stands on the page itself, as the axis titles do */
+  const size = o.size ?? 17, rowH = Math.max(shownH(ctx, size) + 8, 24), gap = 8, pad = bare ? 0 : 10, inset = 12;
+  const textW = (s: string): Logical => (s ? measure(ctx, s, { size, tex: true }) : 0);
+  /* each entry's footprint: the sample, then its name; a ramp is its end words either side of the bar, its name under it */
+  const sizes = entries.map((e) => {
+    if ((e.kind ?? '') === 'ramp' || e.ramp) { const [a, b] = e.ends ?? ['', '']; return { w: textW(a) + RAMP_W + textW(b) + 2 * 12, h: e.s ? 2 * rowH : rowH }; }
+    return { w: SAMPLE_W + 10 + textW(e.s), h: rowH };
+  });
+  const row = o.row ?? outside;
+  const inW = row ? sizes.reduce((a, z) => a + z.w, 0) + 22 * Math.max(0, entries.length - 1) : Math.max(0, ...sizes.map((z) => z.w));
+  const inH = row ? Math.max(0, ...sizes.map((z) => z.h)) : sizes.reduce((a, z) => a + z.h, 0) + gap * Math.max(0, entries.length - 1);
+  const W = inW + 2 * pad, H = inH + 2 * pad;
+  const at = (c: LegendCorner): Box => {
+    const l = c === 'tl' || c === 'bl' ? box.l + inset : c === 'top' || c === 'bottom' ? (box.l + box.r - W) / 2 : box.r - inset - W;
+    /* above stands flush right on the line the y title starts at the left of; below flush left on the line the x title ends at the right of */
+    const t = c === 'above' ? box.t - 24 - H / 2 : c === 'below' ? box.b + 58 - H / 2 : c === 'tl' || c === 'tr' || c === 'top' ? box.t + inset : box.b - inset - H;
+    const ll = c === 'above' ? box.r - W : c === 'below' ? box.l : l;
+    return { l: ll, r: ll + W, t, b: t + H };
+  };
+  /* what lies under a candidate: the boxes to avoid, by area, and the entries' curves, by the samples that fall inside */
+  const pts: Pt[] = [];
+  if (ax) entries.forEach((e) => { if (!e.f) return; for (let i = 0; i <= 160; i += 1) { const x = ax.xr[0] + ((ax.xr[1] - ax.xr[0]) * i) / 160, y = e.f(x); if (Number.isFinite(y)) pts.push([ax.X(x), ax.Y(y)]); } });
+  const cost = (b: Box): number => (o.avoid ?? []).reduce((s, a) => s + Math.max(0, Math.min(b.r, a.r) - Math.max(b.l, a.l)) * Math.max(0, Math.min(b.b, a.b) - Math.max(b.t, a.t)), 0)
+    + 400 * pts.filter(([x, y]) => x > b.l - 8 && x < b.r + 8 && y > b.t - 8 && y < b.b + 8).length;
+  let corner = o.corner;
+  if (!corner) {
+    const host = (ctx as { canvas?: object }).canvas ?? ctx, kept = legendKept.get(host) ?? (legendKept.set(host, new Map()), legendKept.get(host)!);
+    const key = entries.map((e) => e.s).join('|'), was = kept.get(key);
+    const order: LegendCorner[] = ['tr', 'tl', 'br', 'bl'];
+    const best = order.reduce((a, c) => (cost(at(c)) < cost(at(a)) ? c : a));
+    corner = was && cost(at(was)) <= cost(at(best)) ? was : best;
+    kept.set(key, corner);
+  }
+  const out = at(corner);
+  if (!bare) {
+    ctx.save(); ctx.fillStyle = alpha(PAL.panel, 0.92); ctx.strokeStyle = PAL.rule; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(out.l, out.t, W, H, 6); ctx.fill(); ctx.stroke(); ctx.restore();
+  }
+  let x = out.l + pad, y = out.t + pad;
+  entries.forEach((e, i) => {
+    const z = sizes[i]!, cy = y + rowH / 2, c = e.color ?? PAL.ink, kind = e.ramp ? 'ramp' : e.kind ?? (e.draw ? 'draw' : 'line');
+    if (kind === 'ramp') {
+      const [a, b] = e.ends ?? ['', ''], x0 = x + textW(a) + (a ? 12 : 0), cols = e.ramp ?? [c];
+      if (a) text(ctx, a, x0 - 12, cy, PAL.muted, { size, align: 'right', tex: true });
+      ctx.save(); const g = ctx.createLinearGradient(x0, 0, x0 + RAMP_W, 0);
+      cols.forEach((k, j) => g.addColorStop(cols.length > 1 ? j / (cols.length - 1) : 0, k));
+      ctx.fillStyle = g; ctx.fillRect(x0, cy - 9, RAMP_W, 18); ctx.strokeStyle = alpha(PAL.ink, 0.4); ctx.lineWidth = 1; ctx.strokeRect(x0, cy - 9, RAMP_W, 18); ctx.restore();
+      if (b) text(ctx, b, x0 + RAMP_W + 12, cy, PAL.muted, { size, tex: true });
+      if (e.s) text(ctx, e.s, x0 + RAMP_W / 2, cy + rowH, PAL.muted, { size, align: 'center', tex: true });
+    } else {
+      if (kind === 'draw') e.draw!(ctx, x + SAMPLE_W / 2, cy);
+      else if (kind === 'swatch') { ctx.save(); ctx.fillStyle = c; ctx.fillRect(x + 8, cy - 8, SAMPLE_W - 16, 16); ctx.restore(); }
+      else if (kind === 'dot') dot(ctx, x + SAMPLE_W / 2, cy, c, !e.hollow, 8);
+      else line(ctx, x + 2, cy, x + SAMPLE_W - 2, cy, c, e.w ?? 4, e.dash ? [...e.dash] : undefined);
+      text(ctx, e.s, x + SAMPLE_W + 10, cy, PAL.ink, { size, tex: true });
+    }
+    if (row) x += z.w + 22; else y += z.h + gap;
+  });
+  o.lab?.place(out);
+  return out;
 }
 
 /* ---------- the arc of an angle ----------
@@ -2007,8 +2139,21 @@ function turning(host: HTMLElement, first: string, ms: number, cur: () => string
 }
 
 const plain = (s: string): string => s.replace(/\\k|[{}\\]/g, '');
+/* An option's label may write maths as $…$ (|ψ⟩ = $Ne^{ikx}$): on a button each run is set by KaTeX under the
+   page's macros; a dropdown's <option> holds text only, so there the run is read plain, its scripts dropped to
+   the line. A label with no $ is the words as written. */
+const TEX_PARTS = /(\$[^$]+\$)/;
+function optionLabel(host: HTMLElement, label: string, at: Element): void {
+  if (!label.includes('$')) { host.innerHTML = label; return; }
+  host.replaceChildren(...label.split(TEX_PARTS).filter(Boolean).map((part) => {
+    if (!(part.startsWith('$') && part.endsWith('$') && part.length > 1)) return document.createTextNode(part);
+    const m = el('span', 'seg-tex'); tex(m, part.slice(1, -1), false, { at, values: false }); return m;
+  }));
+}
+const plainLabel = (label: string): string => label.replace(/\$([^$]+)\$/g, (_, t: string) => plain(t.replace(/[_^]/g, '')));
 const ariaOf = (o: ChoiceOpts): string => o.aria ?? (o.label ? plain(o.label) : msg('fig.choice'));
-function ctlLabel(lab: HTMLElement, o: ChoiceOpts): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label); lab.appendChild(name); }
+/* A control's name is set before it joins the figure, so it is set under the macros of the page its host stands in. */
+function ctlLabel(lab: HTMLElement, o: ChoiceOpts, host: HTMLElement): void { if (!o.label) return; const name = el('span', 'ctl-label'); tex(name, o.label, false, { at: host }); lab.appendChild(name); }
 
 const enrolPicker = (host: HTMLElement, o: ChoiceOpts, input: EventTarget, value: () => string, drive: (v: string) => void, list: () => readonly Choice[]): void =>
   enrol(host.closest('figure'), o.key ?? 'choice', (id) => ({
@@ -2019,7 +2164,7 @@ const kept = (values: readonly string[], v: string, value?: string): string =>
   values.includes(v) ? v : value !== undefined && values.includes(value) ? value : values[0] ?? '';
 
 function choice(host: HTMLElement, o: ChoiceOpts): Picker {
-  const lab = el('label', 'ctl-seg'); ctlLabel(lab, o);
+  const lab = el('label', 'ctl-seg'); ctlLabel(lab, o, host);
   const row = el('div', 'ctlseg'); row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', ariaOf(o));
   let list = o.options, values = list.map((c) => c.value), buttons: HTMLButtonElement[] = [];
   let v = kept(values, o.value ?? '');
@@ -2032,7 +2177,7 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
   };
   const build = (): void => {
     buttons = list.map((c) => {
-      const b = el('button', 'segbtn', c.label); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
+      const b = el('button', 'segbtn'); optionLabel(b, c.label, host); b.type = 'button'; b.dataset.value = c.value; b.setAttribute('role', 'radio');
       b.addEventListener('click', () => pick(c.value, false)); return b;
     });
     row.replaceChildren(...buttons); mark();
@@ -2056,10 +2201,10 @@ function choice(host: HTMLElement, o: ChoiceOpts): Picker {
 }
 
 function select(host: HTMLElement, o: ChoiceOpts): Picker {
-  const lab = el('label', 'ctl-pick'); ctlLabel(lab, o);
+  const lab = el('label', 'ctl-pick'); ctlLabel(lab, o, host);
   const sel = el('select', 'ctl-select'); sel.setAttribute('aria-label', ariaOf(o));
   let list = o.options;
-  const build = (): void => sel.replaceChildren(...list.map((c) => { const op = el('option'); op.value = c.value; op.textContent = c.label; return op; }));
+  const build = (): void => sel.replaceChildren(...list.map((c) => { const op = el('option'); op.value = c.value; op.textContent = plainLabel(c.label); return op; }));
   build(); sel.value = o.value ?? list[0]?.value ?? '';
   let v = sel.value;
   const tw = turning(host, v, o.ms ?? TURN_MS, () => v);
@@ -2380,6 +2525,16 @@ function inert(): Obj3 {
   });
   return p;
 }
+/* A label of a 3D stage set at (x, y) and kept whole inside the stage: its foot no higher than the headline
+   band's foot plus its own height, and no part of it past the bottom or a side edge (a point low in the scene
+   once had its label cut off by the stage's edge). A label hangs above its point; a tick or a bare one is
+   centred on it. */
+function pinLabel(e: HTMLElement, x: number, y: number, band: number, w: number, h: number, [wide, tall]: readonly [number, number]): void {
+  const centred = e.classList.contains('tick') || e.classList.contains('bare');
+  const top = Math.min(Math.max(band + tall, y), h > 0 ? h - (centred ? tall / 2 : 0) - 2 : Infinity);
+  const left = w > 0 && wide < w ? Math.min(Math.max(x, wide / 2 + 2), w - wide / 2 - 2) : x;
+  e.style.left = left + 'px'; e.style.top = Math.max(band + tall, top) + 'px';
+}
 const stub = (stage: HTMLElement): View3d => {
   const T = three(), wrap = el('p', 'three-none', msg('fig.three.noWebgl')); stage.appendChild(wrap);
   const nil = (): void => {};
@@ -2526,11 +2681,11 @@ function view3d(stage: HTMLElement, opts: View3dOpts = {}): View3d {
     if (name) tip.show(e.clientX - s.left, e.clientY - s.top - 12, name); else tip.hide();
   }
 
-  /* a label stands clear of the headline's band: its foot no higher than the band's foot plus its own height */
+  /* a label stands clear of the headline's band (its foot no higher than the band's foot plus its own height) and whole inside the stage */
   function place(): void {
     const w = wrap.clientWidth, h = wrap.clientHeight, t = vec3([0, 0, 0]);
-    const band = head ? head.offsetTop + head.offsetHeight : 0, tall = labels.map((l) => (band ? l.el.offsetHeight : 0));
-    labels.forEach((l, i) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); l.el.style.left = ((t.x + 1) / 2) * w + 'px'; l.el.style.top = Math.max(band + tall[i], ((1 - t.y) / 2) * h - l.dy) + 'px'; });
+    const band = head ? head.offsetTop + head.offsetHeight : 0, sizes = labels.map((l) => [l.el.offsetWidth, l.el.offsetHeight] as const);
+    labels.forEach((l, i) => { t.copy(l.p); l.g.localToWorld(t); t.project(camera); pinLabel(l.el, ((t.x + 1) / 2) * w, ((1 - t.y) / 2) * h - l.dy, band, w, h, sizes[i]!); });
   }
   function dispose(): void { if (!alive) return; alive = false; views3d.delete(live); densityWatchers.delete(size); ro?.disconnect(); io?.disconnect(); v.clear(); renderer?.dispose(); }
   let prev = performance.now(), away = false;
@@ -2912,14 +3067,14 @@ function revMesh(g: Obj3, line: readonly REV.P2[], axis: REV.Axis, color: Color,
   }
   g.add(body); return body;
 }
-/* one layer of a painted scene: faces in a colour, at an opacity */
-type RevLayer = { readonly faces: readonly REV.Face[]; readonly color: Color; readonly alpha?: number };
+/* one layer of a painted scene: faces in a colour, at an opacity; `colors`, where given, one per face */
+type RevLayer = { readonly faces: readonly REV.Face[]; readonly color: Color; readonly alpha?: number; readonly colors?: readonly Color[] };
 function revPaint(ctx: Ctx, cam: REV.Cam, layers: readonly RevLayer[]): void {
-  const all = layers.flatMap((l) => l.faces.map((f) => ({ f, l, d: f.reduce((s, p) => s + cam.depth(p), 0) / f.length })));
+  const all = layers.flatMap((l) => l.faces.map((f, i) => ({ f, l, c: l.colors?.[i] ?? l.color, d: f.reduce((s, p) => s + cam.depth(p), 0) / f.length })));
   all.sort((p, q) => q.d - p.d);
   ctx.save(); ctx.lineJoin = 'round'; ctx.lineWidth = 1;
-  all.forEach(({ f, l }) => {
-    const c = mixColor(l.color, PAL.ink, cam.light(REV.normal(f)));
+  all.forEach(({ f, l, c: base }) => {
+    const c = mixColor(base, PAL.ink, cam.light(REV.normal(f)));
     const a = l.alpha ?? 1;
     ctx.globalAlpha = a; ctx.fillStyle = c; ctx.strokeStyle = c;
     ctx.beginPath(); f.forEach((p, i) => { const [x, y] = cam.P(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath();
@@ -3051,7 +3206,27 @@ function dashed(pts: readonly SPACE.V3[], on: number, off: number): SPACE.V3[][]
   if (cur.length > 1) out.push(cur);
   return out;
 }
+/* one low ball shared by every point of every cloud: a point is a few pixels across, so 80 faces are round enough */
+let POINT_GEO: Obj3 = null;
+const pointGeo = (): Obj3 => (POINT_GEO ??= new (three()!).IcosahedronGeometry(1, 1));
 const m2r = (p: SPACE.V3): REV.P3 => [p[0], p[2], -p[1]];   /* the book's z-up frame into the y-up frame of the scene and the painter */
+/* A value read through a colour scale of [value, colour] stops, ascending: blended between the two stops
+   either side of it, held at the end stops beyond them. Tokens (ink, muted, guide) read the palette. */
+function tint(scale: SPACE.Scale, v: number): Color {
+  if (!scale.length) return PAL.ink;
+  if (!(v > scale[0]![0])) return tone(scale[0]![1]);
+  for (let i = 1; i < scale.length; i += 1) {
+    const [a, ca] = scale[i - 1]!, [b, cb] = scale[i]!;
+    if (v <= b) return b > a ? mixColor(tone(ca), tone(cb), (v - a) / (b - a)) : tone(cb);
+  }
+  return tone(scale[scale.length - 1]![1]);
+}
+/* the colour of every vertex of a tinted mark, in the order its rows or faces list them; null where it is one colour */
+function vertexTints(m: SPACE.Tint): Color[] | null {
+  if (m.colors) return m.colors.flat();
+  if (m.values && m.scale) { const sc = m.scale; return m.values.flat().map((v) => tint(sc, v)); }
+  return null;
+}
 
 function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, opts: SpaceOpts): Space3d {
   const box = opts.box, H = +(d.stage.dataset.h ?? 0) || opts.h || 480, book = cur;
@@ -3086,10 +3261,23 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
         : new T.MeshPhongMaterial({ color: col, emissive: col.clone().multiplyScalar(0.4 * (1 - lum(col))), shininess: 24, side: T.DoubleSide, transparent: see, opacity: op, depthWrite: !see, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
       mats.set(key, m); return m;
     };
+    /* a material whose colour is the vertices', interpolated across each face; a little of each vertex's own
+       colour glows, as a one-colour sheet's does, so the faces turned from the lamp still read as their colour */
+    const shaded = (a = 1): Obj3 => {
+      const key = `tint|${a}`, got = mats.get(key); if (got) return got;
+      const see = a < 1;
+      const m = new T.MeshPhongMaterial({ color: 0xffffff, vertexColors: true, emissive: new T.Color(0.22, 0.22, 0.22), shininess: 24, side: T.DoubleSide, transparent: see, opacity: a, depthWrite: !see, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+      m.onBeforeCompile = (sh: { fragmentShader: string }) => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n#ifdef USE_COLOR\n\ttotalEmissiveRadiance *= vColor.rgb;\n#endif'); };
+      m.customProgramCacheKey = () => 'omnistax-tint';
+      mats.set(key, m); return m;
+    };
+    const rgbs = new Map<string, readonly number[]>();
+    const rgbOf = (c: Color): readonly number[] => { const got = rgbs.get(c); if (got) return got; const q = parseRgba(tone(c)) ?? [0, 0, 0, 1], v = [q[0] / 255, q[1] / 255, q[2] / 255]; rgbs.set(c, v); return v; };
     const lineMat = (c: Color): Obj3 => { const key = `line|${tone(c)}`, got = mats.get(key); if (got) return got; const { c: col, a } = rgb(c); const m = new T.LineBasicMaterial({ color: col, transparent: a < 1, opacity: a }); mats.set(key, m); return m; };
-    const mesh = (pos: readonly number[], idx: readonly number[] | null, m: Obj3, uv?: readonly number[]): Obj3 => {
+    const mesh = (pos: readonly number[], idx: readonly number[] | null, m: Obj3, uv?: readonly number[], cols?: readonly Color[] | null): Obj3 => {
       const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
       if (uv) geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+      if (cols) geo.setAttribute('color', new T.Float32BufferAttribute(cols.flatMap(rgbOf), 3));
       if (idx) geo.setIndex([...idx]); geo.computeVertexNormals();
       const o = new T.Mesh(geo, m); g.add(o); return o;
     };
@@ -3119,16 +3307,24 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
         const nj = m.rows.length, ni = m.rows[0]?.length ?? 0, pos: number[] = [], uv: number[] = [], idx: number[] = [];
         m.rows.forEach((row, j) => row.forEach((p, i) => { pos.push(p[0], p[1], p[2]); uv.push(i / Math.max(1, ni - 1), j / Math.max(1, nj - 1)); }));
         for (let j = 0; j + 1 < nj; j++) for (let i = 0; i + 1 < ni; i++) { const k = j * ni + i; idx.push(k, k + 1, k + ni + 1, k, k + ni + 1, k + ni); }
-        const o = mesh(pos, idx, mat('lit', m.color, m.alpha ?? 0.8), uv); o.userData.param = m.param; named(m, o);
+        const cols = vertexTints(m);
+        const o = mesh(pos, idx, cols ? shaded(m.alpha ?? 0.8) : mat('lit', m.color, m.alpha ?? 0.8), uv, cols); o.userData.param = m.param; named(m, o);
+      } else if (m.k === 'points') {
+        if (!m.pts.length) return;
+        const tinted = !!m.colors, o = new T.InstancedMesh(pointGeo(), tinted ? mat('lit', '#ffffff') : mat('lit', m.color), m.pts.length), M = new T.Matrix4(), r = (m.r ?? 4) * px;
+        m.pts.forEach((p, i) => { M.makeScale(r, r, r); M.setPosition(p[0], p[1], p[2]); o.setMatrixAt(i, M); if (tinted) { const [cr, cg, cb] = rgbOf(m.colors![i] ?? m.color); o.setColorAt(i, new T.Color(cr, cg, cb)); } });
+        o.instanceMatrix.needsUpdate = true; if (o.instanceColor) o.instanceColor.needsUpdate = true;
+        g.add(o); named(m, o);
       } else if (m.k === 'faces') {
-        const pos: number[] = [];
-        m.faces.forEach((f) => { for (let i = 1; i + 1 < f.length; i++) [f[0], f[i], f[i + 1]].forEach((p) => pos.push(p[0], p[1], p[2])); });
-        if (pos.length) named(m, mesh(pos, null, mat('lit', m.color, m.alpha ?? 0.8)));
+        const pos: number[] = [], tints = vertexTints(m), cols: Color[] = [];
+        let at = 0;
+        m.faces.forEach((f) => { for (let i = 1; i + 1 < f.length; i++) [0, i, i + 1].forEach((v) => { const p = f[v]!; pos.push(p[0], p[1], p[2]); if (tints) cols.push(tints[at + v] ?? m.color); }); at += f.length; });
+        if (pos.length) named(m, mesh(pos, null, tints ? shaded(m.alpha ?? 0.8) : mat('lit', m.color, m.alpha ?? 0.8), undefined, tints ? cols : null));
       }
     });
   }
   function drop(g: Obj3): void {
-    const shared = Object.values(geo());
+    const shared = [...Object.values(geo()), pointGeo()];
     g.traverse((o: Obj3) => { if (o !== g) { o.material?.dispose?.(); if (o.geometry && !shared.includes(o.geometry)) o.geometry.dispose(); } });
     g.clear();
   }
@@ -3145,11 +3341,12 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
   }
   function place(): void {
     if (flat) return;
-    const band = headEl ? headEl.offsetTop + headEl.offsetHeight : 0;
-    layers.forEach((L) => L.labs.forEach(({ el: e, p }) => {
+    const band = headEl ? headEl.offsetTop + headEl.offsetHeight : 0, w = v.wrap.clientWidth, h = v.wrap.clientHeight;
+    const all = [...layers.values()].flatMap((L) => L.labs), sizes = all.map(({ el: e }) => [e.offsetWidth, e.offsetHeight] as const);
+    all.forEach(({ el: e, p }, i) => {
       const [x, y] = v.project(p, inner), lift = e.classList.contains('tick') || e.classList.contains('bare') ? 0 : 10;
-      e.style.left = x + 'px'; e.style.top = Math.max(band + e.offsetHeight, y - lift) + 'px';
-    }));
+      pinLabel(e, x, y - lift, band, w, h, sizes[i]!);
+    });
   }
 
   /* ---- the flat view ---- */
@@ -3163,8 +3360,17 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
     const cam = REV.camera({ yaw: -turn, pitch: tilt, dist: 2600, cx: LW / 2, cy: H / 2 + (headS ? 18 : 0), s: k, at: m2r(centre) });
     const P = (p: SPACE.V3): Pt => cam.P(m2r(p)) as unknown as Pt;
     const all = [...layers.values()].flatMap((L) => L.marks);
-    revPaint(ctx, cam, all.flatMap((m) => (m.k === 'sheet' ? [{ faces: SPACE.quads(m.rows).map((f) => f.map(m2r)), color: tone(m.color), alpha: m.alpha ?? 0.8 }]
-      : m.k === 'faces' ? [{ faces: m.faces.map((f) => f.map(m2r)), color: tone(m.color), alpha: m.alpha ?? 0.8 }] : [])));
+    /* a tinted face is painted in the mean of its vertices' colours: the flat view is a fallback, its grid fine enough */
+    const mean = (cs: readonly Color[]): Color => cs.reduce((acc, c, i) => mixColor(acc, c, 1 / (i + 1)), cs[0]!);
+    const faceTints = (m: Extract<SPACE.Mark, { k: 'sheet' | 'faces' }>): Color[] | undefined => {
+      const t = vertexTints(m); if (!t) return undefined;
+      if (m.k === 'faces') { let at = 0; return m.faces.map((f) => { const cs = t.slice(at, at + f.length); at += f.length; return mean(cs); }); }
+      const ni = m.rows[0]?.length ?? 0, out: Color[] = [];
+      for (let j = 0; j + 1 < m.rows.length; j++) for (let i = 0; i + 1 < ni; i++) out.push(mean([t[j * ni + i]!, t[j * ni + i + 1]!, t[(j + 1) * ni + i + 1]!, t[(j + 1) * ni + i]!]));
+      return out;
+    };
+    revPaint(ctx, cam, all.flatMap((m) => (m.k === 'sheet' ? [{ faces: SPACE.quads(m.rows).map((f) => f.map(m2r)), color: tone(m.color), alpha: m.alpha ?? 0.8, colors: faceTints(m) }]
+      : m.k === 'faces' ? [{ faces: m.faces.map((f) => f.map(m2r)), color: tone(m.color), alpha: m.alpha ?? 0.8, colors: faceTints(m) }] : [])));
     const path = (pts: readonly SPACE.V3[], c: Color, w: number, dash?: SPACE.Dash): void => {
       ctx.save(); ctx.strokeStyle = tone(c); ctx.lineWidth = w; if (dash) ctx.setLineDash([...dash]); ctx.beginPath();
       pts.forEach((p, i) => { const [x, y] = P(p); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore();
@@ -3175,6 +3381,7 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       if (m.k === 'arrow') at(m.b, 22); else if (m.k === 'dot') at(m.p, 16);
       else if (m.k === 'line') m.pts.forEach((p, i) => { if (i % 6 === 0) at(p, 12); });
       else if (m.k === 'sheet') m.rows.forEach((row, j) => row.forEach((p, i) => { if (i % 4 === 0 && j % 4 === 0) at(p, 26); }));
+      else if (m.k === 'points') m.pts.forEach((p, i) => { if (i % 4 === 0) at(p, 10); });
     });
     flatHits.sort((p, q) => p.r - q.r);
     all.forEach((m) => {
@@ -3182,6 +3389,13 @@ function space3d(d: { readonly stage: HTMLElement; readonly fig: HTMLElement }, 
       else if (m.k === 'segs') m.segs.forEach((q) => path(q, m.color, m.w ?? 2));
       else if (m.k === 'arrow') { const a = P(m.a), b = P(m.b); arrow(ctx, a[0], a[1], b[0], b[1], tone(m.color), m.w ?? 5); }
       else if (m.k === 'dot') { const p = P(m.p); dot(ctx, p[0], p[1], tone(m.color), !m.hollow, m.r ?? 8); }
+      else if (m.k === 'points') {
+        ctx.save();
+        m.pts.map((p, i) => ({ q: m2r(p), c: m.colors?.[i] ?? m.color })).sort((a, b) => cam.depth(b.q) - cam.depth(a.q)).forEach(({ q, c }) => {
+          const [x, y] = cam.P(q); ctx.fillStyle = tone(c); ctx.beginPath(); ctx.arc(x, y, m.r ?? 4, 0, 2 * Math.PI); ctx.fill();
+        });
+        ctx.restore();
+      }
     });
     all.forEach((m) => {
       if (m.k !== 'label') return;
@@ -3277,7 +3491,7 @@ function cells2(ctx: Ctx, ax: Axes, cells: readonly SPACE.Cell[], color: Color, 
   ctx.restore();
   if (o.dots ?? true) cells.forEach((c) => dot(ctx, ax.X(c.at[0]), ax.Y(c.at[1]), color, true, 5));
 }
-const space = { ...SPACE, field2, flow2, region2, cells2 };
+const space = { ...SPACE, field2, flow2, region2, cells2, tint };
 
 /* ---------- Calculus Chapter 11: polar frames, polar curves and traced paths ----------
    `F.polar.frame(ctx, box, win, o)` sets an equal-scale frame on box holding the window
@@ -3959,7 +4173,7 @@ export const FIG = {
   get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
   backing, glRatio,
   register, release, cycle, setPaused, get paused() { return paused; }, choice, select, hover, view3d, mesh: MESH, line, arrow, dot, text, shownFont, headline, hbracket, vbracket, strip, scale, axes, nice, pinned, curve, labeller, topline, runner, person, silhouette, car, plane, dragster, spring, block, fixed, view, face, get FONT() { return FONT; },
-  label, note, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
+  label, note, legend, fitScale, angleArc, crate, house, shopfront, horse, helicopterTop, rowboat, sailboat, skydiver,
   fist, hand: hand2, cart, personTop, motorcycle, helicopterSide, coasterCar, cardboardBox, cupOnSide, guitar: guitarSprite, book, backpack,
   vectorTriangle, wrap,
   story, keyframes, solve, presence, fade3, fadeEl, regroup, layoutPlan,

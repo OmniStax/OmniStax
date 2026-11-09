@@ -78,10 +78,13 @@ const vars: readonly VariableDTO[] = [
   { sym: 'x', meaning: 'final position', unit: 'm', section: sectionId('2.5'), anchor: spanId('2.5-notation') },
   { sym: 'Δx', meaning: 'displacement', unit: 'm', section: sectionId('2.1') },
 ];
-test('lookupVariable prefers the section it is given and falls back to the first', () => {
+test('lookupVariable takes the row in force at the section it is given, and the first without one', () => {
   assert.equal(lookupVariable(vars, symKey('x'))?.section, '2.1');
   assert.equal(lookupVariable(vars, symKey('x'), '2.5')?.meaning, 'final position');
-  assert.equal(lookupVariable(vars, symKey('x'), '2.9')?.section, '2.1');
+  assert.equal(lookupVariable(vars, symKey('x'), '2.3')?.section, '2.1', 'between the two rows, the earlier one');
+  assert.equal(lookupVariable(vars, symKey('x'), '2.9')?.section, '2.5', 'past both, the later one');
+  assert.equal(lookupVariable(vars, symKey('x'), '2.10')?.section, '2.5', 'sections in the book\'s order, not the alphabet\'s');
+  assert.equal(lookupVariable(vars, symKey('x'), '1.9'), undefined, 'a later section\'s row is never in force');
   assert.equal(lookupVariable(vars, symKey('Δx'))?.anchor, undefined);
   assert.equal(lookupVariable(vars, symKey('v')), undefined);
 });

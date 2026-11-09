@@ -46,6 +46,7 @@ One record per derivation in the section's `derivations` table (`docs/content-fo
     {
       assumes: [                     // every fact and earlier result this node uses, each once
         { tex: '\\kW = \\km\\kg', src: '17.3, Example 17.17' },
+        { tex: 'E_n = \\dfrac{n^2h^2}{8mL^2}', src: '(3.5.12)', drv: '3.5/pib-energy' },   // the result of another derivation: its provenance links to it
         { text: 'The stretch $s$ is measured with the mass at rest at equilibrium.', src: '17.3' },
         { step: 1 },                 // the result of node 1 (0-based)
       ],
@@ -65,7 +66,7 @@ One record per derivation in the section's `derivations` table (`docs/content-fo
 
 Rules the sandbox settled, which hold:
 
-1. **A node per equation brought in and worked to a result.** A result, once formed, is a `{ step }` fact of later nodes and is never re-derived. A node whose `then` is exactly an earlier result starts from that result. Two independent lines are two nodes, so the graph branches where the book's argument does.
+1. **A node per equation brought in and worked to a result.** A result, once formed, is a `{ step }` fact of later nodes and is never re-derived. A node whose `then` is an earlier result, or one link of that result's chain (`b = c` out of `a = b = c`), starts from that result. A `then` that restates a fact (its keys, spacing, grouping braces or the order of its sides aside) is that fact: the widget draws it once, and a condition that is the line itself is not read out as one. Two independent lines are two nodes, so the graph branches where the book's argument does.
 2. **`then` is the raw equation before any fact is applied.** Applying a fact is a step with `uses`. `then.uses` lists the conditions under which the start line holds (constant acceleration, a circular orbit); `then.why` says why where the fact alone does not.
 3. **Every fact is used where it is used.** Every entry of `assumes` appears in `then.uses` or some step's `uses`; the checker enforces it. Given numbers are facts; elementary algebra is not.
 4. **Keys name terms by role**, `\mk{key}{…}`, and a term keeps its key when it moves; what replaces a term takes its key; a key is never split unless the parts go separate ways later, and then `map` says how; equals signs and lone operators stay untagged; every key is unique within a line. The widget computes the highlighted terms from the keys; `hi` is not written.
@@ -75,10 +76,10 @@ Rules the sandbox settled, which hold:
 
 ## 5. Checks
 
-Run per derivation before the section is reported: the node must parse; every node has a `then` and at least one step; every key is unique within its line; every `uses` index is in range; every fact is used somewhere; no step of elementary algebra carries a `cap`; every step changes at least one keyed term; no term fades out and returns within one node. `ost check` carries them.
+Run per derivation before the section is reported: the node must parse; every node has a `then` and at least one step; every key is unique within its line; every `uses` index is in range; every fact is used somewhere (a fact or result a node's `then` restates counts as used by that line, which starts from it, so `then.uses` does not list it; `then.uses` lists only the conditions the line holds by); no step of elementary algebra carries a `cap`; every step changes at least one keyed term; no term fades out and returns within one node. `ost check` carries them.
 
 ## 6. The API
 
 The app draws every `<figure class="dv">` with `F.derivation(host, record)` from the section's `derivations` table, so sections ship data only. The widget is `src/lib/fig/derivation.ts`, its styles sit under `.dv` in `global.css`, and the build carries the table inside the section's figure module. `check:content` pairs every host with its row and checks each node's facts, uses and keys (`checkDerivations`); `ost check` knows the table's shape.
 
-Nothing in a derivation is clickable but its own controls: provenance, step numbers and the words of a reason are plain text.
+Nothing in a derivation is clickable but its own controls and one link: a fact the book derives in another derivation carries `drv` (that derivation's id, prefixed by its section where it is another one: `"drv": "3.5/pib-energy"`), and its provenance becomes a link that opens that derivation as any link to an item of a page does (rule 29.5). Step numbers and the words of a reason are plain text.

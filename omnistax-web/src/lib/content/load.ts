@@ -27,6 +27,7 @@ import { type ContentVersion, bookVersion, rootVersion } from './version';
 import { type ConceptTypes, conceptTypes, typeConceptSpans } from './conceptspans';
 import { type MacroTypes, type PageCounts, countsRecord, pageCounts } from '../colours/counts';
 import { asidesOf, referentGroups } from '../colours/scopes';
+import { rowsInForce } from '../hover/data';
 
 /* One page of the book as the build reads it: a section, or the introduction
    or summary a chapter or the book opens or closes on, which share the record
@@ -134,6 +135,12 @@ export const pageMacrosOf = (symbols: readonly SymbolDTO[], rows: readonly Varia
     return [[s.macro, macroExpansion(s, { ...(v.type ? { type: v.type } : {}), ...(v.ref === undefined ? {} : { ref: v.ref }) })] as const];
   }));
 };
+/* The rows a page sets its symbols by: each symbol's row there, and for a symbol with no row there the
+   meaning in force, its latest row in an earlier section of the chapter; never a later section's, whose
+   redefinition the reader has not met (V the retarding voltage in 1.3, though 1.8 makes it the Coulomb
+   potential). A referent names a thing of its own page, so a row brought forward leaves its referent behind. */
+export const pageRowsOf = (rows: readonly VariableDTO[], section: string): VariableDTO[] =>
+  rowsInForce(rows, section).map((v) => { if (v.section === section || v.ref === undefined) return v; const { ref: _, ...rest } = v; return rest as VariableDTO; });
 /* The type each macro wears on a page, as its expansion there sets it: the symbol's own, unless a
    variables row of the page gives it another or sets it in ink. */
 export const macroTypesOf = (symbols: readonly SymbolDTO[], rows: readonly VariableDTO[]): MacroTypes => {
@@ -325,8 +332,9 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
     exists(path.join(dir, NC_FILE)).then((ok) => (ok ? readJson(path.join(dir, NC_FILE), ExercisesNcSchema) : null)),
   ]);
   const rows = math.rows.filter((v) => v.section === dto.id);
-  const own = pageMacrosOf(math.symbols, rows);
-  const macroTypes = macroTypesOf(math.symbols, rows);
+  const inForce = pageRowsOf(math.rows, dto.id);
+  const own = pageMacrosOf(math.symbols, inForce);
+  const macroTypes = macroTypesOf(math.symbols, inForce);
   const macros: MacroMap = { ...math.book, ...own };
   const rendered = (html: string): string => (html ? prerenderMath(html, macros) : '');
   const marked = (html: string): string => typeConceptSpans(math.concepts, html);

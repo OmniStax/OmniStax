@@ -13,8 +13,8 @@ import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, s
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
-import { symOf, typeOf, symbolTarget, otherMeanings } from './data';
-import { plainText } from '../content/plain';
+import { symOf, typeOf, symbolTarget, otherMeanings, rowInForce } from './data';
+import { NOTE_MARK_SELECTOR, plainText } from '../content/plain';
 import type { ConceptDTO, VariableDTO } from '../content/schema';
 import { conceptOfTerm, formById, statedOf } from '../sections/reference';
 import { type Card, type Nav, definitionCard, variableCard, referenceCard, equationCard, conceptCard, formulaCard, functionCard, matchEquation, firstSentence, swatchOf } from './resolve';
@@ -43,8 +43,8 @@ const chapterData = (ref: SectionRef) => { const dir = registry.chapterOf(ref)?.
 /* A heading's text without the MathML twin of its math, and without the example number. */
 export const headingText = (h: Element | null | undefined): string | undefined => {
   if (!h) return undefined;
-  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove());
-  return c.textContent?.replace(/\s+/g, ' ').replace(/^Example [\d.]+ · /, '').trim();
+  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll(`.katex-mathml, ${NOTE_MARK_SELECTOR}`).forEach((m) => m.remove());
+  return c.textContent?.replace(/\s+/g, ' ').replace(/^Example (?:\d+|[A-Z])(?:\.\d+)+[A-Z]? · /, '').trim();
 };
 const spanTitle = (book: BookId, id: SpanId): string | undefined => headingText(findEl(book, id)?.querySelector('h2, h3'));
 /* The name a list of places gives a span: the heading as the book prints it,
@@ -52,7 +52,7 @@ const spanTitle = (book: BookId, id: SpanId): string | undefined => headingText(
    A span of a section not yet loaded has no heading here, and is left unnamed. */
 export const spanName = (book: BookId, id: SpanId): string | undefined => {
   const h = findEl(book, id)?.querySelector('h2, h3'); if (!h) return undefined;
-  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll('.katex-mathml').forEach((m) => m.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const c = h.cloneNode(true) as HTMLElement; c.querySelectorAll(`.katex-mathml, ${NOTE_MARK_SELECTOR}`).forEach((m) => m.remove()); return (c.textContent ?? '').replace(/\s+/g, ' ').trim();
 };
 /* Spans as places: the named ones by heading, and the unnamed ones of a section not
    yet loaded gathered into one place per section, named by the section's title. */
@@ -100,7 +100,7 @@ type Named = { readonly sym?: string; readonly variable?: VariableDTO; readonly 
 const definition = (book: BookId, c: ConceptDTO, from: Named): Card => {
   const sym = from.sym ?? c.symbol;
   const rows = registry.variables(book).filter((v) => v.concept === c.id && v.sym === sym);
-  const v = from.variable ?? rows.find((x) => x.section === from.section) ?? rows[0];
+  const v = from.variable ?? rowInForce(rows, sym ?? '', from.section) ?? rows[0];
   const redefined = !!from.variable && (!!from.variable.redefines || !!from.elsewhere);
   return definitionCard({
     concept: c, tex: sym ? registry.manifest(book).symbols[sym] ?? sym : undefined, unit: v?.unit || undefined,

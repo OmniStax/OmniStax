@@ -162,6 +162,7 @@ export const BookColoursSchema = z.object({
   palette: z.string().describe('The palette the colours were taken from, by its id in the app (families, or oklab).'),
   vision: z.enum(['normal', 'protan', 'deutan', 'tritan']).describe('The colour vision the assignment keeps the colours of one page apart for: normal, protan, deutan or tritan.'),
   assign: z.record(z.string(), StoredHueSchema).describe('Each type\u2019s colour, keyed by type id. A type the book declares and this omits takes the next palette colour no listed type wears, and the checker says the default is stale.'),
+  pins: z.record(z.string(), StoredHueSchema).optional().describe('Colours the book fixes by hand for some types, keyed by type id, which `npm run colours:default` and the Theme page\u2019s Apply smart (on the book\u2019s own palette and vision) keep: the smart assignment is made as usual, then each pinned type takes its pin, and a type the assignment had given that colour takes the pinned type\u2019s colour instead. Set with `npm run colours:default -- <book-id> --pin <type>=<light>[/<dark>]` (and `--unpin <type>`), where a colour needs a correction the generator cannot see, such as a type drawn as curves that its default leaves too dark to read as a colour.'),
   referentOrder: z.array(z.number().int().min(0).max(35)).length(36).optional().describe('The order smart dealing walks the default referent palette in for this book: the hue-families palette\u2019s 36 referent slots (0\u201335), sorted by how many referents of the book each colour stands at least the default target distance from every colour their group shows, most first. Absent, the palette\u2019s own order.'),
 }).strict();
 export type BookColoursDTO = z.infer<typeof BookColoursSchema>;
@@ -352,6 +353,7 @@ export const DerivationFactSchema = z.object({
   text: z.string().optional().describe('The fact as a sentence in the book\u2019s voice, `$\u2026$` for inline maths; absent where the fact is an equation or an earlier result.'),
   step: z.number().int().min(0).optional().describe('The 0-based index of the earlier node whose result this fact is; absent where the fact is an equation or a sentence.'),
   src: z.string().optional().describe('Where the book states the fact: a section, an equation number, a table, a figure or an example, as the book prints it. Absent on a given of the example itself and on an earlier result.'),
+  drv: z.string().regex(/^(?:(?:\d+|[A-Z])(?:\.\d+)*\/)?[\w-]+$/).optional().describe('The derivation this fact is the result of, where the book derives it elsewhere (rule 29.5): its id, prefixed by its section where that is another one, as `3.5/pib-energy`. The fact\u2019s provenance becomes a link that opens that derivation.'),
 }).strict().refine((a) => [a.tex, a.text, a.step].filter((x) => x !== undefined).length === 1, { message: 'a fact is one equation, one sentence or one earlier result' });
 export type DerivationFactDTO = z.infer<typeof DerivationFactSchema>;
 

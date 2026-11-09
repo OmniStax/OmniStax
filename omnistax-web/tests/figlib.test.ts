@@ -381,3 +381,58 @@ test('F.trace records a figure\'s frames, and F.debug, F.code and F.ds are on th
   for (const k of ['debug', 'code', 'trace'] as const) assert.equal(typeof FIG[k], 'function');
   for (const k of ['strip', 'pointer', 'region', 'counts'] as const) assert.equal(typeof FIG.ds[k], 'function');
 });
+
+test('Unicode super- and subscripts are set as raised and lowered runs of the ordinary characters', () => {
+  const ctx = stub();
+  FIG.text(ctx, 'energy E (10⁻²⁰ J)', 100, 300, '#000', { size: 20 });
+  const [a, up, b] = ctx.drawn;
+  assert.deepEqual(ctx.drawn.map((d) => d.s), ['energy E (10', '−20', ' J)'], 'the minus is a true minus and the digits are the font\'s own');
+  assert.ok(up.y < a.y && b.y === a.y, 'the exponent is raised and the text after it comes back down');
+  const sub = stub();
+  FIG.text(sub, 'ν₀ and cm⁻¹', 100, 300, '#000');
+  assert.deepEqual(sub.drawn.map((d) => d.s), ['ν', '0', ' and cm', '−1']);
+  assert.ok(sub.drawn[1].y > sub.drawn[0].y, 'a subscript is lowered');
+  assert.equal(FIG.measure(stub(), '10⁻²⁰'), FIG.measure(stub(), '10^{−20}'), 'and measured as the caret form is');
+});
+
+test('plot dashes a curve on request and leaves it solid otherwise', () => {
+  const dashes: number[][] = [];
+  const ctx = Object.assign(stub(), { setLineDash: (d: number[]) => { dashes.push([...d]); } });
+  const ax = FIG.axes(ctx, { l: 100, r: 1300, t: 100, b: 500 }, [0, 1], [0, 1]);
+  dashes.length = 0;
+  FIG.plot(ctx, ax, (x) => x, '#000');
+  assert.deepEqual(dashes, []);
+  FIG.plot(ctx, ax, (x) => x, '#000', { w: 2, dash: [10, 10] });
+  assert.deepEqual(dashes, [[10, 10]]);
+});
+
+test('a legend takes the clearest corner of a graph and keeps it while no other is clearer', () => {
+  const ctx = stub();
+  const ax = FIG.axes(ctx, { l: 100, r: 1300, t: 100, b: 500 }, [0, 1], [0, 1]);
+  const high = (x: number) => (x > 0.5 ? 0.95 : 0.05);
+  const box = FIG.legend(ctx, ax, [{ s: 'measured', color: '#000', f: high }, { s: 'predicted', color: '#000', dash: [10, 10] }]);
+  assert.ok(box.l < 700 && box.t < 300, 'top left: the curve holds the top right and the bottom left');
+  assert.ok(ctx.drawn.some((d) => d.s === 'measured') && ctx.drawn.some((d) => d.s === 'predicted'), 'every entry is named');
+  const again = FIG.legend(ctx, ax, [{ s: 'measured', color: '#000', f: () => 0.5 }, { s: 'predicted', color: '#000' }]);
+  assert.deepEqual(again, box, 'a corner still clear is kept, though another is as clear');
+  const above = FIG.legend(stub(), ax, [{ s: 'pulse 1', color: '#000' }, { s: 'pulse 2', color: '#000' }], { corner: 'above' });
+  assert.ok(above.b <= 100 && Math.abs(above.r - 1300) < 1e-9, 'above the box, flush right, on one row');
+});
+
+test('a colour scale holds at its ends and passes through its stops', () => {
+  const sc = [[-1, '#0000ff'], [0, '#ffffff'], [1, '#ff0000']] as const;
+  assert.equal(FIG.space.tint(sc, -2), '#0000ff');
+  assert.equal(FIG.space.tint(sc, 1), '#ff0000');
+  assert.equal(FIG.space.tint(sc, 0), '#ffffff', 'a stop is its own colour; between stops the two blend (mixColor, in the page)');
+});
+
+test('evenly spaced ticks are labelled to the decimals their values need', () => {
+  const ctx = stub();
+  FIG.axes(ctx, { l: 100, r: 1300, t: 100, b: 500 }, [0, 1], [-1.5, 1.5], { nx: 2, ny: 6 });
+  const s = ctx.drawn.map((d) => d.s);
+  assert.ok(['−1.5', '−0.5', '0.0', '0.5', '1.5'].every((x) => s.includes(x)), s.join(' '));
+  assert.ok(['0', '0.5', '1'].every((x) => s.includes(x)) || ['0.0', '0.5', '1.0'].every((x) => s.includes(x)));
+  const thirds = stub();
+  FIG.axes(thirds, { l: 100, r: 1300, t: 100, b: 500 }, [0, 1], [0, 10], { nx: 1, ny: 3 });
+  assert.ok(thirds.drawn.some((d) => d.s === '3.3'), 'thirds read one place past the step');
+});

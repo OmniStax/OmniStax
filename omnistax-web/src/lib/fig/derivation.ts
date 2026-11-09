@@ -76,20 +76,79 @@ const ICON = {
 } as const;
 type IconName = keyof typeof ICON;
 
-/* the facts once, numbered in first use; each node's facts and the results it rests on; the order the steps play in */
-function model(D: DerivationDTO) {
+/* An equation as the reader reads it, for telling whether two lines say the same thing: the term keys,
+   spacing commands and grouping braces gone (a brace stays where it holds a command's argument, a
+   script or a second argument; a book macro, \k…, takes no argument), then split at its top-level equals signs. A line that a `then` writes
+   with keys and a fact writes bare, or with its sides swapped, is the same equation. */
+const SPACING = /\\[,;:!]|\\displaystyle|\\quad|\\qquad|\s+/g;
+function unbraced(s: string): string {
+  let out = '';
+  for (let i = 0; i < s.length; i += 1) {
+    if (s[i] !== '{') { out += s[i]; continue; }
+    let d = 0, j = i;
+    for (; j < s.length; j += 1) { if (s[j] === '{') d += 1; else if (s[j] === '}') { d -= 1; if (!d) break; } }
+    const inner = unbraced(s.slice(i + 1, j)), keep = /[_^}]$|\\(?!k)[A-Za-z]+$/.test(out);   /* a script, a second argument, a command's argument; a book macro (\k…) takes none */
+    out += keep ? `{${inner}}` : inner; i = j;
+  }
+  return out;
+}
+/* \mk{key}{term} as the term alone, braces and all gone, keys nested in keys too */
+function unkeyed(s: string): string {
+  const group = (i: number): number => { let d = 0; for (let j = i; j < s.length; j += 1) { if (s[j] === '{') d += 1; else if (s[j] === '}') { d -= 1; if (!d) return j; } } return s.length; };
+  let out = '';
+  for (let i = 0; i < s.length; i += 1) {
+    if (s.startsWith('\\mk{', i)) { const k = group(i + 3), e = group(k + 1); out += unkeyed(s.slice(k + 2, e)); i = e; continue; }
+    out += s[i];
+  }
+  return out;
+}
+function sidesOf(tex: string): string[] {
+  const s = unbraced(unkeyed(tex.replace(SPACING, '')));
+  const out: string[] = []; let depth = 0, from = 0;
+  for (let i = 0; i < s.length; i += 1) {
+    const ch = s[i];
+    if (ch === '{') depth += 1; else if (ch === '}') depth -= 1;
+    else if (ch === '=' && depth === 0) { out.push(s.slice(from, i)); from = i + 1; }
+  }
+  out.push(s.slice(from));
+  return out;
+}
+/* the key a fact is known by: its words, or its equation's sides in a fixed order (a = b and b = a are one fact) */
+const factKey = (a: DerivationFactDTO): string => a.text || (() => { const s = sidesOf(a.tex ?? ''); return s.length > 1 ? [...s].sort().join('=') : s[0]!; })();
+/* every side of `a` is a side of `b`: a restates b, or one link of b's chain (b = c out of a = b = c) */
+const within = (a: readonly string[], b: readonly string[]): boolean => a.length > 1 && a.every((x) => b.includes(x));
+/* A start line (`then`) is the fact it restates, and starts from the earlier result it restates whole or one
+   link of; the widget draws each once and the checker counts that fact or result as used by the line. */
+export const restatesFact = (then: string, fact: DerivationFactDTO): boolean => !fact.text && factKey({ tex: then }) === factKey(fact);
+export const restatesResult = (then: string, result: string): boolean => strip(then) === strip(result) || within(sidesOf(then), sidesOf(result));
+
+/* the facts once, numbered in first use; each node's facts and the results it rests on; the order the steps play in.
+   A `then` that restates a fact is that fact, and one that restates an earlier result (or a link of its chain)
+   starts from that result, so the reader meets each equation once. */
+/* where a fact's `drv` points: a derivation of this section by its id, or of another as `3.5/pib-energy` */
+export const drvTarget = (drv: string | undefined, here: string): { readonly sec: string; readonly id: string } | null => {
+  if (!drv) return null;
+  const cut = drv.lastIndexOf('/');
+  return cut < 0 ? { sec: here, id: drv } : { sec: drv.slice(0, cut), id: drv.slice(cut + 1) };
+};
+
+export function model(D: DerivationDTO) {
   const N = D.nodes, lines = N.map((n) => [n.then.tex, ...n.steps.map((s) => s.tex)]);
   const result = (i: number): string => lines[i]![lines[i]!.length - 1]!;
   const resKey = new Map(N.map((_, i) => [strip(result(i)), i] as const));
-  const thenFrom = N.map((n, i) => { const j = resKey.get(strip(n.then.tex)); return j !== undefined && j < i ? j : -1; });
+  const thenFrom = N.map((n, i) => {
+    const j = resKey.get(strip(n.then.tex)); if (j !== undefined && j < i) return j;
+    for (let k = i - 1; k >= 0; k -= 1) if (restatesResult(n.then.tex, result(k))) return k;
+    return -1;
+  });
   const facts: Fact[] = [], factId = new Map<string, number>();
-  const addFact = (a: DerivationFactDTO & { then?: boolean }): number => { const k = a.text || strip(a.tex ?? ''); if (!factId.has(k)) { factId.set(k, facts.length); facts.push({ ...a, users: [] }); } return factId.get(k)!; };
+  const addFact = (a: DerivationFactDTO & { then?: boolean }): number => { const k = factKey(a); if (!factId.has(k)) { factId.set(k, facts.length); facts.push({ ...a, users: [] }); } return factId.get(k)!; };
   const nodes: Result[] = N.map((n, i) => {
     const nd: Result = { i, facts: [], steps: [], factOf: new Map(), thenFact: -1 };
     if (thenFrom[i]! >= 0) nd.steps.push(thenFrom[i]!);
     n.assumes.forEach((a, ai) => { if (a.step !== undefined) { if (a.step !== thenFrom[i]) nd.steps.push(a.step); } else { const fi = addFact(a); nd.facts.push(fi); nd.factOf.set(ai, fi); } });
     if (thenFrom[i]! < 0) nd.thenFact = addFact({ tex: n.then.tex, src: n.then.src, then: true });
-    [...nd.facts, ...(nd.thenFact >= 0 ? [nd.thenFact] : [])].forEach((fi) => facts[fi]!.users.push(i));
+    new Set([...nd.facts, ...(nd.thenFact >= 0 ? [nd.thenFact] : [])]).forEach((fi) => facts[fi]!.users.push(i));
     return nd;
   });
   const last = N.length - 1, order: number[] = [], done = new Set<number>();
@@ -97,9 +156,11 @@ function model(D: DerivationDTO) {
   visit(last); N.forEach((_, i) => visit(i));
   /* the eyebrow word: the book's example where the record works one, else plural where more than one result is an end */
   const ends = N.filter((_, i) => !nodes.some((m) => m.steps.includes(i))).length;
-  const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+)/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1 and A.1.2 */
+  const ex = /\bExample ((?:\d+|[A-Z])(?:\.\d+)+[A-Z]?)\b/.exec(D.source ?? '');   /* 16.2, or a book's 1.9.1, A.1.2 and 7.4.1B */
   const label = ex ? msg('fig.derivation.example', { n: ex[1] }) : ends > 1 ? msg('fig.derivation.many') : msg('fig.derivation.one');
-  return { N, lines, facts, nodes, thenFrom, last, order, label };
+  /* the conditions a start line holds by, less the fact or result it is: a line is not its own condition */
+  const holds = N.map((n, i) => n.then.uses.filter((u) => { const a = n.assumes[u]; return !a || (a.step !== undefined ? a.step !== thenFrom[i] : nodes[i]!.factOf.get(u) !== nodes[i]!.thenFact); }));
+  return { N, lines, facts, nodes, thenFrom, holds, last, order, label };
 }
 
 /* Draw the derivation `D` into the `<figure class="dv" id="drv-<id>">` of `root`; nothing where the root has no such host. */
@@ -117,7 +178,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const tips = (host: HTMLElement, m: Readonly<Record<string, string>>): void => host.querySelectorAll<HTMLElement>('.segbtn').forEach((b) => { const t = m[b.dataset.value ?? '']; if (t) b.title = t; });
 
   const d = sim(root, 'drv-' + D.id); d.fig.classList.add('dv', 'writing');
-  const { N, lines: L, facts, nodes, thenFrom, last, order, label } = model(D);
+  const { N, lines: L, facts, nodes, thenFrom, holds, last, order, label } = model(D);
   /* A still (a preview in the @ picker) shows the derivation as it ends: every
      fact and result shown, the view held on the whole, nothing to click. */
   const still = root.closest('[data-still]') !== null;
@@ -129,7 +190,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const beat = (kind: BeatKind, node: number, step = -1): void => { beats.push({ kind, node, step, t0: T0, dur: BEAT[kind] }); T0 += BEAT[kind]; };
   beat('over', -1);
   order.forEach((i) => {
-    beat('glow', i); beat('load', i); if (N[i]!.then.uses.length) beat('holds', i);
+    beat('glow', i); beat('load', i); if (holds[i]!.length) beat('holds', i);
     N[i]!.steps.forEach((_, j) => { beat('lead', i, j); beat('move', i, j); beat('land', i, j); });
     beat('result', i); beat('bank', i);
   });
@@ -158,7 +219,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   };
   const reasonOf = (i: number, r: number): HTMLElement | null => {
     const f = el('span');
-    if (r === 0) { f.appendChild(document.createTextNode(`${thenFrom[i]! >= 0 ? msg('fig.derivation.result', { n: thenFrom[i]! + 1 }) : msg('fig.derivation.fact', { n: nodes[i]!.thenFact + 1 })} `)); reason(f, i, N[i]!.then.uses, 'by', N[i]!.then.why); }
+    if (r === 0) { f.appendChild(document.createTextNode(`${thenFrom[i]! >= 0 ? msg('fig.derivation.result', { n: thenFrom[i]! + 1 }) : msg('fig.derivation.fact', { n: nodes[i]!.thenFact + 1 })} `)); reason(f, i, holds[i]!, 'by', N[i]!.then.why); }
     else { const s = N[i]!.steps[r - 1]!; reason(f, i, s.uses, 'using', s.cap); }
     return f.childNodes.length ? f : null;
   };
@@ -184,7 +245,11 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
   const FE: HTMLElement[] = facts.map((f, fi) => {
     const c = el('div', 'dv-node dv-fact' + (f.tex ? ' eq' : '') + (f.then ? ' then' : ''));
     const m = c.appendChild(el('span', 'dv-m')); if (f.tex) T(m, strip(f.tex)); else words(m, f.text ?? '');
-    sticker(c, 'dv-fno', String(fi + 1)); if (f.src && !own.has(f.src)) sticker(c, 'dv-prov', paren(f.src));
+    sticker(c, 'dv-fno', String(fi + 1));
+    /* a fact the book derives elsewhere links to that derivation (rule 29.5): its provenance, or the section's number, opens it as any link to an item of a page does */
+    const there = drvTarget(f.drv, root.dataset.sec ?? '');
+    if (there) { const a = c.appendChild(el('a', 'dv-prov xref dv-drv')); a.href = `#${there.sec}-drv-${there.id}`; a.textContent = paren(f.src ?? there.sec); }
+    else if (f.src && !own.has(f.src)) sticker(c, 'dv-prov', paren(f.src));
     return c;
   });
   const stageOf = (R: Row): HTMLElement => R.stage.querySelector<HTMLElement>('.tm > .katex') || R.stage;
@@ -207,7 +272,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
 
   /* ---------- the layout, afresh each frame: layers by what rests on what, neighbours near each other ---------- */
   const items: Item[] = [
-    ...nodes.map((nd) => ({ id: 'n' + nd.i, el: B[nd.i]!.el, preds: [...nd.steps.map((j) => 'n' + j), ...nd.facts.map((f) => 'f' + f), ...(nd.thenFact >= 0 ? ['f' + nd.thenFact] : [])] })),
+    ...nodes.map((nd) => ({ id: 'n' + nd.i, el: B[nd.i]!.el, preds: [...new Set([...nd.steps.map((j) => 'n' + j), ...nd.facts.map((f) => 'f' + f), ...(nd.thenFact >= 0 ? ['f' + nd.thenFact] : [])])] })),
     ...facts.map((_, fi) => ({ id: 'f' + fi, el: FE[fi]!, preds: [] as string[] })),
   ].map((it) => ({ ...it, pre: [], succ: [], layer: 0, w: 0, h: 0, x: 0, y: 0 }));
   const byId = new Map(items.map((it) => [it.id, it] as const));
@@ -285,7 +350,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
     world.style.transform = `translate(${cam.x.toFixed(2)}px,${cam.y.toFixed(2)}px) scale(${cam.s.toFixed(4)})`;
   }
   let drag: { x: number; y: number } | null = null;
-  view.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY }; view.setPointerCapture(e.pointerId); view.classList.add('panning'); });
+  view.addEventListener('pointerdown', (e) => { if (e.button !== 0 || (e.target as Element).closest('a[href]')) return;   /* a fact's link to its derivation is followed, not panned */ drag = { x: e.clientX, y: e.clientY }; view.setPointerCapture(e.pointerId); view.classList.add('panning'); });
   view.addEventListener('pointermove', (e) => { if (!drag) return; user.x += e.clientX - drag.x; user.y += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; poke(); });
   const drop = (): void => { drag = null; view.classList.remove('panning'); };
   view.addEventListener('pointerup', drop); view.addEventListener('pointercancel', drop);
@@ -442,7 +507,7 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
         if (opt.write) S.whyA[0] = 1; else S.capA = 1;
         apply(X, S);
         const R = X.R[act(0)]!; morphAt(R.stage, L[j]![0]!, L[j]![0]!, 0, true);
-        const tt = p * b.dur; lightUses(j, N[j]!.then.uses, tt < 0.35 ? ease(tt / 0.35) : p > 0.8 ? 1 - ease((p - 0.8) / 0.2) : 1);
+        const tt = p * b.dur; lightUses(j, holds[j]!, tt < 0.35 ? ease(tt / 0.35) : p > 0.8 ? 1 - ease((p - 0.8) / 0.2) : 1);
         if (!opt.write) captioned(X.cap, j, 0);
         return;
       }

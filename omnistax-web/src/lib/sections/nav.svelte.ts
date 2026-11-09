@@ -69,7 +69,7 @@ export const jump = (target: HTMLElement | null, block: ScrollLogicalPosition = 
   if (card?.hidden) card.closest<HTMLElement & { exShow?: (id: string) => void }>('.list')?.exShow?.(card.id);
   revealFolds(target);
   reveal(target);
-  requestAnimationFrame(() => { scrollWithin(target, block); if (tint) land(target); });
+  requestAnimationFrame(() => { scrollWithin(target, block); settle(target, block); if (tint) land(target); });
 };
 /* Only the box the target scrolls in moves. scrollIntoView would move every
    scrollable ancestor, the page itself included, and push the tab strips off the top. */
@@ -78,12 +78,34 @@ const scrollerOf = (el: HTMLElement): HTMLElement | null => {
     if (p.scrollHeight > p.clientHeight && /auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
   return null;
 };
-const scrollWithin = (target: HTMLElement, block: ScrollLogicalPosition): void => {
+const scrollWithin = (target: HTMLElement, block: ScrollLogicalPosition, behavior?: ScrollBehavior): void => {
   const box = scrollerOf(target); if (!box) return;
   const t = target.getBoundingClientRect(), b = box.getBoundingClientRect();
   const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
   const offset = block === 'center' ? (b.height - t.height) / 2 : block === 'end' ? b.height - t.height : margin;
-  box.scrollTo({ top: box.scrollTop + t.top - b.top - Math.max(0, offset), behavior: FIG.REDUCED ? 'auto' : 'smooth' });
+  box.scrollTo({ top: box.scrollTop + t.top - b.top - Math.max(0, offset), behavior: behavior ?? (FIG.REDUCED ? 'auto' : 'smooth') });
+};
+/* A page just opened is still drawing: the figures above the target take their height as they mount, and push
+   it down after the scroll has been aimed. Until the target has stood still in its scroller for a while, every
+   frame it moves is followed by a jump to it, so a link from another page lands on the figure it names. The
+   reader's own wheel, touch, click or key ends the watch at once. */
+const SETTLE_MS = 4000, STILL_FRAMES = 45;
+const settle = (target: HTMLElement, block: ScrollLogicalPosition): void => {
+  const box = scrollerOf(target); if (!box) return;
+  const pos = (): number => target.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+  const until = performance.now() + SETTLE_MS, inputs = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+  let last = pos(), still = 0, done = false;
+  const quit = (): void => { done = true; inputs.forEach((e) => box.removeEventListener(e, quit)); };
+  inputs.forEach((e) => box.addEventListener(e, quit, { passive: true }));
+  const frame = (): void => {
+    if (done) return;
+    if (!target.isConnected || performance.now() > until) { quit(); return; }
+    const now = pos();
+    if (Math.abs(now - last) > 1) { still = 0; last = now; scrollWithin(target, block, 'auto'); }
+    else if ((still += 1) >= STILL_FRAMES) { quit(); return; }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 };
 export const go = (book: BookId, id: string, block: ScrollLogicalPosition = 'start'): void => jump(findEl(book, id), block);
 /* How a click asks for a file: as a tab of the focused group, or with Ctrl
