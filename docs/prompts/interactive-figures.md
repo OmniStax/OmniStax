@@ -14,7 +14,7 @@ One line per figure in `plan.md`, before any code:
 id · replaces (Figure N.M, "Figure N.M + N.K" when folded, or Sim) · concept ids it serves · value add (root rule 24.4) · arrows: kinematic (naming what moves or flows), symbolic, or none (24.1; kinematic sets the floor at a moving figure) · moving, with what moves, or still, with the reason · sliders and choices with their types · what the headline reads · graph below, beside, or none · 3D, with the orbit bound and the reason, or 2D
 ```
 
-One figure per idea or result the section introduces; a worked example gets one only when it adds a quantity the section figure does not show. Every sketch figure in the book is replaced. Every photograph and unnumbered image is listed with keep or drop and the reason. A figure that serves an exercise is a faithful copy: no sliders, no animation. The book's numbers are the slider defaults so the figure reproduces the worked example on load. A `FIGURE` block that carries `width:` copies its widths to the row's `widths` and to `data-width` or `data-original-width` in the text; where any image lacks one, `widths` stays empty. Two to four sliders per figure, each carrying the type of its variable as its colour class, or an empty class when untyped. Extra simulations go in a separate list after the required figures, one line each saying what the reader would see; none is built until picked or until `config.md` says the plan decides. Scene above graph for a horizontal scene, graph beside for a vertical one, graph alone when the graph is the idea.
+One figure per idea or result the section introduces; a worked example gets one only when it adds a quantity the section figure does not show. A sketch figure in the book is replaced when motion or variation helps the reader learn its idea, and kept as the book draws it otherwise (root rule 14). Every photograph and unnumbered image is listed with keep or drop and the reason. A replacing figure starts from the book's figure but is laid out for the one thing the reader should see first, which the plan line names in its headline; it does not copy the book's layout, labels or clutter for their own sake. Where it covers the same quantities as the book's figure, the book's numbers are the slider defaults, so the figure reproduces the book's case on load. A replacing figure's `data-original-caption` is the book's caption as plain text; it may write maths as `$…$` (the build sets nothing inside an attribute, and the app sets the maths under the page's macros where the book's caption is shown), and never markup. A `FIGURE` block that carries `width:` copies its widths to the row's `widths` and to `data-width` or `data-original-width` in the text; where any image lacks one, `widths` stays empty. Two to four sliders per figure, each carrying the type of its variable as its colour class, or an empty class when untyped. Extra simulations go in a separate list after the required figures, one line each saying what the reader would see; none is built until picked or until `config.md` says the plan decides. Scene above graph for a horizontal scene, graph beside for a vertical one, graph alone when the graph is the idea.
 
 ## 2. The drawing layer
 
@@ -36,15 +36,28 @@ line(ctx,x1,y1,x2,y2,color,w=3,dash)      arrow(ctx,x1,y1,x2,y2,color,w=4)
 dot(ctx,x,y,color,filled=true,r=9)        text(ctx,s,x,y,color,{size=22,weight,align,base,bg})
 measure(ctx,s,{size=22,weight}) -> width  the width text() gives s, subscripts included; never set ctx.font to measure
 text(ctx,'m^2 and F_{net}',...)           _x or _{…} sets a subscript and ^x or ^{…} a superscript, smaller and lowered or raised
+text(ctx,'energy (10⁻²⁰ J)',...)          Unicode super- and subscripts (⁻²⁰, cm⁻¹, ν₀) are set the same way, in the figure font, in every
+                                          string text sets (axis titles, labels, notes, a legend) and in a slider's value; ħ (or ℏ) is set
+                                          as TeX's \hbar, since the figure faces draw ħ as the Maltese letter, a plain h at label size
 headline(ctx,s) / topline(ctx,s)          both wrap to two lines where one will not fit and return the line count; a $…$ run is set
                                           as TeX under the figure's macros (\k symbols wear their colours), and v.headline does the same
 label(ctx,s,x,y,{side,size,color,gap,leader}) -> box   one label beside one thing, clamped inside the canvas, leadered
 hbracket(ctx,x1,x2,y,color,label,{side})  vbracket(ctx,x,y1,y2,color,label,side,{side})  label clamped when the span is short
 note(ctx,box,text,avoid) -> box           a sentence in whichever corner of a graph box the forbidden boxes leave clear
+legend(ctx,where,entries,{corner,avoid,row,size,panel,lab}) -> box   the key (root 26.6, 26.7): one entry per kind, a sample beside
+                                          its name, in a page-coloured panel. where is an axes or a box. An entry {s, color, w, dash} is a
+                                          stroke; kind 'swatch' a fill, 'dot' a marker (hollow); {ramp: [colours], ends: [lo, hi], s} a
+                                          colour scale with its end words, its name under it; draw(ctx, x, y) paints its own sample in a
+                                          44 by 22 slot. corner tl | tr | bl | br | top | bottom inside the box, or above (flush right, on
+                                          the y title's line) | below (flush left, on the x title's line), one row and no panel; without
+                                          corner it takes the clearest inside corner, scored on avoid and on the curves of entries that
+                                          carry their function f, and keeps it while no other corner is clearer. No figure hand-rolls a key
 angleArc(ctx,{x,y},r,a0,a1,text,labeller) an angle's arc, its two arms and its name at the bisector
 fitScale(box,{w,h}) -> units per metre    one fixed scale for a scene, from the greatest extents the sliders reach
 strip(ctx,x1,x2,y,h)                      scale(ctx,X,from,to,step,y,unit,every)
 axes(ctx,box,[x0,x1],[y0,y1],{xl,xc,yl,yc,nx,ny,fx,fy}) -> {X,Y}     nice(lo,hi,want) -> {lo,hi,n}
+axes(..., {nx: 4})                        nx + 1 evenly spaced ticks, labelled to the decimals their values need ([−1.5, 1.5] by 0.75 reads
+                                          −1.50 … 1.50; fx and fy write a label themselves)
 axes(..., {nx: 0})                        nx or ny 0 draws that axis with no ticks or tick labels
 axes(..., {nice: true})                   about nx, ny ticks on round values of this frame's range, labelled to their step's decimals: a zoom
 curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) -> {x,y,out}
@@ -53,10 +66,11 @@ curve(ctx,f,t0,t1,X,Y,color,w,n)          pinned(ctx,box,X,Y,xv,yv,color,label) 
 Graphs of functions take the `ax` that `axes` returns (`{X, Y, box, xr, yr}`), are clipped to its box and arrive like `curve`:
 
 ```
-plot(ctx,ax,f,color,{w=5,x,holes,dots,poles})   y = f(x) on x (default ax.xr), drawn honestly: chords refined where it is steep,
+plot(ctx,ax,f,color,{w=5,x,holes,dots,poles,dash})   y = f(x) on x (default ax.xr), drawn honestly: chords refined where it is steep,
                                           no line across a jump or a pole, the domain's edge found where f stops being finite;
                                           holes [x | [x,y]] open circles (y the limit by default), dots [[x,y]] filled points,
-                                          poles [x] dashed asymptotes (the break needs no listing)
+                                          poles [x] dashed asymptotes (the break needs no listing); dash [on, off] dashes the curve
+                                          ([10, 10] for a prediction or a part beside the whole); no figure dashes by hand
 plot(ctx,ax,[{f,x:[a,b],ends:'[)'}, ...],color,o)   piecewise: each piece on its interval, ends written as intervals are:
                                           [ ] filled, ( ) open at the one-sided limit, - or nothing unmarked
 shade(ctx,ax,f,g,a,b,color,{alpha=0.25}) -> ∫(f − g)   the region between f and g (a function or a level, 0 the axis) on [a,b]
@@ -147,11 +161,18 @@ Controls beyond the slider (root rule 26.1):
 
 ```
 choice(host,{label,options:[{value,label}],value,aria,onInput,ms}) -> {value,set,drive,k,from,mix,a,off}   a discrete state as a button row, arrow keys walk it
+                                          an option's label may write maths as $…$ (|ψ⟩ = $Ne^{ikx}$), set by KaTeX on a button and read
+                                          plain in a dropdown
 select(host,{label,options,value,aria,onInput,ms}) -> the same handle            the same as a dropdown where a row would wrap
   k 0..1 since the last change; mix(f) blends f(from) to f(value); a(v), off(v,shift) fade and slide the parts only v has
 picker.options(list, value?)                                                       a new option list: the value stays where the list has it, else value, else the first; no input event
+A slider's value is `.v` (a number: `V.v`); a choice's or a select's is `.value` (a string: `K.value`, `+N.value` for a number).
+The two names are kept apart on purpose: the library tells a slider from a picker by which one it has.
 ctl(d.controls,{..., detents:[0,1,2,3] | [{v,label}], snap})                      preset values as soft ticks the thumb settles on
-slider.range({min,max,step,value,unit,dec})                                         eases to a new range; the detent ticks are redrawn for it, those outside it dropped
+ctl(d.controls,{..., fmt: (v) => string})                                          the value as the reader reads it, unit included, in place of
+                                                                                   dec and unit: a log slider shows the quantity itself
+                                                                                   (fmt: (lg) => `${sci(10 ** lg)} m/s`); also the screen reader's words
+slider.range({min,max,step,value,unit,dec,fmt})                                     eases to a new range; the detent ticks are redrawn for it, those outside it dropped
 ctl / choice / select {..., key}                                                   the id a note stores the value under; default the cls ("choice" for a picker), then cls-2, cls-3
   a track under 120 px drops to its own line below its name and value (rule 26.12); keep names short rather than lean on it
 hover(d.stage, () => [{x,y,r,name}], canvas?) -> {hide}                           names under the pointer where labels would crowd (rule 26.6); canvas picks which of the stage's canvases
@@ -200,17 +221,24 @@ S.drag({at: () => p, on: key, move: (q, p) => ...})   the reader takes the point
                                           q is [x, y] on a graph, [u, v] on a surface; move drives the sliders that hold it (slider.drive)
 ```
 
-Marks are plain records (`line`, `segs`, `arrow`, `dot`, `label`, `sheet`, `faces`), widths and radii in canvas units, colours a hue or the tokens `ink`, `muted`, `guide` (ink at 0.4). The builders return them, and a layer may concatenate several:
+Marks are plain records (`line`, `segs`, `arrow`, `dot`, `points`, `label`, `sheet`, `faces`), widths and radii in canvas units, colours a hue or the tokens `ink`, `muted`, `guide` (ink at 0.4). The builders return them, and a layer may concatenate several:
 
 ```
 F.space.axes(box,{ticks,names,color})     axes through the origin, arrowheads and names at the positive ends, round ticks as page text
 F.space.point(p,color,{name,drop})        a dot, its name; drop dashes its feet to the xy-plane and the axes
+F.space.points(pts,color,{r=4,colors,name})   a cloud of points, one small lit ball each, one instanced mesh for thousands (a gas
+                                          in a box, samples of a density); colors one per point; no figure fakes a cloud with faces
 F.space.vector(a,b,color,{name,drop,w})   the arrow from tail a to head b; drop lays its components from the tail along x, y, z
 F.space.curve(r,[t0,t1],color,{n,w,dash}) r(t) in space       F.space.frame(r,t,[cT,cN,cB],{len,names}) the point and its T, N, B
 F.space.graph(f,region,color,{n,grid,alpha,levels,floor,levelColor,lift})   z = f(x, y) over a region with grid curves; levels
                                           [c, ...] are its level curves drawn on z = floor (and on the surface with lift); drag reports [x, y]
 F.space.tangent(f,x0,y0,color,{size})     the tangent plane at (x0, y0) as a square patch, and the point
 F.space.surface(r,U,V,color,{n,grid,alpha})   r(u, v) with its grid curves; drag reports [u, v]
+{k: 'sheet', rows, values, scale: [[v, colour], ...]}   shaded smoothly: a value at every vertex read through the colour stops and
+                                          interpolated across each face (or colors, a colour per vertex laid out as rows); the same on
+                                          'faces' (values per face per vertex); depth sorting and the orbit bound are unchanged, and the
+                                          flat view paints each face in its vertices' mean. F.space.tint(scale, v) is the colour of v, for
+                                          a flat view and a legend ramp; no figure bands a surface into steps of colour
 F.space.normals(r,U,V,color,{n,len})      unit normals r_u × r_v on a grid     F.space.patch(r,u,v,du,dv,color) the patch, t_u Δu, t_v Δv
 F.space.plane(p,n,color,{box,size,alpha}) the plane through p square to n, cut by the box or a square    F.space.line(p,d,color,{t,box})
 F.space.field(F,box,color,{n,scale})      arrows of a field in space on an n³ grid, the longest 0.9 of a cell
@@ -263,7 +291,7 @@ F.circuit(d, { wires: 2, probs: true, steps: [{ g: 'H', t: 0 }, { g: 'X', t: 1, 
   inputs: ['00', '01', '10', '11'].map((b) => ({ value: b, label: `|${b}⟩`, state: b })), onDraw: (q) => tex(d.readout, `|\\Psi\\rangle = ${q.ket()}`) });
 ```
 
-`v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
+`v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. A label (a `label` mark of `F.space3d` too) is kept whole inside the stage: near the bottom or a side edge it slides in rather than being cut off. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
 
 Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.ref(id)` for the section's referents and `F.cat(i)` for other instances with no element that must be told apart, and a hex only where the colour is the physical fact and the plan names it: a named constant, named as the fact, unchanged in both themes, drawn through `F.fact(hex)` (the NFPA diamond of Chemistry 2e 1.3; a spectral colour computed from a wavelength goes through `F.fact` too). No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
 
@@ -279,7 +307,7 @@ Type 22px for labels, 17px for ticks and notes, 24px for symbol labels, 26px for
 
 Motion: one loop takes 4 to 6 real seconds and holds about 1.2 s; slider changes call `reset()`; the library adds the transport and reduced-motion starts the figure stopped at t = T; a still figure calls no `cycle()` and registers `update: () => {}`, and its sliders need no `onInput`.
 
-Readout: `tex(d.readout, ...)` writes the equation with the current numbers through the `\k` macros; one line, with a second `small` line only for a fact the figure makes visible, and that line writes its symbols through the macros too (root rule 26.13). Caption, headline and readout are full sentences in the book's voice saying what to drag and what to watch. Headline, scene, controls, readout and note are not a form to fill: a part that would repeat another is left out, and a note that says what the caption or readout already says is dropped.
+Readout: `tex(d.readout, ...)` writes the equation with the current numbers through the `\k` macros. A macro as a sub- or superscript goes in braces, `\int_0^{\ka}`, never bare (`^\ka` is a KaTeX error, since a macro is a symbol wrapped in its colour and key); `check:content` flags a bare one in the text, the tables and `figures.js`. Each equation stands on its own line: where a readout holds two (a law and its substitution, a result and what follows from it), separate them with `\\` (KaTeX's line break), never with a comma or `\quad`/`\qquad`; an equation breaks inside itself only when it alone overflows the readout, and KaTeX then breaks it after a relation sign (root rule 26.14). One main formula, with a second `small` line only for a fact the figure makes visible, and that line writes its symbols through the macros too (root rule 26.13). Caption, headline and readout are full sentences in the book's voice saying what to drag and what to watch. Every caption, headline, note, label and hover name goes through `/humanizer:humanizer` and then the repository's `humanizer` skill before it is saved (root rule 17). Headline, scene, controls, readout and note are not a form to fill: a part that would repeat another is left out, and a note that says what the caption or readout already says is dropped.
 
 ## 4. Archetypes
 
@@ -296,4 +324,4 @@ Readout: `tex(d.readout, ...)` writes the equation with the current numbers thro
 
 ## 5. Check, once
 
-Build into an outDir outside the repo, serve it, and run a headless Playwright pass (Python 3 with Playwright is installed; `python3 -m http.server <port> -d <outDir>` serves a build) over the page in light and dark: no console or page error, every `<img>` with `naturalWidth > 0`, every `figure.sim` with a canvas, a `.transport` on moving figures only and none on still ones, every eyebrow reading "Sim" or "Figure N.M" as its row says. Screenshot every figure once at 1400 wide in both themes at its slider extremes, then one pass of fixes for labels touching, non-round ticks, text clipped at an edge or drawn outside the canvas, a label under the headline. A figure that moves or morphs is judged from frames, not from its end state: capture each change mid-way (about 40 %) and at rest, in light and dark, and once with reduced motion, and look at them as a reader. Read the caption and the plan line again against what the figure now does. Do not loop.
+Build into an outDir outside the repo, serve it, and run a headless Playwright pass with the Node package (`require('playwright')` in a `.cjs` script; it is installed globally, so run the script with `NODE_PATH` set to the global node_modules, `/opt/node-tools/node_modules` here; Python has no Playwright; `python3 -m http.server <port> -d <outDir>` serves a build) over the page in light and dark: no console or page error, every `<img>` with `naturalWidth > 0`, every `figure.sim` with a canvas, a `.transport` on moving figures only and none on still ones, every eyebrow reading "Sim", "Figure N.M", or "Figure" alone for a sim that replaces an unnumbered book figure (its row keeps the image in `originals`), as its row says. Screenshot every figure once at 1400 wide in both themes at its slider extremes, then one pass of fixes for labels touching, non-round ticks, text clipped at an edge or drawn outside the canvas, a label under the headline. A figure that moves or morphs is judged from frames, not from its end state: capture each change mid-way (about 40 %) and at rest, in light and dark, and once with reduced motion, and look at them as a reader. Read the caption and the plan line again against what the figure now does. Do not loop.

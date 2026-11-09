@@ -165,9 +165,10 @@ test('a folded figure\'s eyebrow reads every number, and every folded image is a
     const html = fs.readFileSync(path.join(dir, 'text.html'), 'utf8');
     figureRows(dir).filter((f) => (f.folds ?? []).length > 0).forEach((f) => {
       const printed = printedNumbers({ number: f.number, folds: f.folds ?? [] });
-      const fig = new RegExp(`<figure\\b[^>]*\\bid="${f.id}"[^>]*\\bdata-original="([^"]+)"[^>]*>\\s*<div class="sim-head"><span class="eyebrow">Figure ${printed?.replace(/\+/g, '\\+')}<`).exec(html);
+      /* a figure that withholds the book's images carries no data-original, so the attribute is optional only for it */
+      const fig = new RegExp(`<figure\\b[^>]*\\bid="${f.id}"(?:[^>]*\\bdata-original="([^"]+)")?[^>]*>\\s*<div class="sim-head"><span class="eyebrow">Figure ${printed?.replace(/\+/g, '\\+')}<`).exec(html);
       assert.ok(fig, `${dir}: ${f.id} should read "Figure ${String(printed)}" under its eyebrow`);
-      assert.ok(f.withheld !== undefined || fig![1].split(',').length > (f.folds ?? []).length, `${dir}: ${f.id} folds ${String(f.folds)} but carries too few originals`);
+      assert.ok(f.withheld !== undefined || (fig![1] ?? '').split(',').length > (f.folds ?? []).length, `${dir}: ${f.id} folds ${String(f.folds)} but carries too few originals`);
     });
   });
 });

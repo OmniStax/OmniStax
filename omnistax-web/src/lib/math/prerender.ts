@@ -1,6 +1,7 @@
 /* Build-time KaTeX: turn $…$ and $$…$$ in an HTML string into rendered markup so the
    page reads without JavaScript. The colour macros come from the book. */
 import katex from 'katex';
+import { mapText } from '../content/plain';
 
 type Macros = Readonly<Record<string, string>>;
 /* The colour macros wrap a symbol in \htmlClass (its type) and \htmlData (its key in the book's symbol table); nothing else in the content may reach the DOM. */
@@ -10,7 +11,9 @@ const options = (macros: Macros, display: boolean) => ({ macros: { ...macros }, 
 const unescape = (s: string): string => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 const render = (macros: Macros, src: string, display: boolean): string => katex.renderToString(unescape(src), options(macros, display));
 
-/* One pass, so a $ that KaTeX writes into its output is never read as a delimiter. */
+/* One pass, so a $ that KaTeX writes into its output is never read as a delimiter. Only text is set:
+   an attribute value (a figure's data-original-caption) is plain text and keeps its dollars, so no
+   markup is ever written inside a tag. */
 export const prerenderMath = (html: string, macros: Macros): string =>
-  html.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (_, display: string | undefined, inline: string | undefined) =>
-    display !== undefined ? render(macros, display, true) : render(macros, inline ?? '', false));
+  mapText(html, (text) => text.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (_, display: string | undefined, inline: string | undefined) =>
+    display !== undefined ? render(macros, display, true) : render(macros, inline ?? '', false)));

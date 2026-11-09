@@ -17,6 +17,13 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLEl
 /* The paths of the originals and, aligned with them, the widths the book prints them at: data-original-width
    is comma-separated in the same order, and absent where the book gives no width. */
 import { t } from '../i18n/index';
+import type { Fig } from '../fig/figlib';
+
+/* The book's caption is plain text in its attribute (the build sets no markup inside a tag), and may
+   write maths as $…$: shown, it is set by the figure library under the page's macros; as an image's
+   alt text it is read with the dollars and the macro names dropped. */
+const withMath = (host: HTMLElement): void => { (globalThis as { FIG?: Fig }).FIG?.renderMath(host); };
+const altOf = (caption: string): string => caption.replace(/\$([^$]*)\$/g, (_, m: string) => m.replace(/\\k(?=[A-Za-z])|\\(?=[A-Za-z])|[{}]/g, ''));
 
 const list = (csv: string | undefined): readonly string[] => (csv ?? '').split(',').map((p) => p.trim()).filter(Boolean);
 type Original = { readonly src: string; readonly width?: string };
@@ -41,12 +48,13 @@ const captionOf = (fig: HTMLElement, head: HTMLElement): HTMLElement => {
   const have = head.querySelector<HTMLElement>(':scope > .ocap'); if (have) return have;
   const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = fig.dataset.figure ? `Figure ${fig.dataset.figure}` : 'Figure';
   const text = el('span'); text.textContent = fig.dataset.originalCaption ?? ''; text.append(...fig.querySelectorAll(':scope > sup.fn')); cap.append(num, text); head.appendChild(cap);
+  withMath(text);
   return cap;
 };
 
 const originalOf = (fig: HTMLElement): HTMLElement => {
   const have = fig.querySelector<HTMLElement>(':scope > .original'); if (have) return have;
-  const box = el('div', 'original'); const caption = fig.dataset.originalCaption ?? '';
+  const box = el('div', 'original'); const caption = altOf(fig.dataset.originalCaption ?? '');
   originalsOf(fig).forEach((o) => box.appendChild(imageOf(o, caption)));
   fig.appendChild(box);
   return box;

@@ -35,7 +35,7 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `chapters` | `string[]` | yes | The chapter directories, in the order the book sets them. |
 | `intro` | `{ module?, slug? }?` | no | The book’s own introduction or preface, where it prints one; the page is built in intro/ and listed before the first chapter. |
 | `summary` | `{ module?, slug? }?` | no | The book’s own closing summary, where it prints one; the page is built in summary/ and listed after the last chapter. |
-| `colours` | `{ palette, vision, assign, referentOrder? }?` | no | The book’s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared. |
+| `colours` | `{ palette, vision, assign, pins?, referentOrder? }?` | no | The book’s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared. |
 
 ### `types`
 
@@ -397,7 +397,7 @@ One node of a derivation: an equation brought in and worked, move by move, to a 
 
 | field | type | required | description |
 | --- | --- | --- | --- |
-| `assumes` | `{ tex?, text?, step?, src? }[]` | no | Every fact and earlier result the node rests on, each once; every entry is used by `then.uses` or by some step’s `uses`. |
+| `assumes` | `{ tex?, text?, step?, src?, drv? }[]` | no | Every fact and earlier result the node rests on, each once; every entry is used by `then.uses` or by some step’s `uses`. |
 | `then` | `{ tex, src?, uses?, why? }` | yes | The equation the node starts from and what makes it hold. |
 | `steps` | `{ tex, uses?, cap?, map? }[]` | yes | The moves, in order; the last line is the node’s result. |
 | `num` | `string?` | no | The number the book prints the result under, such as (17.21), only where it prints one. |
@@ -414,6 +414,7 @@ What a node rests on: an equation, a sentence or an earlier result, with where t
 | `text` | `string?` | no | The fact as a sentence in the book’s voice, `$…$` for inline maths; absent where the fact is an equation or an earlier result. |
 | `step` | `number?` | no | The 0-based index of the earlier node whose result this fact is; absent where the fact is an equation or a sentence. |
 | `src` | `string?` | no | Where the book states the fact: a section, an equation number, a table, a figure or an example, as the book prints it. Absent on a given of the example itself and on an earlier result. |
+| `drv` | `string?` | no | The derivation this fact is the result of, where the book derives it elsewhere (rule 29.5): its id, prefixed by its section where that is another one, as `3.5/pib-energy`. The fact’s provenance becomes a link that opens that derivation. |
 
 ### `derivation_steps`
 

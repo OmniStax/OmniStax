@@ -19,6 +19,7 @@
   import { bookKey, chapterKey, entryId, sectionKey, type Entry, type EntryId } from '../../lib/explorer/model';
   import { createFolder, createNote, deleteEntry, moveEntry, removeBook, renameEntry } from '../../lib/explorer/edits';
   import { registry } from '../../lib/sections/registry.svelte';
+  import { NOTE_MARK_SELECTOR } from '../../lib/content/plain';
   import { focus } from '../../lib/sections/focus.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
   import { go, openItem, openingOf, onMiddle, type Opening } from '../../lib/sections/nav.svelte';
@@ -92,7 +93,7 @@
       const h = s.querySelector('h2, h3');
       if (!h) return [];
       const clone = h.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll('.katex-mathml').forEach((m) => m.remove());
+      clone.querySelectorAll(`.katex-mathml, ${NOTE_MARK_SELECTOR}`).forEach((m) => m.remove());   /* a note's marker after the heading's words names no part of it */
       const label = (clone.textContent ?? '').replace(/\s+/g, ' ').trim();
       return label ? [{ id: s.id, label }] : [];
     });

@@ -10,7 +10,7 @@ import { type Edit, type Stack, breakCoalescing, canRedo, canUndo, coalesce, emp
 import type { BookManifest } from '../content/schema';
 import { type BookId, bookId } from '../types/ids';
 import { DEFAULT_VISION, FAMILIES, type Offer, type Palette, type PaletteId, pairsOf, paletteName } from './palettes';
-import { DEFAULT_SEED } from './defaults';
+import { DEFAULT_SEED, assignStable } from './defaults';
 import { assignInOrder, assignSmart } from './assign';
 import { fixedOf, pagesOfBook } from './counts';
 import {
@@ -144,7 +144,11 @@ class Colours {
     const hues = m ? pairsOf(palette, order.length, vision) : null;
     if (!m || !hues) return false;
     const pages = pagesOfBook(m);
-    const got = mode === 'order' ? assignInOrder(order, hues) : assignSmart({ categories: order, colours: hues, pages, fixed: fixedOf(pages), vision, seed: DEFAULT_SEED });
+    /* on the book's own palette and vision, smart is the book's stable default (defaults.ts): the stored colours kept */
+    const own = m.colours && palette.id === m.colours.palette && vision === m.colours.vision ? m.colours : undefined;
+    const got = mode === 'order' ? assignInOrder(order, hues)
+      : own ? assignStable({ categories: order, colours: pairsOf(palette, order.length + 12, vision) ?? hues, pages, fixed: fixedOf(pages), vision, stored: own.assign, pins: own.pins }).assign
+      : assignSmart({ categories: order, colours: hues, pages, fixed: fixedOf(pages), vision, seed: DEFAULT_SEED });
     const types = order.filter((k) => got.has(k));
     const next = applyHues(setCategories(setVision(this.choices, vision), { palette: palette.id, mode }), types, types.map((k) => got.get(k) as Hue));
     if (!next) return false;

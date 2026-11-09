@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { frenet, circle, partials, tangents, contours, outline, edges, skins, quads, riemann2, flow, clipPlane, clipLine, tube, axes, graph, frame, plane, type V3 } from '../src/lib/fig/space';
 import { volume } from '../src/lib/fig/solid';
+import * as S from '../src/lib/fig/space';
 
 const near = (a: number, b: number, tol: number, msg = ''): void => assert.ok(Math.abs(a - b) <= tol, `${msg} ${a} vs ${b}`);
 const nearV = (a: readonly number[] | null, b: readonly number[], tol = 1e-5): void => { assert.ok(a); a.forEach((x, i) => near(x, b[i], tol, `[${i}]`)); };
@@ -114,4 +115,10 @@ test('builders: axes tick at round steps, a graph carries its level curves, a fr
   assert.equal(g.filter((m) => m.k === 'line').length, 2);
   assert.equal(frame((t) => [Math.cos(t), Math.sin(t), t], 0, ['#1', '#2', '#3']).filter((m) => m.k === 'arrow').length, 3);
   assert.equal(plane([0, 0, 0], [0, 0, 1], '#000', { box: [[-1, 1], [-1, 1], [-1, 1]] }).length, 2);
+});
+
+test('a cloud of points is one mark, its colours one per point', () => {
+  const [m] = S.points([[0, 0, 0], [1, 1, 1]], 'ink', { r: 3, colors: ['#ff0000', '#0000ff'], name: 'gas' });
+  assert.equal(m!.k, 'points');
+  assert.deepEqual(m, { k: 'points', pts: [[0, 0, 0], [1, 1, 1]], color: 'ink', r: 3, colors: ['#ff0000', '#0000ff'], name: 'gas' });
 });

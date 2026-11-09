@@ -125,7 +125,7 @@ export async function buildOfflineArtifacts(out, bookIds, archive, { figureCache
     const sourceBook = JSON.parse(await fs.readFile(path.join(dir, 'book.json'), 'utf8'));
     const bookRels = (await walk(bookRoot)).map((file) => path.join(dirOf(id), file));
     const text = (await Promise.all(bookRels.filter((file) => /\.(?:html|js|json|css)$/.test(file)).map((file) => fs.readFile(path.join(out, file), 'utf8')))).join('\n');
-    const mediaMatches = [...text.matchAll(/(\/media\/[^"',\]\s?#\\]+?\.(?:png|jpe?g|gif|svg|webp|avif|mp4|webm))/gi)];
+    const mediaMatches = [...text.matchAll(/(\/media\/[^"',\]\s?#\\]+\.(?:png|jpe?g|gif|svg|webp|avif|mp4|webm))/gi)];
     const mediaUrls = [...new Set(mediaMatches.map((match) => decodeURI(match[1])))];
     for (let at = text.indexOf('/media/'); at >= 0; at = text.indexOf('/media/', at + 1)) {
       if (!mediaMatches.some((match) => match.index !== undefined && match.index <= at && at < match.index + match[0].length)) throw new Error(`Unsupported dynamic media dependency in ${id} near ${text.slice(at, at + 80)}`);
