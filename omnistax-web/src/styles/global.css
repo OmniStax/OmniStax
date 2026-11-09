@@ -497,7 +497,7 @@ article.page .try{height:36px;padding:0 18px;font-size:0.9rem;text-decoration:no
 .dbg-row{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
 .dbg-row>.cp{flex:0 1 auto;min-width:0;max-width:100%;border-right:1px solid var(--rule)}
 .dbg-draw{flex:1 1 28rem;min-width:0;position:relative;align-self:center}
-.cp{display:flex;flex-direction:column;font-family:var(--mono);font-size:0.8rem;background:var(--panel);color:var(--ink)}
+.cp{display:flex;flex-direction:column;font-family:var(--mono);font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;font-size:0.8rem;background:var(--panel);color:var(--ink)}
 .cp-body{flex:1;overflow-x:auto}
 .cp-src{--cp-pad:10px;position:relative;margin:0;padding:var(--cp-pad) 0;font:inherit;line-height:var(--cp-lh,1.5em);background:transparent;border:0;overflow:visible}
 .cp-line{display:block;position:relative;padding-right:14px;white-space:pre}

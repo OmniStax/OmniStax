@@ -27,7 +27,7 @@
   const isShell = (e: KeyboardEvent): boolean => e.key === 'Escape' || ((e.ctrlKey || e.metaKey) && SHELL_KEYS.includes(e.key.toLowerCase()));
 
   const theme = EditorView.theme({
-    '&': { color: 'var(--ink)', backgroundColor: 'var(--bg)', fontFamily: 'var(--mono)', fontSize: '0.84rem', border: '1px solid var(--rule)', borderRadius: '6px' },
+    '&': { color: 'var(--ink)', backgroundColor: 'var(--bg)', fontFamily: 'var(--mono)', fontVariantLigatures: 'none', fontFeatureSettings: '"calt" 0, "liga" 0', fontSize: '0.84rem', border: '1px solid var(--rule)', borderRadius: '6px' },
     '&.cm-focused': { outline: '2px solid var(--accent)', outlineOffset: '-1px' },
     '.cm-scroller': { fontFamily: 'var(--mono)', lineHeight: '1.55', minHeight: '8em', maxHeight: '28em', overflow: 'auto' },
     '.cm-content': { padding: '8px 0', caretColor: 'var(--accent)' },
