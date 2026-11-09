@@ -9,6 +9,7 @@ import { GeneratedAnswerSchema } from '../practice/generated';
 import { isDictationLang } from '../chat/dictation';
 import { migrateRecords } from './migrate';
 import { DATA_VERSION } from './format';
+import { LISTING_LANGS } from '../code/langs';
 
 export const BACKUP_FORMAT = 'omnistax-reader-backup' as const;
 /* A backup is written in this build's data format and read in any up to it (format.ts). */
@@ -72,6 +73,8 @@ export const RECORD_KEYS: readonly string[] = [...scalarKeys.keys(), ...JSON_KEY
 
 /* One key per book, omnistax-highlights-<book>, beside the appearance scalars. */
 const HIGHLIGHTS_KEY = /^omnistax-highlights-[^/]+$/;
+/* One key per book, omnistax-code-lang-<book>: the language its code listings show (settings/codelang.ts). */
+const CODE_LANG_KEY = /^omnistax-code-lang-[^/]+$/;
 const CATEGORIES = ['appearance', 'shortcuts', 'practice', 'library', 'notes', 'layout', 'reading', 'chats', 'focus'] as const;
 export type ReaderCategory = typeof CATEGORIES[number];
 const LAYOUT_KEYS = ['omnistax-layout', 'omnistax-scopes', 'omnistax-practice-pages', 'omnistax-chat-pages'];
@@ -83,7 +86,7 @@ export const isScalarKey = (key: string): boolean => scalarKeys.has(key);
 
 export const categoryOf = (key: string): ReaderCategory | null => {
   if (FOCUS_KEYS.includes(key)) return 'focus';
-  if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key) || key === 'omnistax-drawing-palette') return 'appearance';
+  if (scalarKeys.has(key) || HIGHLIGHTS_KEY.test(key) || CODE_LANG_KEY.test(key) || key === 'omnistax-drawing-palette') return 'appearance';
   if (key === 'omnistax-shortcuts') return 'shortcuts';
   if (['omnistax-practice', 'omnistax-practice-sessions', 'omnistax-practice-links', 'omnistax-code-drafts'].includes(key)) return 'practice';
   if (key === 'omnistax-library' || key === 'omnistax-explorer' || key === 'omnistax-auto-update') return 'library';
@@ -291,6 +294,7 @@ const colourFile = z.object({
 /* The shape a JSON record's value must have, by its key. */
 const shapeOf = (key: string): z.ZodTypeAny | null => {
   if (HIGHLIGHTS_KEY.test(key)) return bookHighlights;
+  if (CODE_LANG_KEY.test(key)) return z.enum(LISTING_LANGS);
   if (NOTES_KEY.test(key)) return z.array(note);
   if (COLOURS_KEY.test(key)) return colourFile.refine((v) => key === `omnistax-colours-${v.book}`, () => ({ message: t('shell.backup.record.otherBook') }));
   return JSON_KEY_LIST.includes(key) ? validators[key] ?? null : null;

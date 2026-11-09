@@ -26,6 +26,7 @@ const RECORD: Readonly<Record<string, MessageKey>> = {
 const PER_BOOK: readonly (readonly [RegExp, MessageKey])[] = [
   [/^omnistax-notes-(.+)$/, 'files.sync.record.notes'],
   [/^omnistax-highlights-(.+)$/, 'files.sync.record.highlights'],
+  [/^omnistax-code-lang-(.+)$/, 'files.sync.record.codeLang'],
   [/^omnistax-colours-(.+)$/, 'files.sync.record.colours'],
 ];
 

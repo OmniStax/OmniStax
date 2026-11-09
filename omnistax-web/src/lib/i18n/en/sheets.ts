@@ -38,6 +38,7 @@ export const sheets = {
   'fig.circuit.starts': '{wire} starts in {state}',
   'fig.circuit.stepOn': '{what} on {wires}',
   'fig.code.label': 'Code',
+  'fig.code.language': 'Code language',
   'fig.code.line': 'line {n}',
   'fig.code.lines': 'lines {a}–{b}',
   'fig.debug.after': 'After: {label}',

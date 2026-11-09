@@ -14,6 +14,7 @@ import { ICON } from '../icons';
 import { aiMarkHtml } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
 import { plainText } from './plain';
+import { codeSets } from './codeset';
 import { type Locale, matchLocale, tIn } from '../i18n/index';
 
 /* The catalog a book's pages are written in: its language's, else English (a book in a language the app has no catalog for). */
@@ -286,7 +287,7 @@ const pageNav = (nav: PageNav, locale: Locale): string => {
 };
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav, locale: Locale): string => {
-  const marked = markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures, locale), s.figures, locale);
+  const marked = codeSets(markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures, locale), s.figures, locale), locale);
   const byline = s.meta.ai?.text ? aiByline(s.meta.ai.text, locale) : undefined;
   const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s, locale)}`, s.footnotes, s.meta.id, locale, byline, s.figures);
   const lead = byline === undefined ? s.meta.lead : `${s.meta.lead}${aiMarkHtml(byline)}`;

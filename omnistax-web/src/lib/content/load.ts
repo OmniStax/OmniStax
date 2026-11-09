@@ -399,12 +399,17 @@ export const loadSheets = async (root: BookDir, book: BookDTO): Promise<readonly
 const sheetEntry = (book: BookDTO, s: SheetSource): SheetEntry =>
   ({ id: s.row.id, title: s.row.title, kind: s.row.kind, url: sheetUrl(book.id, s.row.id), data: `${sheetUrl(book.id, s.row.id)}sheet.json` });
 
+/* A page that shows code: a code set in its text, or a code panel in its figures. */
+const showsCode = (s: SectionSource | undefined): boolean => !!s && (/<div\b[^>]*\bclass="(?:[^"]*\s)?code-set[\s"]/.test(s.textHtml) || /\bF\.code\s*\(/.test(s.figuresJs));
+const anyCode = (tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>): boolean =>
+  showsCode(tree.intro) || showsCode(tree.summary) || tree.chapters.some((ch) => showsCode(ch.intro) || showsCode(ch.summary) || ch.sections.some(showsCode));
 const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary' | 'sheets'>): BookManifest => ({
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   language: book.language, ...(book.translationOf !== undefined ? { translationOf: book.translationOf } : {}),
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
   ...(book.colours ? { colours: book.colours } : {}), highlights: book.highlights ?? BOOK_HIGHLIGHTS_DEFAULT,
   sheets: tree.sheets.map((s) => sheetEntry(book, s)),
+  ...(anyCode(tree) ? { listings: true as const } : {}),
   exercises: `${bookUrl(book.id)}exercises.json`, concepts: `${bookUrl(book.id)}concepts.json`,
   ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),
   chapters: tree.chapters.map((ch): ChapterEntry => ({

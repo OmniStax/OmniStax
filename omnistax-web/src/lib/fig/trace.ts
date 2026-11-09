@@ -230,3 +230,66 @@ export function scrub(n: number, tau: number, move = 0.6): Scrub {
   if (f < 1e-9) return { i, from: Math.max(0, i - 1), to: i, k: 1 };
   return { i: i + 1, from: i, to: i + 1, k: Math.min(1, f / move) };
 }
+
+/* ---------- one trace, several languages (METHOD decision 20) ----------
+   A figure's code may be shown in several languages, but its trace is recorded once, in the line numbers of
+   one canonical language (Python unless the figure says otherwise), and the blocks are stepped on those. Each
+   other language gives a line map, canonical line → its line or lines, so the lines a step ran, the line it
+   rests on and a block's band follow the language shown. A block may give its lines per language, where the
+   map alone would place it wrongly; else its range in a language is the span of its mapped lines. */
+export type LineMap = Readonly<Record<number, number | readonly number[]>>;
+export type Range = readonly [number, number];
+/* the lines of the shown language a canonical line stands for; identity where there is no map (the canonical language) */
+export const mapLine = (map: LineMap | undefined, line: number): readonly number[] => {
+  if (!map) return [line];
+  const v = map[line];
+  return v === undefined ? [] : typeof v === 'number' ? [v] : v;
+};
+export const mapLines = (map: LineMap | undefined, lines: Iterable<number>): Set<number> => {
+  const out = new Set<number>();
+  for (const L of lines) mapLine(map, L).forEach((x) => out.add(x));
+  return out;
+};
+/* the span a canonical range covers in the shown language, or null where none of its lines is mapped */
+export const mapRange = (map: LineMap | undefined, r: Range): Range | null => {
+  if (!map) return r;
+  const got = [...mapLines(map, Array.from({ length: r[1] - r[0] + 1 }, (_, i) => r[0] + i))];
+  return got.length ? [Math.min(...got), Math.max(...got)] : null;
+};
+/* what a line map gets wrong against the code it maps: a canonical line past the canonical code, or a target
+   that is no line of the language's code */
+export function mapErrors(map: LineMap, canonLines: number, langLines: number): string[] {
+  const out: string[] = [];
+  Object.entries(map).forEach(([k, v]) => {
+    const from = Number(k);
+    if (!Number.isInteger(from) || from < 1 || from > canonLines) out.push(`maps line ${k}, which the canonical code does not have (${canonLines} lines)`);
+    (typeof v === 'number' ? [v] : v).forEach((to) => {
+      if (!Number.isInteger(to) || to < 1 || to > langLines) out.push(`maps line ${k} to ${to}, which is no line of its code (${langLines} lines)`);
+    });
+  });
+  return out;
+}
+
+/* A block as a multi-language figure declares it: one id, its lines as one range (the canonical language's)
+   or per language, `{ python: [5, 6], java: [7, 9] }`, of which the canonical language's must be given. */
+export type LangBlockSpec<L extends string = string> = Omit<BlockSpec, 'lines'> & { readonly lines: Range | Readonly<Partial<Record<L, Range>>> };
+const isRange = (v: unknown): v is Range => Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === 'number');
+/* the canonical blocks the trace is stepped on, and what is wrong with the specs */
+export function canonicalBlocks<L extends string>(specs: readonly LangBlockSpec<L>[], canon: L): { blocks: BlockSpec[]; errors: string[] } {
+  const errors: string[] = [], blocks: BlockSpec[] = [];
+  specs.forEach((b) => {
+    const r = isRange(b.lines) ? b.lines : (b.lines as Partial<Record<L, Range>>)[canon];
+    if (!r || !isRange(r)) { errors.push(`block "${b.id}" gives no lines in ${canon}, the language its trace is recorded in`); return; }
+    blocks.push({ ...b, lines: r });
+  });
+  return { blocks, errors };
+}
+/* a block's range in the language shown: its own where it gives one, else its canonical range mapped */
+export function blockRange<L extends string>(spec: LangBlockSpec<L>, lang: L, canon: L, map: LineMap | undefined): Range | null {
+  if (isRange(spec.lines)) return lang === canon ? spec.lines : mapRange(map, spec.lines);
+  const per = spec.lines as Partial<Record<L, Range>>;
+  const own = per[lang];
+  if (own) return own;
+  const c = per[canon];
+  return c ? (lang === canon ? c : mapRange(map, c)) : null;
+}

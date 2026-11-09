@@ -824,6 +824,7 @@ export type BookManifest = {
   readonly highlights: BookHighlightsDTO;    /* what the book colours and underlines by default */
   readonly intro?: SectionEntry; readonly chapters: readonly ChapterEntry[]; readonly summary?: SectionEntry;   /* the book's own pages, built, stand either side of the chapters */
   readonly sheets: readonly SheetEntry[];   /* the book's reference sheets, which stand above the chapters wherever the book is listed */
+  readonly listings?: true;                 /* some page shows code (a code set or a figure's code panel), so the Theme page offers the code language */
 } & BookFileUrls;
 /* The book's own files, one apiece, beside its pages: every section's problem
    set, and every concept once with each chapter's symbols. The manifest names

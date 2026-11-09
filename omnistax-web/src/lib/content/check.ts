@@ -24,6 +24,7 @@ import { REFERENT_COUNT } from '../colours/referents';
 import { asidesOf, referentGroups } from '../colours/scopes';
 import { isElementSymbol } from '../fig/elements';
 import { figureLiterals, figureRefs } from './figrefs';
+import { codeSetIssues, codeSetWarnings, codeSetsOf } from './codeset';
 import { conceptSpanIds } from './conceptspans';
 import { functionNames, readRow } from '../grapher/expr';
 import type { TableSheetDTO } from './sheets';
@@ -455,6 +456,14 @@ const ATTR = /([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 export const checkAttributeMarkup: Check = (content) =>
   pagesOf(content).flatMap((s) => Array.from(s.textHtml.matchAll(TAG), (t) => Array.from(t[1].matchAll(ATTR))).flat()
     .flatMap(([, name, dq, sq]) => (/[<$]/.test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a "<" or "$"; an attribute's value is plain text`)] : [])));
+
+/* A code set (codeset.ts): one listing in several languages, one <pre data-lang> each, Python present or the
+   set saying why, a translation naming what translated it, and no math. */
+export const checkCodeSets: Check = (content) =>
+  pagesOf(content).flatMap((s) => codeSetsOf(s.textHtml).flatMap((set, i) => {
+    const where = `${s.dto.id}/text.html code set ${i + 1}`;
+    return [...codeSetIssues(set).map((w) => error(where, w)), ...codeSetWarnings(set).map((w) => warning(where, w))];
+  }));
 
 /* The figures table and the text say the same thing until the build injects the
    one from the other: one row per <figure> the text draws, no row for a figure
@@ -901,7 +910,7 @@ export const checkParity = (content: Content, source: Content): readonly Finding
   ];
 };
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta, checkCodeAnswers];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkFootnotes, checkAttributeMarkup, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta, checkCodeAnswers, checkCodeSets];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');

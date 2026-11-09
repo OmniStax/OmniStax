@@ -301,6 +301,26 @@ These are pure functions.
     coordinates), `grid` (DP table), `stack`/`queue`/`heap`, `buckets`, `bits`.
   - The system design `component`/`edge`/`meter`/`ring` wait for chapter 24.
 
+### 2.6 Listings in four languages (decision 20, 2026-11-09)
+
+- **One preference per book.** `settings/codelang.ts` keeps the reader's code
+  language, `omnistax-code-lang-<book>` (Python by default, so only another
+  choice is stored); it travels with backups and sync as an appearance record,
+  and the book's Theme page shows it where the book has a listing
+  (`manifest.listings`).
+- **Text.** A `<div class="code-set">` holds a `<pre data-lang>` per language
+  (`content/codeset.ts`; the format is in `docs/content-format.md`). The build
+  adds the head (button group, AI marks) and shows Python; `sections/codesets.ts`
+  shows the book's language and sends a press to the preference.
+- **Figures.** `F.code` takes `src` per language. The trace stays in the
+  canonical language's lines (`canonical`, default Python); each other language
+  gives a `lineMap` (canonical line → its line or lines), and a block gives its
+  `lines` per language where the mapped span would be wrong (`trace.ts`,
+  `mapLines`, `blockRange`). Stepping never reads the shown lines, so a switch
+  only redraws the panel and keeps the stop.
+- **Exercise cards** open on the book's language where the card has it and can
+  run it; what they run is unchanged.
+
 ## 3. Order of work
 
 **Slice 0, a refactor with no visible change.** Move the worker to
