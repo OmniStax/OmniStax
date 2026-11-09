@@ -62,6 +62,8 @@ article > section:first-child > h2{margin-top:0.4rem}
    lead, set off by a rule rather than a box, so it reads as a signpost and not
    as the first thing to read. */
 article > p, article li, .example p, .example li{max-width:66ch}
+/* a source's plain listing (Wikipedia's pseudocode, Erickson's traces) scrolls inside the column, as a code set does */
+article pre{max-width:100%;overflow-x:auto}
 .lead{color:var(--muted);font-family:var(--sans);font-size:0.95rem;margin-top:6px}
 .note{border-left:3px solid var(--rule);padding:4px 0 4px 18px;margin:1.4rem 0}
 .note .eyebrow{margin-bottom:4px}
@@ -100,6 +102,8 @@ section[id].landed{animation-name:landed-span}
    and OmniStax's corrections under bracketed numbers in OmniStax's face. A marker set after a display
    equation stands at the equation's top right, over its number. */
 sup.fn{font-size:0.72em;line-height:0;margin-left:0.08em}
+/* markers that stand together (a sentence citing three works) read 1,2,3 and not 123 */
+sup.fn + sup.fn::before{content:","}
 sup.fn a,.notes .fn-back{color:var(--accent);text-decoration:none}
 sup.fn.correction,.notes li.correction{font-family:var(--sans)}
 .equation{position:relative}
