@@ -23,7 +23,10 @@ import { aiMarkHtml } from '../../components/ui/aimark';
 import { aiByline } from '../content/attribution';
 
 export type Lang = ListingLang;
-export type Tok = { readonly t: 'name' | 'str' | 'comment' | 'other'; readonly s: string };
+/* An `attr` is an attribute of the object itself, the `n` of Python's `self.n`, Java's and JavaScript's
+   `this.n` or C++'s `this->n`; `of` is the whole access as written, which `refs` may name it by. Any other
+   attribute name (`node.next`, `p->next`) is `other`, as a number's letters are. */
+export type Tok = { readonly t: 'name' | 'str' | 'comment' | 'other'; readonly s: string } | { readonly t: 'attr'; readonly s: string; readonly of: string };
 
 type Mode = null | { readonly end: string; readonly t: 'str' | 'comment' };
 const NAME = /[A-Za-z_$][A-Za-z0-9_$]*/y;
@@ -34,10 +37,15 @@ export function tokenize(src: string, lang: Lang): Tok[][] {
   let mode: Mode = null;
   for (const line of src.split('\n')) {
     const toks: Tok[] = [];
-    const push = (t: Tok['t'], s: string): void => {
+    const push = (t: Exclude<Tok['t'], 'attr'>, s: string): void => {
       if (!s) return;
       const last = toks[toks.length - 1];
       if (last && last.t === t && t !== 'name') toks[toks.length - 1] = { t, s: last.s + s }; else toks.push({ t, s });
+    };
+    /* the receiver an attribute at i is read off: `self.` / `this.` / `this->` straight before it, else nothing */
+    const receiver = (): string | null => {
+      const m = (lang === 'python' ? /\bself\.$/ : lang === 'cpp' ? /\bthis->$/ : /\bthis\.$/).exec(line.slice(0, i));
+      return m ? m[0] : null;
     };
     let i = 0;
     /* the rest of a string or comment carried from an earlier line, or from earlier in this one */
@@ -64,8 +72,14 @@ export function tokenize(src: string, lang: Lang): Tok[][] {
       }
       NAME.lastIndex = i;
       const m = NAME.exec(line);
-      /* after a digit it is part of a number (1e5, 0x1f); after a dot it is an attribute, not the variable */
-      if (m) { push(i > 0 && /[0-9.]/.test(line[i - 1]) ? 'other' : 'name', m[0]); i += m[0].length; continue; }
+      /* after a digit it is part of a number (1e5, 0x1f); after a dot (or C++'s ->) it is an attribute, not the variable,
+         and an attribute of self or this is a token of its own, which refs may colour by its whole access */
+      if (m) {
+        const own = receiver();
+        if (own !== null) toks.push({ t: 'attr', s: m[0], of: own + m[0] });
+        else push(i > 0 && (/[0-9.]/.test(line[i - 1]) || (lang === 'cpp' && line.startsWith('->', i - 2))) ? 'other' : 'name', m[0]);
+        i += m[0].length; continue;
+      }
       push('other', c); i += 1;
     }
     out.push(toks);
@@ -89,7 +103,9 @@ export type CodeOpts = {
   /* one id each; `lines` one range (the canonical language's) or per language `{ python: [5, 6], java: [7, 9] }` */
   readonly blocks?: readonly LangBlockSpec<Lang>[];
   /* code names wearing a referent's colour: `{ i: () => F.ref('l') }`, read on every draw; or per language,
-     `{ python: { two_sum: … }, java: { twoSum: … } }`, where the names differ */
+     `{ python: { two_sum: … }, java: { twoSum: … } }`, where the names differ. An attribute of the object
+     itself is named with its receiver, `{ 'self.n': … }`, which also colours `this.n` and `this->n`; the
+     `n` of `self.n` wears that colour, and a bare `n` in refs leaves `self.n` in ink */
   readonly refs?: Refs | Readonly<Partial<Record<Lang, Refs>>>;
   /* the book whose code language the panel follows; absent, the one the panel stands in */
   readonly book?: string;
@@ -113,6 +129,16 @@ export type Code = {
   shownLine: (line: number) => number;
 };
 
+const has = (refs: Refs, k: string): boolean => Object.prototype.hasOwnProperty.call(refs, k);
+/* The refs key an attribute of the object itself wears: its access as written (`this->n`), else the same access
+   in another language's spelling (`self.n`, `this.n`, `this->n`), so one refs object serves every language.
+   A bare `n` in refs never colours `self.n`: the attribute is coloured only where refs names it as one. */
+const RECEIVERS = ['self.', 'this.', 'this->'] as const;
+export const attrKey = (refs: Refs, of: string): string | null => {
+  if (has(refs, of)) return of;
+  const name = of.replace(/^(?:self\.|this\.|this->)/, '');
+  return RECEIVERS.map((r) => r + name).find((k) => has(refs, k)) ?? null;
+};
 const isPerLang = (r: CodeOpts['refs']): r is Readonly<Partial<Record<Lang, Refs>>> =>
   !!r && Object.keys(r).length > 0 && Object.entries(r).every(([k, v]) => isListingLang(k) && typeof v === 'object' && v !== null);
 const sources = (o: CodeOpts): Partial<Record<Lang, string>> => {
@@ -208,8 +234,9 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
       const no = row.appendChild(mk('span', 'cp-no')); no.textContent = String(n + 1); no.setAttribute('aria-hidden', 'true');
       const code = row.appendChild(mk('span', 'cp-code'));
       line.forEach((tk) => {
-        if (tk.t === 'name' && Object.prototype.hasOwnProperty.call(refs, tk.s)) {
-          const v = code.appendChild(mk('span', 'cp-var')); v.textContent = tk.s; v.dataset.var = tk.s; names.push({ name: tk.s, el: v });
+        const key = tk.t === 'name' ? (has(refs, tk.s) ? tk.s : null) : tk.t === 'attr' ? attrKey(refs, tk.of) : null;
+        if (key !== null) {
+          const v = code.appendChild(mk('span', 'cp-var')); v.textContent = tk.s; v.dataset.var = key; names.push({ name: key, el: v });
         } else code.appendChild(doc.createTextNode(tk.s));
       });
       if (!line.length) code.appendChild(doc.createTextNode(' '));
