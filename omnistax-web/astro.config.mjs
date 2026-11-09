@@ -6,6 +6,7 @@ import { chooseBooks, findBooks, mediaDirsOf } from './src/lib/content/load.ts';
 import { builderHash, planBuild, setBuildPlan } from './src/lib/content/stored.ts';
 import content from './content.mjs';
 import { readNotes } from './src/lib/content/releases.ts';
+import { WATCH_IGNORED } from './src/lib/content/watch.ts';
 
 /* Which books this build carries, resolved once here so that the integration
    watching and copying their media reads the same list the pages do. A
@@ -33,7 +34,8 @@ export default defineConfig({
      it, so the project is named beside the content: the books sit outside the
      project, and the project's src and node_modules must still be served. */
   vite: {
-    server: { fs: { allow: ['.', config.content.root] } },
+    /* A book's fetched sources and script caches are not content, and watching them spends the file watchers (watch.ts). */
+    server: { fs: { allow: ['.', config.content.root] }, watch: { ignored: [...WATCH_IGNORED] } },
     /* The release this build is, which a backup and a sync repo record beside
        their data (src/lib/backup/format.ts). */
     define: { __OMNISTAX_RELEASE__: JSON.stringify(readNotes()[0]?.version ?? 'dev') },
