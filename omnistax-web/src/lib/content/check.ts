@@ -533,8 +533,13 @@ export const checkProvenance: Check = (content) => {
 
 /* NC exercise cards (exercises-nc.json). A card names an exercise source whose licence is NC, its rows resolve
    as section.json's do, and NC material stands nowhere else: no exercise of section.json takes an NC origin, and
-   no locator of an NC source ("mitocw-…:") stands in the text, the figures or another exercise. */
+   no locator of an NC source ("mitocw-…:") stands in the text, the figures or another exercise. Keeping NC material
+   apart is the rule of a book that is not itself NC and credits its works block by block (its sources rows carry
+   ids); a book under an NC licence, or one that keeps no such provenance, may set NC exercises in section.json. */
+export const keepsNcApart = (book: Content['book']): boolean =>
+  !isNonCommercial(book.license) && (book.sources ?? []).some((r) => r.id !== undefined);
 export const checkNcCards: Check = (content) => {
+  const apart = keepsNcApart(content.book);
   const origins = new Map((content.book.exerciseSources ?? []).map((o) => [o.id, o] as const));
   const nc = new Set([...(content.book.exerciseSources ?? []), ...(content.book.sources ?? [])].filter((o) => isNonCommercial(o.license)).flatMap((o) => (o.id === undefined ? [] : [o.id])));
   const concepts = idsOf(content.book.concepts, (c) => c.id);
@@ -563,7 +568,7 @@ export const checkNcCards: Check = (content) => {
       const where = `${file} exercise_concepts[${r.exercise} × ${r.concept}]`;
       return [...ref(where, 'exercise', cardIds, r.exercise), ...ref(where, 'concept', concepts, r.concept)];
     });
-    const elsewhere = [
+    const elsewhere = !apart ? [] : [
       ...s.dto.exercises.flatMap((e) => [
         ...(e.origin !== undefined && nc.has(e.origin) ? [error(inSection(s, 'exercises', e.id), `origin "${e.origin}" is under an NC licence; an NC card lives in exercises-nc.json`)] : []),
         ...locatorsIn(JSON.stringify(e)).filter((id) => id !== e.origin).map((id) => error(inSection(s, 'exercises', e.id), `holds a locator of ${id}, an NC source`)),

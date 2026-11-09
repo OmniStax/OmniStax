@@ -198,6 +198,13 @@ test('checkNcCards: an NC card names an NC origin, and an NC locator stands nowh
   assert.deepEqual(run(checkNcCards, { section: hinted }), ['1.1/section.json exercises[c1]: holds a locator of mitocw, an NC source']);
 });
 
+test('checkNcCards: a book under an NC licence, or one that credits no works by id, may set NC exercises in section.json', () => {
+  const moved = { exercises: [...rawSection.exercises, { ...rawNc.exercises[0], id: 'p9' }] };
+  assert.deepEqual(run(checkNcCards, { section: moved, book: { license: 'CC BY-NC-SA 4.0' } }), [], 'an NC book keeps its NC exercises where they stand');
+  const plain = { sources: rawBook.sources.map(({ id: _id, ...r }: { id?: string }) => r) };
+  assert.deepEqual(run(checkNcCards, { section: moved, book: plain }), [], 'a book with no per-block provenance is not held to the separation');
+});
+
 /* ---------- the BY-SA export ---------- */
 
 test('the BY-SA export drops every exercises-nc.json and the NC rows of book.json’s source tables', () => {
