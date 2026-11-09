@@ -289,7 +289,7 @@ The exercises the section sets.
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The exercise’s local id, such as cq1 or p3, which names its card. |
 | `source_id` | `string` | yes | The publisher’s own id for the exercise, so that it can be found again in the source. |
-| `source_section` | `string?` | no | The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section’s own. |
+| `source_section` | `string?` | no | The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section’s own. An item of a chapter’s unbuilt N.E exercise page names it as N.E (21.E), and is looked for in that chapter’s exercises/source.md. |
 | `source_number` | `string?` | no | The exercise number exactly as the source prints it, such as 5.17, or Problem Set 3, Problem 2 for an exercise with an origin. Optional because older extracted books did not preserve it. |
 | `origin` | `string?` | no | The source the exercise is taken from, naming a row of the book’s exercise sources. Absent where the book sets it. |
 | `changes` | `string?` | no | What was altered from the source, one plain sentence that may hold math as the prompt does, which the card prints after the credit. Absent where nothing was. |

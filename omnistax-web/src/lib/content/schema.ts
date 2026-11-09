@@ -547,7 +547,7 @@ const ExerciseFigureSchema = z.object({
 export const ExerciseSchema = z.object({
   id: z.string().describe('The exercise\u2019s local id, such as cq1 or p3, which names its card.'),
   source_id: z.string().describe('The publisher\u2019s own id for the exercise, so that it can be found again in the source.'),
-  source_section: SECTION_REF.optional().describe('The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section\u2019s own.'),
+  source_section: SECTION_REF.optional().describe('The section whose source the exercise was taken from, where the book places it in a section other than the one that introduces what it tests. Absent where it is this section\u2019s own. An item of a chapter\u2019s unbuilt N.E exercise page names it as N.E (21.E), and is looked for in that chapter\u2019s exercises/source.md.'),
   source_number: z.string().optional().describe('The exercise number exactly as the source prints it, such as 5.17, or Problem Set 3, Problem 2 for an exercise with an origin. Optional because older extracted books did not preserve it.'),
   origin: z.string().optional().describe('The source the exercise is taken from, naming a row of the book\u2019s exercise sources. Absent where the book sets it.'),
   changes: z.string().optional().describe('What was altered from the source, one plain sentence that may hold math as the prompt does, which the card prints after the credit. Absent where nothing was.'),
