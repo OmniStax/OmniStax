@@ -112,9 +112,21 @@ export const lightGap = (p: SeenHue, q: SeenHue): number =>
    by lightness alone, so they stand a clear step apart only where their
    lightness differs by `lightness`, the distance a reader takes for two colours
    (TARGET_DEFAULT): the hue gives no help, so the step alone must reach it. */
-export type HueRule = { readonly degrees: number; readonly chroma: number; readonly lightness: number };
+export type HueRule = { readonly degrees: number; readonly chroma: number; readonly lightness: number; readonly tint?: number };
 export const HUE_FAMILIES: HueRule = { degrees: 30, chroma: 0.05, lightness: 0.12 };
-export const sameFamily = (p: SeenHue, q: SeenHue, rule: HueRule): boolean => seenHueGap(p, q, rule.chroma) < rule.degrees;
+/* How far apart a pair sits in hue and chroma alone, OKLab's a–b plane with lightness left out, in its nearer theme;
+   a pair with a colour under the chroma floor stands no nearer than opposite, as in hueGap, since a grey has no hue. */
+const tintOf = (p: Lab, q: Lab, floor: number): number =>
+  (Math.hypot(p[1], p[2]) < floor || Math.hypot(q[1], q[2]) < floor ? Infinity : Math.hypot(p[1] - q[1], p[2] - q[2]));
+export const tintGap = (p: SeenHue, q: SeenHue, floor: number): number =>
+  Math.min(tintOf(p.light.lab, q.light.lab, floor), tintOf(p.dark.lab, q.dark.lab, floor));
+/* With `tint`, two colours whose hues are a family apart still read as one where their tints stand nearer than it:
+   a dark, greyish yellow and an olive (#443303 and #677806 in the light theme, 32 degrees apart) differ by lightness
+   alone to the eye, as an orange and a brown do. Referents are told apart by hue, so they take this rule
+   (REFERENT_FAMILIES); the categories keep the plain one. */
+export const sameFamily = (p: SeenHue, q: SeenHue, rule: HueRule): boolean =>
+  seenHueGap(p, q, rule.chroma) < rule.degrees || (rule.tint !== undefined && tintGap(p, q, rule.chroma) < rule.tint);
+export const REFERENT_FAMILIES: HueRule = { ...HUE_FAMILIES, tint: 0.08 };
 
 /* How far apart two category colours are for a reader: the nearer theme, and
    the nearer of normal sight and theirs. */
