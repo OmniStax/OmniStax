@@ -322,6 +322,14 @@ class TestWriting(Fixture):
         book = json.loads(self.read(os.path.join(self.book, "book.json")))
         self.assertEqual(book["exercise_sources"], [{"id": "mit", "title": "T", "short": "MIT"}])
 
+    def test_a_source_is_written_to_book_json_in_place(self):
+        self.assertEqual(run("add", "chemistry-2e", "sources",
+                             '{"id": "w", "title": "W", "url": "https://example.org/", "license": "MIT"}')[1], 0)
+        book = json.loads(self.read(os.path.join(self.book, "book.json")))
+        self.assertEqual(book["sources"][-1], {"id": "w", "title": "W", "url": "https://example.org/", "license": "MIT"})
+        self.assertEqual(run("add", "chemistry-2e", "sources", '{"id": "w", "title": "W2", "url": "https://example.org/"}')[1], 1)
+        self.assertEqual(run("add", "chemistry-2e", "sources", '{"id": "v", "title": "V"}')[1], 1)
+
     def test_a_write_reports_only_what_the_checker_says_about_the_file(self):
         ost.run_checker.return_value = (1, [
             "Chemistry 2e (chemistry-2e)", "", "2 errors",

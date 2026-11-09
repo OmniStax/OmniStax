@@ -46,8 +46,9 @@ WEB = os.path.join(REPO, "omnistax-web")
 NODE_BIN = os.environ.get("OMNISTAX_NODE_BIN", "/home/flober/.nvm/versions/node/v20.20.2/bin")
 LOCK = "/tmp/omnistax-mergebook.lock"
 STAGED_TABLES = ("types", "symbols", "concepts", "concept_prereqs")
-# A book.json table no chapter owns, written in place under the merge lock.
-DIRECT_TABLES = ("exercise_sources",)
+# A book.json table no chapter owns, written in place under the merge lock: the exercises' sources, and the
+# works a book joined from several credits block by block (`sources`, content-format.md, text.html: provenance).
+DIRECT_TABLES = ("exercise_sources", "sources")
 # A form is a row of its concept in book.json, read and written as a table of its own.
 FORM_TABLE = "forms"
 
@@ -101,6 +102,9 @@ TABLES: dict[TableName, Table] = {
     "exercise_sources": Table("book", ("id",), {
         "id": _f(True), "title": _f(True), "short": _f(), "author": _f(), "url": _f(),
         "license": _f(), "license_url": _f(), "copyright": _f(), "notice": _f()}, ("id", "short", "title", "author", "license")),
+    "sources": Table("book", ("id",), {
+        "id": _f(True), "title": _f(True), "url": _f(True), "author": _f(), "copyright": _f(),
+        "license": _f(), "license_url": _f(), "notice": _f(), "language": _f()}, ("id", "title", "author", "license")),
     "concepts": Table("book", ("id",), {
         "id": _f(True), "kind": _f(True, enum=KIND), "section": _f(True), "name": _f(True),
         "symbol": _f(), "terms": _f(kind="list"), "type": _f(), "statement": _f(), "forms": _f(kind="list")},
