@@ -476,7 +476,8 @@ export const checkCodeSets: Check = (content) =>
    nothing in the book is a Sim, and its eyebrow reads exactly that; one that
    transforms a book figure is still a Figure, and its eyebrow reads "Figure"
    with every number it carries. A faithful copy reads "Figure" or "Figure N"
-   as its number says, and a photograph reads "Figure N". The kind sim names
+   as its number says, and a photograph reads "Figure N", or carries no eyebrow
+   where it has no number. The kind sim names
    the mechanism, a simulation the reader can play with, and the label
    follows from the number. */
 const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefined ? [] : [f.number, ...f.folds]);
@@ -489,7 +490,9 @@ export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
 };
 const eyebrowFinding = (where: string, f: FigureRowDTO, read: string | undefined): readonly Finding[] => {
   const expected = eyebrowOf(f);
-  if (expected === undefined) return [error(where, 'is a photograph with no number, so its eyebrow has nothing to read')];
+  /* a photograph a book keeps without a number (one whose sources number no figure of its own) carries its caption
+     and credit and no eyebrow, since there is no label for it to read (root RULES item 14: no other word) */
+  if (expected === undefined) return read === undefined ? [] : [error(where, `is a photograph with no number, so it carries no eyebrow, and its eyebrow reads "${read}"`)];
   if (read === undefined) return [error(where, `has no eyebrow in the text; it should read "${expected}"`)];
   return read === expected ? [] : [error(where, `reads "${read}" in the text and should read "${expected}"`)];
 };

@@ -311,7 +311,8 @@ test('checkFigures: a folded figure whose text does not print the joined string,
 });
 
 /* The eyebrow follows from the row: Sim for an interactive figure that replaces nothing, Figure with the book's numbers for
-   one that transforms a book figure, Figure or Figure N for a faithful copy, Figure N for a photograph. */
+   one that transforms a book figure, Figure or Figure N for a faithful copy, Figure N for a photograph, and none for a
+   photograph with no number. */
 const labelled = (row: object, attrs: string, eyebrow: string | undefined) => ({ section: { figures: [row] }, textHtml: figureOf(attrs, eyebrow) });
 test('checkFigures: the eyebrow of every figure reads what its row says', () => {
   const sim = { id: 'sim-ruler', kind: 'sim' };
@@ -329,7 +330,8 @@ test('checkFigures: the eyebrow of every figure reads what its row says', () => 
   const photo = { id: 'fig-guitar', kind: 'photo', number: '16.8' };
   assert.deepEqual(run(checkFigures, { section: { figures: [photo] }, textHtml: '<figure class="photo" id="fig-guitar" data-figure="16.8"><img src="x"><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>' }), []);
   assert.deepEqual(run(checkFigures, labelled(photo, 'class="photo" id="fig-guitar" data-figure="16.8"', 'Figure')), ['16.1/section.json figures[fig-guitar]: reads "Figure" in the text and should read "Figure 16.8"']);
-  assert.deepEqual(run(checkFigures, labelled({ id: 'fig-guitar', kind: 'photo' }, 'class="photo" id="fig-guitar"', 'Figure')), ['16.1/section.json figures[fig-guitar]: is a photograph with no number, so its eyebrow has nothing to read']);
+  assert.deepEqual(run(checkFigures, labelled({ id: 'fig-guitar', kind: 'photo' }, 'class="photo" id="fig-guitar"', 'Figure')), ['16.1/section.json figures[fig-guitar]: is a photograph with no number, so it carries no eyebrow, and its eyebrow reads "Figure"']);
+  assert.deepEqual(run(checkFigures, { section: { figures: [{ id: 'fig-guitar', kind: 'photo' }] }, textHtml: '<figure class="photo" id="fig-guitar"><img src="x"><figcaption><span>The strings.</span></figcaption></figure>' }), [], 'a photograph with no number carries no eyebrow');
 });
 
 /* The book's display widths ride on the row as `widths`, one per image, and on the text as data-width (a photograph's

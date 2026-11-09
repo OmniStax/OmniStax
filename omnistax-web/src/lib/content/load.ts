@@ -481,7 +481,11 @@ export const TRANSLATIONS_DIR = 'translations';
 export const findBooks = async (root: ContentRoot): Promise<readonly BookFolder[]> => {
   const subdirs = async (dir: string): Promise<readonly string[]> => {
     const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
-    return entries.filter((e) => e.isDirectory()).map((e) => path.join(dir, e.name));
+    /* a book kept in a repository of its own may be linked into the content root rather than cloned there */
+    const isDir = async (e: (typeof entries)[number]): Promise<boolean> =>
+      e.isDirectory() || (e.isSymbolicLink() && (await fs.stat(path.join(dir, e.name)).then((s) => s.isDirectory(), () => false)));
+    const flags = await Promise.all(entries.map(isDir));
+    return entries.filter((_, i) => flags[i]).map((e) => path.join(dir, e.name));
   };
   const bookAt = async (dir: BookDir): Promise<readonly BookFolder[]> => {
     if (!(await exists(path.join(dir, 'book.json')))) return [];
