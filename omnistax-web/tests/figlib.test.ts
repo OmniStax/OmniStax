@@ -374,6 +374,42 @@ test('a region spans its cells, and the count row centres under the strip', () =
   assert.deepEqual(ctx.drawn.filter((d) => d.y === C.y + 30).map((d) => d.s), ['2', '1', '0']);
 });
 
+test('linked nodes: a value cell beside a link cell, a pointer box with one cell, the values written in', () => {
+  const ctx = stub(400);
+  const N = FIG.ds.nodes(ctx, { items: [{ id: 'head', x: 200, y: 200, name: 'head', nameSide: 'left' }, { id: 'a', x: 500, y: 200, value: 12 }, { id: 'b', x: 800, y: 200, value: 99 }] });
+  const a = N.at('a')!, h = N.at('head')!;
+  assert.ok(Math.abs(a.r - a.l - N.cell * 1.62) < 1e-9); assert.equal(a.x, 500); assert.equal((a.l + a.r) / 2, 500);
+  assert.ok(a.link.x > a.valueX, 'the link cell is right of the value');
+  assert.equal(a.valueX, a.l + N.cell / 2);
+  assert.ok(h.single && h.r - h.l < N.cell, 'a pointer box is one link cell');
+  assert.equal(h.link.x, 200);
+  assert.deepEqual(ctx.drawn.filter((d) => d.y === 200).map((d) => d.s), ['head', '12', '99']);
+  assert.equal(N.at('nothing'), undefined);
+});
+
+test('a link lands on the left edge of the node it names, on its top from above, and null ends at a bar', () => {
+  const ctx = stub(400);
+  const N = FIG.ds.nodes(ctx, { items: [{ id: 'a', x: 300, y: 260, value: 12 }, { id: 'b', x: 700, y: 260, value: 99 }, { id: 'n', x: 500, y: 100, value: 37 }] });
+  const [ab, an, bz] = FIG.ds.links(ctx, N, [{ from: 'a', to: 'b' }, { from: 'a', to: 'n' }, { from: 'b', to: null }], { nullLabel: 'null' });
+  assert.deepEqual(ab.from, N.at('a')!.link); assert.equal(ab.to.x, N.at('b')!.l); assert.equal(ab.to.y, 260);
+  assert.equal(an.to.y, N.at('n')!.b, 'from below, a link lands on the bottom edge of a node close above');
+  assert.ok(bz.to.x > N.at('b')!.r && bz.to.y === 260, 'the terminator stands right of the last node');
+  assert.ok(ctx.drawn.some((d) => d.s === 'null'));
+  const [arc] = FIG.ds.links(ctx, N, { from: 'a', to: { x: 900, y: 260 }, bend: -60 });
+  assert.equal(arc.mid.y, 200, 'a bent link passes bend units above its chord');
+  assert.deepEqual(N.entry('b', { x: 300, y: 260 }), { x: N.at('b')!.l, y: 260 });
+});
+
+test('pointers at a node stand side by side, and one may aim at the link field', () => {
+  const ctx = stub(400);
+  const N = FIG.ds.nodes(ctx, { items: [{ id: 'a', x: 400, y: 250, value: 1 }, { id: 'b', x: 800, y: 250, value: 5 }] });
+  const two = FIG.ds.nodePointer(ctx, N, [{ at: 'a', name: 'node' }, { at: 'a', name: 'newNode' }]);
+  assert.ok(two[0].x < two[1].x, 'side by side'); assert.ok(two[0].y < N.at('a')!.t, 'above the node');
+  const [p] = FIG.ds.nodePointer(ctx, N, { at: 'b', name: 'p', field: 'link' }, { side: 'below' });
+  assert.equal(p.x, N.at('b')!.link.x, 'over the link cell'); assert.ok(p.y > N.at('b')!.b);
+  assert.deepEqual(FIG.ds.nodePointer(ctx, N, { at: 'gone', name: 'x' }), [], 'no node, no pointer');
+});
+
 test('F.trace records a figure\'s frames, and F.debug, F.code and F.ds are on the library', () => {
   const fr = FIG.trace((at) => { const xs = [3]; at(1, { xs }); xs.push(4); at(2, { xs }, ['grow', 4]); });
   assert.deepEqual(fr.map((f) => f.vars.xs), [[3], [3, 4]]);
