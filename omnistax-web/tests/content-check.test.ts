@@ -331,6 +331,10 @@ test('checkFigures: the eyebrow of every figure reads what its row says', () => 
   assert.deepEqual(run(checkFigures, labelled(sim, 'class="sim" id="sim-ruler"', 'Animation')), ['16.1/section.json figures[sim-ruler]: reads "Animation" in the text and should read "Sim"']);
   assert.deepEqual(run(checkFigures, labelled(sim, 'class="sim" id="sim-ruler"', 'Figure')), ['16.1/section.json figures[sim-ruler]: reads "Figure" in the text and should read "Sim"']);
   assert.deepEqual(run(checkFigures, labelled(sim, 'class="sim" id="sim-ruler"', undefined)), ['16.1/section.json figures[sim-ruler]: has no eyebrow in the text; it should read "Sim"']);
+  /* a figure is called Figure only when it is numbered and keeps the book's image: unnumbered, a sim with an original is still a Sim */
+  const kept = { id: 'sim-ruler', kind: 'sim', originals: ['/a.jpg'] };
+  assert.deepEqual(run(checkFigures, labelled(kept, 'class="sim" id="sim-ruler" data-original="/a.jpg"', 'Sim')), []);
+  assert.deepEqual(run(checkFigures, labelled(kept, 'class="sim" id="sim-ruler" data-original="/a.jpg"', 'Figure')), ['16.1/section.json figures[sim-ruler]: reads "Figure" in the text and should read "Sim"']);
   assert.deepEqual(run(checkFigures, { textHtml: TEXT.replace('Figure 16.2', 'Sim') }), ['16.1/section.json figures[sim-ruler]: reads "Sim" in the text and should read "Figure 16.2"'], 'a sim that replaces a book figure is a Figure');
   assert.deepEqual(run(checkFigures, { section: folded(['16.3']), textHtml: FOLDED.replace('Figure 16.2 + 16.3', 'Figure 16.2') }), ['16.1/section.json figures[sim-ruler]: reads "Figure 16.2" in the text and should read "Figure 16.2 + 16.3"'], 'a folded figure reads every number');
   assert.deepEqual(run(checkFigures, { textHtml: TEXT.replace('Figure 16.2</span>', 'Figure 16.2<span class="tag">3D</span></span>') }), [], 'a badge nested in the eyebrow is not part of the label');

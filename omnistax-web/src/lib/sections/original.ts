@@ -9,8 +9,8 @@
    the live figure is shown and "Live" while the book's is, the word naming the
    drawing it will bring back. The book's caption keeps the figure's own label
    (root RULES item 14): "Figure N" where the figure carries the book's number,
-   and "Figure" alone where the book's figure is unnumbered, since a figure with
-   an original transforms a book figure and is a Figure, never a Sim. */
+   and "Sim" where it carries none, though it keeps the book's image behind the
+   toggle: a figure is called Figure only when it is numbered and has an original. */
 
 const CLS = 'show-original';
 
@@ -46,7 +46,7 @@ const imageOf = ({ src, width }: Original, alt: string): HTMLImageElement => {
    head, where the live figure's own number and description sit, so the one that is
    showing is the one the reader reads; the stylesheet hides the other. A correction of
    the caption waits as a marker at the figure's end and follows the caption's words. */
-export const originalEyebrow = (number: string | undefined): string => (number ? `Figure ${number}` : 'Figure');
+export const originalEyebrow = (number: string | undefined): string => (number ? `Figure ${number}` : 'Sim');
 const captionOf = (fig: HTMLElement, head: HTMLElement): HTMLElement => {
   const have = head.querySelector<HTMLElement>(':scope > .ocap'); if (have) return have;
   const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = originalEyebrow(fig.dataset.figure);

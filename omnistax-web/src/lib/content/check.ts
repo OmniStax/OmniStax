@@ -586,8 +586,9 @@ export const checkNcCards: Check = (content) => {
    The eyebrow follows from the row. An interactive figure that replaces
    nothing in the book is a Sim, and its eyebrow reads exactly that; one that
    transforms a book figure is still a Figure, and its eyebrow reads "Figure"
-   with every number it carries, or "Figure" alone where the book's figure is
-   unnumbered (the row keeps its image among the originals). A faithful copy reads "Figure" or "Figure N"
+   with every number it carries. A figure is a Figure only when it carries the
+   book's number and keeps the book's image as its original: an unnumbered sim is
+   a Sim even where its row keeps the book's image. A faithful copy reads "Figure" or "Figure N"
    as its number says, and a photograph reads "Figure N", or carries no eyebrow
    where it has no number. The kind sim names
    the mechanism, a simulation the reader can play with, and the label
@@ -596,8 +597,8 @@ const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefine
 /* What a row's eyebrow must read, or nothing where the row cannot be labelled (a photograph with no number). */
 export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
   const printed = printedNumbers(f);
-  /* a sim that replaces an unnumbered book figure (it keeps the book's image as an original) is a Figure, as a kept unnumbered image is */
-  if (f.kind === 'sim') return printed !== undefined ? `Figure ${printed}` : f.originals.length ? 'Figure' : 'Sim';
+  /* a sim is a Figure only when it carries the book's number; unnumbered, it is a Sim even where it keeps the book's image as an original */
+  if (f.kind === 'sim') return printed !== undefined ? `Figure ${printed}` : 'Sim';
   if (f.kind === 'figure') return printed === undefined ? 'Figure' : `Figure ${printed}`;
   return printed === undefined ? undefined : `Figure ${printed}`;
 };
