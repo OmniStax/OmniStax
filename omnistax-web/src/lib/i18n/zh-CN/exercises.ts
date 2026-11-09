@@ -30,6 +30,7 @@ export const exercises: Readonly<Record<keyof typeof source, string>> = {
   'exercises.card.hasNote': '这里有你的笔记',
   'exercises.card.hasScratch': '这里有你的草稿',
   'exercises.card.hint': '提示',
+  'exercises.card.license': '本题的许可证：',
   'exercises.card.markAnswer': '标记你的答案',
   'exercises.card.meta': '元信息',
   'exercises.card.noAnswer': '这道练习题没有可供核对的答案。',

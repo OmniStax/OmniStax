@@ -32,6 +32,7 @@ export const exercises = {
   'exercises.card.hasNote': 'You have a note here',
   'exercises.card.hasScratch': 'You have scratch work here',
   'exercises.card.hint': 'Hint',
+  'exercises.card.license': 'This card is shared under',
   'exercises.card.markAnswer': 'Mark your answer',
   'exercises.card.meta': 'Meta',
   'exercises.card.noAnswer': 'This exercise has no answer to check against.',

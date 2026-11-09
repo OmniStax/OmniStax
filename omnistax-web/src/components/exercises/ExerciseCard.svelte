@@ -169,6 +169,9 @@
   {#if credit}
     <p class="credit">{i18n.t('exercises.card.from')} {#if credit.url}<a href={credit.url} target="_blank" rel="noopener">{credit.title}</a>{:else}{credit.title}{/if}{#if credit.author}, {credit.author}{/if}{#if credit.license}, {#if credit.license_url}<a href={credit.license_url} target="_blank" rel="noopener">{credit.license}</a>{:else}{credit.license}{/if}{/if}.{#if ex.changes} <AiTag /> {i18n.t('exercises.card.changed')} <span use:mathHtml={ex.changes}></span>{/if}</p>
   {/if}
+  {#if ex.cardLicense}
+    <p class="credit license">{i18n.t('exercises.card.license')} {#if ex.cardLicense.url}<a href={ex.cardLicense.url} target="_blank" rel="license noopener">{ex.cardLicense.name}</a>{:else}{ex.cardLicense.name}{/if}.</p>
+  {/if}
   {#if ex.figure}<figure class="photo"><img src={ex.figure.src} alt={ex.figure.alt}>{#if ex.figure.caption}<figcaption><span>{ex.figure.caption}</span></figcaption>{/if}</figure>{/if}
 
   {#if review}

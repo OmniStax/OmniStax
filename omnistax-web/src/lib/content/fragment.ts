@@ -7,7 +7,7 @@
    book.json's language, and every function here that writes a word takes it. */
 import type { SectionSource } from './load';
 import type { BookDTO, ChapterDTO, ExerciseDTO, FigureEntry, FigureRowDTO, FootnoteRowDTO } from './schema';
-import { aiByline, aiPartsByline, attributionOf, footerHtml } from './attribution';
+import { aiByline, aiMakers, aiPartsByline, attributionOf, footerHtml, languageName } from './attribution';
 import { type SpanId, qualifiedId, sectionId } from '../types/ids';
 import type { Neighbours } from './roles';
 import { ICON } from '../icons';
@@ -15,6 +15,8 @@ import { aiMarkHtml } from '../../components/ui/aimark';
 import type { SizeLookup } from './imagesize';
 import { plainText } from './plain';
 import { codeSets } from './codeset';
+import { blockOf, translatedFromOf, usedWorks } from './provenance';
+import { parseMaker } from '../code/langs';
 import { type Locale, matchLocale, tIn } from '../i18n/index';
 
 /* The catalog a book's pages are written in: its language's, else English (a book in a language the app has no catalog for). */
@@ -171,8 +173,29 @@ export const markAiFigures = (html: string, byline: string | undefined, figures:
 /* A figure whose book image is withheld says why under the attribution, after what the section left out. */
 const footer = (book: BookDTO, s: SectionSource, locale: Locale): string => {
   const notes = [s.meta.notes, ...s.figures.flatMap((f) => (f.withheld ? [f.withheld] : []))].filter(Boolean).join(' ');
-  return footerHtml(attributionOf(book, { ...s.meta, notes }), locale);
+  return footerHtml(attributionOf(book, { ...s.meta, notes }, usedWorks(s.textHtml, s.exercises, book)), locale);
 };
+
+/* A block of the text the AI wrote or translated (provenance.ts: data-ai, data-translated-from) wears the AI mark at
+   the end of its heading, as the lead does at its end; a block with no heading wears it at the end of its first
+   paragraph. The hover names the model and effort, and says a translation is one (data-translated-from, or a work
+   whose sources row names another language than the book's): "Translated from Chinese by
+   Claude Opus 5.5 · high effort". The mark is the only thing the page says about it (root rule 17). */
+const BLOCK = /<section\b([^>]*\bdata-ai="([^"]*)"[^>]*)>([\s\S]*?)(?=<section\b|<\/section>)/g;
+const HEADED = /^(\s*<h[2-6]\b[^>]*>[\s\S]*?)(<\/h[2-6]>)/;
+export const blockByline = (ai: string, translatedFrom: string | undefined, locale: Locale): string => {
+  const maker = parseMaker(ai), makers = maker ? [maker] : [];
+  if (translatedFrom === undefined) return aiByline(makers, locale) ?? tIn(locale, 'content.ai.mark');
+  return tIn(locale, 'content.ai.translated', { language: languageName(translatedFrom, locale), makers: aiMakers(makers, locale) });
+};
+export const markAiBlocks = (html: string, locale: Locale, book?: Pick<BookDTO, 'sources' | 'language'>): string =>
+  html.replace(BLOCK, (whole, attrs: string, ai: string, body: string) => {
+    const from = translatedFromOf(blockOf(attrs), book);
+    const mark = aiMarkHtml(blockByline(ai, from, locale));
+    const open = whole.slice(0, whole.length - body.length);
+    if (HEADED.test(body)) return open + body.replace(HEADED, (_, head: string, close: string) => `${head}${mark}${close}`);
+    return open + body.replace(/<\/p>/, `${mark}</p>`);
+  });
 
 /* The line above the title: the chapter and the section's number, or for a page of the chapter's own only the
    chapter, and for a page of the book's own the book. The chapter is null for the book's own pages. */
@@ -287,7 +310,7 @@ const pageNav = (nav: PageNav, locale: Locale): string => {
 };
 
 export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: SectionSource, nav: PageNav, locale: Locale): string => {
-  const marked = codeSets(markAiFigures(s.textHtml, aiByline(s.meta.ai?.figures, locale), s.figures, locale), locale);
+  const marked = codeSets(markAiFigures(markAiBlocks(s.textHtml, locale, book), aiByline(s.meta.ai?.figures, locale), s.figures, locale), locale);
   const byline = s.meta.ai?.text ? aiByline(s.meta.ai.text, locale) : undefined;
   const noted = placeNotes(`${lazyImages(sizeImages(qualifyIds(marked, s.meta.id)))}\n${summaryBlock(s, locale)}`, s.footnotes, s.meta.id, locale, byline, s.figures);
   const lead = byline === undefined ? s.meta.lead : `${s.meta.lead}${aiMarkHtml(byline)}`;
@@ -311,12 +334,12 @@ export const textArticle = (book: BookDTO, chapter: ChapterDTO | null, s: Sectio
    one sign for it wherever they find it. The button is plain markup the shell
    catches, so the built page needs no script of its own to be sent somewhere,
    and the icon is inlined here rather than fetched. A section with no problems
-   ends at its text. */
+   ends at its text with no button, since a way on that leads nowhere is not offered; the row
+   stays, empty, because the shell sets the reader's notes that mention the section in it. */
 const sectionEnd = (s: SectionSource, locale: Locale): string => {
   if (s.meta.role !== 'section') return '';
-  const available = s.exercises.some((e) => e.place.at === 'end');
-  const title = tIn(locale, available ? 'content.practice.open' : 'content.practice.none');
-  return `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="${esc(title)}"${available ? '' : ' disabled'}>${esc(tIn(locale, 'content.practice.button'))}${ICON.exercises}</button></div>`;
+  if (!s.exercises.some((e) => e.place.at === 'end')) return '<div class="section-end"></div>';
+  return `<div class="section-end"><button type="button" class="practise" data-practise-section="${s.meta.id}" title="${esc(tIn(locale, 'content.practice.open'))}">${esc(tIn(locale, 'content.practice.button'))}${ICON.exercises}</button></div>`;
 };
 
 /* The fragment carries its own data so a tab can be opened from it alone. */

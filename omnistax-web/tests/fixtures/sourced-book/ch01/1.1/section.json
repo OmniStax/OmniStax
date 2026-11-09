@@ -1,0 +1,7 @@
+{
+ "id": "1.1", "chapter": "1", "title": "Stacks", "lead": "How a stack grows.", "built": "2026-11-09",
+ "ai": { "text": [{ "model": "claude-opus-5-5", "effort": "high" }], "figures": [] },
+ "coverage": [{ "span": "arraystack", "concept": "array-stack", "verb": "introduces" }, { "span": "amortized", "concept": "amortized", "verb": "introduces" }],
+ "exercises": [{ "id": "c1", "source_id": "exercism:stack", "origin": "exercism", "kind": "exercise", "bloom": "Apply", "place": { "at": "end" }, "prompt": "Push three.", "answer": { "type": "open" } }],
+ "exercise_concepts": [{ "exercise": "c1", "concept": "array-stack" }]
+}

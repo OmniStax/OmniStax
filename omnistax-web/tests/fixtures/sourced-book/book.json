@@ -1,0 +1,25 @@
+{
+ "id": "sourced",
+ "title": "A Sourced Book",
+ "publisher": "OmniStax",
+ "authors": ["Pat Morin (Open Data Structures)", "OI Wiki Team (OI Wiki)"],
+ "sources": [
+  { "id": "ods", "title": "Open Data Structures", "url": "https://github.com/patmorin/ods", "author": "Pat Morin", "license": "CC BY 2.5 Canada", "license_url": "https://creativecommons.org/licenses/by/2.5/ca/" },
+  { "id": "oiwiki", "title": "OI Wiki", "url": "https://github.com/OI-wiki/OI-wiki", "author": "OI Wiki Team", "license": "CC BY-SA 4.0", "license_url": "https://creativecommons.org/licenses/by-sa/4.0/", "notice": "With thanks to the <a href=\"https://github.com/OI-wiki/OI-wiki/graphs/contributors\">OI Wiki Team and its contributors</a>." },
+  { "id": "sdp", "title": "The System Design Primer", "url": "https://github.com/donnemartin/system-design-primer", "author": "Donne Martin", "license": "CC BY 4.0", "license_url": "https://creativecommons.org/licenses/by/4.0/" }
+ ],
+ "license": "CC BY-SA 4.0",
+ "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+ "highlights": { "facts": true, "refs": true, "concepts": true, "words": false, "symbols": true, "underlines": true },
+ "chapters": ["ch01"],
+ "exercise_kinds": [{ "id": "exercise", "label": "Exercise" }],
+ "exercise_sources": [
+  { "id": "exercism", "title": "Exercism problem specifications", "short": "Exercism", "author": "Exercism contributors", "url": "https://github.com/exercism/problem-specifications", "license": "MIT", "license_url": "https://opensource.org/license/mit", "copyright": "Copyright (c) 2014 Exercism" },
+  { "id": "mitocw", "title": "6.046J Design and Analysis of Algorithms", "short": "MIT 6.046J", "author": "MIT OpenCourseWare", "url": "https://ocw.mit.edu/", "license": "CC BY-NC-SA 4.0", "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/" }
+ ],
+ "concepts": [
+  { "id": "array-stack", "kind": "idea", "section": "1.1", "name": "Array stack", "statement": "w" },
+  { "id": "amortized", "kind": "idea", "section": "1.1", "name": "Amortized cost", "statement": "w" },
+  { "id": "model", "kind": "idea", "section": "1.2", "name": "Word-RAM", "statement": "w" }
+ ]
+}
