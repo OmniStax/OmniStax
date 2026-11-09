@@ -25,7 +25,7 @@ test('a concept whose chapter the book has not added yet is said out loud, and i
   const waiting = BOOKS.flatMap((b) => checkContent(b)).filter((f) => f.level === 'info');
   assert.ok(waiting.every((f) => /waits on section/.test(f.what)), said(waiting).join('\n'));
 });
-test('the only warnings a book on disk raises are a figure it has not built yet, a sheet cell the book prints with a word in it, and a lead not yet cut to rule 21\'s length', () => {
+test('the only warnings a book on disk raises are a figure it has not built yet, a sheet cell the book prints with a word in it, a lead not yet cut to rule 21\'s length, and a code set whose source prints only pseudocode', () => {
   BOOKS.forEach((book) => {
     const built = new Set(book.chapters.map((ch) => ch.dto.id));
     const raised = warningsOf(checkContent(book));
@@ -38,7 +38,9 @@ test('the only warnings a book on disk raises are a figure it has not built yet,
     const tag = (f: Finding): boolean => /^draws F\.(el|fact)\('[^']*'\), which (its|no figure row's) (conventions|facts)/.test(f.what);
     /* the books written before book.json declared a language are read as en until they say so */
     const language = (f: Finding): boolean => f.where === 'book.json language' && /^is not declared; the book is read as en$/.test(f.what);
-    assert.ok(raised.every((f) => figure(f) || cell(f) || lead(f) || tag(f) || language(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
+    /* a book whose source prints pseudocode offers its listings only as AI translations (METHOD decision 20 of the CS book), so its code sets say so */
+    const pseudocode = (f: Finding): boolean => /has no variant the source prints/.test(f.what);
+    assert.ok(raised.every((f) => figure(f) || cell(f) || lead(f) || tag(f) || language(f) || pseudocode(f)), said(raised).filter((l) => !/F\.(el|fact)\(/.test(l)).join('\n'));
   });
 });
 
