@@ -413,6 +413,15 @@ test('checkSources: a source_id the source it was taken from does not hold', () 
   };
   assert.deepEqual(said(checkSources(two({ source_section: '16.1' }))), [], 'the source it names is the one that is read');
   assert.match(said(checkSources(two({})))[0], /source_id "fs-1" is nowhere in the source.md of 16.3; it is in the source of 16.1/);
+
+  /* An item of the chapter's unbuilt N.E page is looked for in the chapter's exercises/source.md. */
+  const fromE = (md: string | undefined): Content => {
+    const one = fixture({ ...only({ source_section: '16.E' }), sourceMd: 'no ids here' });
+    return { ...one, chapters: [{ ...one.chapters[0], ...(md === undefined ? {} : { exercisesMd: md }) }] };
+  };
+  assert.deepEqual(said(checkSources(fromE('Problem 1. fs-1 asks'))), [], 'an N.E item is found in the exercise page\u2019s source');
+  assert.match(said(checkSources(fromE('nothing here')))[0], /source_id "fs-1" is nowhere in the source.md of 16.E/);
+  assert.match(said(checkSources(fromE(undefined)))[0], /source_section "16.E" names an exercise page, and chapter 16 keeps no exercises\/source.md/);
 });
 
 test('checkConcepts: a built concept with no statement, or not exactly one span that introduces it', () => {

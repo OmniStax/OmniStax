@@ -55,7 +55,9 @@ export type SectionContent = {
   readonly figuresJs: string;         /* the section's figures.js, empty where it keeps none */
   readonly nc?: ExercisesNcDTO | null;   /* the section's exercises-nc.json, where it keeps one */
 };
-export type ChapterContent = { readonly dto: ChapterDTO; readonly intro?: SectionContent; readonly sections: readonly SectionContent[]; readonly summary?: SectionContent };
+/* exercisesMd is the source.md of the chapter's N.E exercise page (`chNN/exercises/source.md`), which a book may convert
+   without building the page, so that an item routed from it to a section can still be found in its source. */
+export type ChapterContent = { readonly dto: ChapterDTO; readonly intro?: SectionContent; readonly sections: readonly SectionContent[]; readonly summary?: SectionContent; readonly exercisesMd?: string | null };
 /* The whole book as the checks read it: the three files, and the text and source of every page that is built. */
 export type Content = { readonly book: BookDTO; readonly sheets: readonly SheetSource[]; readonly intro?: SectionContent; readonly chapters: readonly ChapterContent[]; readonly summary?: SectionContent };
 export type Check = (content: Content) => readonly Finding[];
@@ -712,18 +714,23 @@ export const checkFigureRefs: Check = (content) => {
    one the app has built, since an unbuilt one has no source to look in. Where the
    id is nowhere the finding says which source does hold it, because an id in the
    wrong place reads very differently from one that is nowhere. An exercise with an
-   origin comes from outside the book, so no section's source holds it. */
+   origin comes from outside the book, so no section's source holds it. A chapter's N.E exercise page
+   ("21.E") is never built, but its items are routed to the sections that teach what they test; such a row
+   names "N.E", and is looked for in the chapter's `exercises/source.md`. */
 /* A translation keeps no source.md (RULES item 30): its exercises are its source's, id for id (checkParity), and
    the source's are checked against the source's own source.md. */
 export const checkSources: Check = (content) => {
   if (content.book.translationOf !== undefined) return [];
-  const sources = new Map(sectionsOf(content).map((s) => [String(s.dto.id), s.sourceMd] as const));
+  const exercisePages = content.chapters.flatMap((ch) => (typeof ch.exercisesMd === 'string' ? [[`${ch.dto.id}.E`, ch.exercisesMd] as const] : []));
+  const sources = new Map<string, string | null>([...exercisePages, ...sectionsOf(content).map((s) => [String(s.dto.id), s.sourceMd] as const)]);
   const elsewhere = (id: string, from: string): string =>
     [...sources].filter(([of, source]) => of !== from && (source?.includes(id) ?? false)).map(([of]) => of).join(', ');
   return sectionsOf(content).flatMap((s): readonly Finding[] => s.dto.exercises.filter((e) => e.origin === undefined).flatMap((e) => {
     const from = String(e.source_section ?? s.dto.id);
     const where = inSection(s, 'exercises', e.id);
-    if (!sources.has(from)) return [error(where, `source_section "${from}" is no section the app has built`)];
+    if (!sources.has(from)) return [error(where, /^[^.]+\.E$/.test(from)
+      ? `source_section "${from}" names an exercise page, and chapter ${from.slice(0, -2)} keeps no exercises/source.md`
+      : `source_section "${from}" is no section the app has built`)];
     const source = sources.get(from) ?? null;
     if (source === null) return [error(where, `is taken from ${from}, which keeps no source.md beside it`)];
     if (source.includes(e.source_id)) return [];
@@ -1070,6 +1077,12 @@ export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => 
 const readIf = (file: string): Promise<string | null> => fs.readFile(file, 'utf8').then((s) => s, () => null);
 const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')), figuresJs: s.figuresJs, ...(s.nc ? { nc: s.nc } : {}) });
 const frontContent = async (s: SectionSource | undefined): Promise<SectionContent | undefined> => (s ? pageContent(s) : undefined);
+/* The source.md of a chapter's unbuilt N.E page, beside its built pages' folders; nothing where it keeps none. */
+const exercisesOf = async (ch: BookTree['chapters'][number]): Promise<{ readonly exercisesMd?: string }> => {
+  const page = ch.intro ?? ch.sections[0] ?? ch.summary;
+  const md = page ? await readIf(path.join(path.dirname(page.dir), 'exercises', 'source.md')) : null;
+  return md === null ? {} : { exercisesMd: md };
+};
 /* The introduction and summary of a level, as fields only where the level keeps them, so a fixture without them reads the same as one written without them. */
 const framed = (intro: SectionContent | undefined, summary: SectionContent | undefined) => ({ ...(intro ? { intro } : {}), ...(summary ? { summary } : {}) });
 export const contentOf = async (tree: BookTree): Promise<Content> => ({
@@ -1080,5 +1093,6 @@ export const contentOf = async (tree: BookTree): Promise<Content> => ({
     dto: ch.stored,
     ...framed(await frontContent(ch.intro), await frontContent(ch.summary)),
     sections: await Promise.all(ch.sections.map(pageContent)),
+    ...(await exercisesOf(ch)),
   }))),
 });
