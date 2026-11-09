@@ -109,6 +109,15 @@ class Counts(unittest.TestCase):
         r = ask(mode='count', code=code, entry='f', input={'args': [list(range(5000))]})
         self.assertLess(r['steps'], 100)
 
+    def test_a_method_of_a_class_is_counted_and_charged(self):
+        # inside a class body Python mangles a name that starts with two underscores, so the rewrite's helper must not
+        code = ('class Solution(object):\n    def f(self, xs):\n        ys = xs[1:]\n        return min(ys) + len(ys)\n\n'
+                'def g(xs):\n    return Solution().f(xs)\n')
+        r = ask(mode='count', code=code, entry='g', input={'args': [list(range(1000))]})
+        self.assertNotIn('error', r)
+        self.assertIn('slice', r['charged'])
+        self.assertGreater(r['steps'], 1000)
+
     def test_the_rewrite_keeps_the_reader_line_numbers(self):
         code = 'def f(xs):\n    a = xs[1:]\n\n    return xs.index(99)\n'
         r = ask(mode='count', code=code, entry='f', input={'args': [[1, 2]]})

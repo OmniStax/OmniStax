@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  DEFAULT_REFERENTS, REFERENT_COUNT, TARGET_DEFAULT, clashOrder, dealGroup, farthestSlots, inPaletteOrder, pickWrapped, referentHues, referentPalettes, smartSlots, unnamedOrder,
+  DEFAULT_REFERENTS, REFERENT_AVOID, REFERENT_COUNT, TARGET_DEFAULT, clashOrder, dealGroup, farthestSlots, inPaletteOrder, pickWrapped, referentHues, referentPalettes, smartSlots, unnamedOrder,
 } from '../src/lib/colours/referents';
 import { referentGroups } from '../src/lib/colours/scopes';
 import { prerenderMath } from '../src/lib/math/prerender';
@@ -15,7 +15,8 @@ import { fixedHueOf } from '../src/lib/colours/counts';
 import { bookRulesCss } from '../src/lib/colours/rules';
 import { paletteId } from '../src/lib/colours/palettes';
 import { familyHues } from '../src/lib/colours/sample';
-import { INKS, distance, hexOfLab, labOfLch, seenHue } from '../src/lib/colours/oklab';
+import { BAD, INKS, distance, hexOfLab, labOfLch, seenHue } from '../src/lib/colours/oklab';
+import { defaultAssignment } from '../src/lib/colours/defaults';
 import type { BookManifest } from '../src/lib/content/schema';
 import { bookId } from '../src/lib/types/ids';
 import { elementColor } from '../src/lib/fig/elements';
@@ -181,6 +182,53 @@ test('the palette is sorted by how many referents of the book each colour stands
   assert.equal(inPaletteOrder(palette, [0, 1]), palette, 'an order that does not fit leaves the palette as it is');
 });
 
+test('a colour that reads as PAL.bad or as ink goes after every other, and only where the order is asked to avoid it', () => {
+  const palette = familyHues(REFERENT_COUNT, 'normal');
+  const near = (h: Hue, x: Hue): number => distance(h, x, 'normal');
+  const bad = palette.findIndex((h) => near(h, BAD) < BAD_ROOM);
+  const inky = palette.findIndex((h) => near(h, INKS[0]) < 0.15);
+  assert.ok(bad >= 0 && inky >= 0, 'the families palette holds a red at PAL.bad and a colour near ink');
+  const plain = clashOrder(palette, [], 'normal', TARGET_DEFAULT);
+  assert.deepEqual(plain, palette.map((_, j) => j), 'no avoid list: the palette’s order, as every stored order was made');
+  const order = clashOrder(palette, [], 'normal', TARGET_DEFAULT, REFERENT_AVOID);
+  const last = order.slice(order.findIndex((j) => near(palette[j], BAD) < BAD_ROOM || near(palette[j], INKS[0]) < 0.15));
+  assert.ok(last.includes(bad) && last.includes(inky), 'both sink');
+  assert.ok(last.every((j) => near(palette[j], BAD) < BAD_ROOM || near(palette[j], INKS[0]) < 0.15), 'and only colours to avoid come after them');
+  assert.deepEqual(last, [...last].sort((a, b) => a - b), 'in the palette’s order among themselves');
+});
+
+test('a book that stores referentAvoid deals its referents clear of PAL.bad and of ink; one that does not is dealt as before', () => {
+  const palette = familyHues(REFERENT_COUNT, 'normal');
+  const near = (h: Hue, x: Hue): number => distance(h, x, 'normal');
+  const clearOfBoth = (h: Hue): boolean => near(h, BAD) >= BAD_ROOM && near(h, INKS[0]) >= 0.15;
+  const group = { ids: ['st', 'op', 'i', 'cur'], shown: [...INKS] };
+  const deal = { palette, mode: 'smart' as const, vision: 'normal' as const, target: TARGET_DEFAULT };
+  const before = dealGroup(group, deal);
+  assert.ok(!before.hues.every(clearOfBoth), 'the palette’s own first colours include the red at PAL.bad and the dark olive');
+  const after = dealGroup(group, { ...deal, avoid: REFERENT_AVOID });
+  assert.ok(after.hues.every(clearOfBoth), 'with the avoid list every referent keeps clear of both');
+  assert.equal(after.mode, 'smart');
+  const big = dealGroup({ ids: Array.from({ length: 30 }, (_, i) => `r${i}`), shown: [...INKS] }, { ...deal, avoid: REFERENT_AVOID });
+  assert.equal(big.mode, 'farthest');
+  assert.ok(big.hues.slice(0, 20).every(clearOfBoth), 'farthest apart wears a colour to avoid only once the others are worn');
+  const plain = pageReferents(MANIFEST, NO_CHOICES, '1.1')!;
+  const opted = pageReferents({ ...MANIFEST, colours: { palette: 'families', vision: 'normal', assign: {}, referentAvoid: true } } as unknown as BookManifest, NO_CHOICES, '1.1')!;
+  assert.ok([...opted.hues.values()].every(clearOfBoth), 'the stored flag reaches the page’s deal');
+  const asBefore = (g: { ids: readonly string[]; shown: readonly Hue[] }) => dealGroup(g, { ...deal, palette: plain.palette }).hues;
+  assert.deepEqual(plain.groups.map((g) => g.hues), plain.groups.map((g) => asBefore({ ids: g.ids, shown: [...INKS, ...(g.ids.includes('cart') ? [schemeOf(MANIFEST, NO_CHOICES).hues.time] : [schemeOf(MANIFEST, NO_CHOICES).hues.mass, fixedHueOf('el:O') as Hue])] })), 'and without it the page is dealt as every book was');
+});
+
+test('colours:default keeps a stored referent order, and works it out again with reorder, the types untouched', () => {
+  const stored = defaultAssignment(['time', 'mass', 'force'], MANIFEST).colours;
+  const kept = defaultAssignment(['time', 'mass', 'force'], { ...MANIFEST, colours: { ...stored, referentOrder: ORDER_FIXED } } as BookManifest).colours;
+  assert.deepEqual(kept.referentOrder, ORDER_FIXED, 'a stored order is kept');
+  const fresh = defaultAssignment(['time', 'mass', 'force'], { ...MANIFEST, colours: { ...stored, referentOrder: ORDER_FIXED } } as BookManifest, { reorder: true }).colours;
+  assert.deepEqual(fresh.referentOrder, stored.referentOrder, 'reorder works it out as a first run does');
+  assert.deepEqual(fresh.assign, stored.assign, 'and leaves the types’ colours');
+});
+
+const BAD_ROOM = REFERENT_AVOID[0].room;
+const ORDER_FIXED = Array.from({ length: REFERENT_COUNT }, (_, i) => i);
 const ORDER = Array.from({ length: REFERENT_COUNT }, (_, i) => REFERENT_COUNT - 1 - i);
 
 test('smart walks the order kept with the setting, the book’s own by default; in order never does', () => {
@@ -215,9 +263,14 @@ test('the book’s order is worked out from what each group shows under the read
   const scheme = schemeOf(MANIFEST, NO_CHOICES).hues;
   const groups = [{ size: 2, shown: [...INKS, scheme.time] }, { size: 2, shown: [...INKS, scheme.mass, fixedHueOf('el:O') as Hue] }];
   const suits = (j: number): number => groups.reduce((n, g) => (g.shown.every((h) => distance(hues[j], h, 'normal') >= TARGET_DEFAULT) ? n + g.size : n), 0);
-  const scores = order.map(suits);
-  assert.ok(scores.every((x, i) => i === 0 || scores[i - 1] >= x), 'most first');
-  assert.ok(scores[0] > scores[scores.length - 1], 'a colour near what the groups show sinks');
+  const avoided = (j: number): boolean => REFERENT_AVOID.some((a) => distance(hues[j], a.hue, 'normal') < a.room);
+  const head = order.filter((j) => !avoided(j)), tail = order.filter(avoided);
+  assert.deepEqual(order, [...head, ...tail], 'the colours that read as PAL.bad or as ink come last');
+  for (const part of [head, tail]) {
+    const scores = part.map(suits);
+    assert.ok(scores.every((x, i) => i === 0 || scores[i - 1] >= x), 'most first');
+  }
+  assert.ok(suits(head[0]) > suits(head[head.length - 1]), 'a colour near what the groups show sinks');
   const other = referentOrder(MANIFEST, setVision(NO_CHOICES, 'deutan'), DEFAULT_REFERENTS.palette);
   assert.equal(new Set(other).size, REFERENT_COUNT);
 });

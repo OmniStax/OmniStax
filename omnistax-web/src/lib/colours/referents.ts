@@ -20,13 +20,15 @@
    from all of those, one of a family a referent before it wears standing
    nearer than any that is not; a larger group walks
    again at the target alone, and only where that fails too is it dealt farthest
-   apart. Smart walks the palette in the order kept for the book: its
+   apart. A book that stores `referentAvoid` also keeps its referents clear of PAL.bad and of the text's ink
+   (REFERENT_AVOID): smart wears no colour within their room, and farthest apart only where every other is worn.
+   Smart walks the palette in the order kept for the book: its
    colours sorted by how many referents of the whole book they stand clear of
    what their group shows, most first, so that the colours that clash least are
    tried first. Pure throughout. */
 import type { Hex, Hue } from './model';
 import { type Offer, type PaletteId, PALETTES, pairsOf } from './palettes';
-import { type DeltaE, type HueRule, type Seen, type SeenHue, type Vision, REFERENT_FAMILIES, sameFamily, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
+import { type DeltaE, type HueRule, type Seen, type SeenHue, type Vision, BAD, INKS, REFERENT_FAMILIES, sameFamily, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
 
 export type ReferentId = string;
 export type RefMode = 'order' | 'smart';
@@ -79,13 +81,29 @@ const nearest = (p: SeenHue, others: readonly SeenHue[]): DeltaE =>
 
 /* A group as the reordering weighs it: how many referents it deals and the colours its scope shows. */
 export type GroupWeight = { readonly size: number; readonly shown: readonly Hue[] };
+/* A colour a referent should not be taken for, and how near is too near: within `room` in either theme. */
+export type Avoid = { readonly hue: Hue; readonly room: DeltaE };
+/* What a book that opts in (`referentAvoid`) keeps its referents clear of, and what its stored order puts last: within
+   0.10 of PAL.bad a referent reads as the failure a figure marks (the palette's first red stands 0.03 from it in the
+   dark theme), and within 0.15 of the text's ink it reads as ink on a thin mark or a small word (a dark olive and a dark
+   green in the light theme; a pale pink and a pale blue in the dark one). The 0.12 the dealer keeps from every colour a
+   group shows lets the ink-like ones through, and keeping all 0.12 from PAL.bad would also take the palette's oranges
+   and leave too few families for groups of three. */
+export const REFERENT_AVOID: readonly Avoid[] = [{ hue: BAD, room: 0.10 }, { hue: INKS[0], room: 0.15 }];
+/* The avoid list as a vision sees it, for the walks. */
+export type Away = { readonly seen: SeenHue; readonly room: DeltaE };
+export const awayOf = (avoid: readonly Avoid[], vision: Vision): readonly Away[] => avoid.map((a) => ({ seen: seenHue(a.hue, vision), room: a.room }));
 /* The palette's slots sorted by how many referents of the book they suit: a colour counts a group's referents
-   wherever it stands at least the target from every colour the group shows. Most first; a tie keeps the palette's order. */
-export const clashOrder = (palette: readonly Hue[], groups: readonly GroupWeight[], vision: Vision, target: DeltaE): PaletteOrder => {
+   wherever it stands at least the target from every colour the group shows. Most first; a tie keeps the palette's order.
+   A colour within the room of something to avoid goes after every other, in the same order among themselves, so the
+   smart walk reaches it only where a group needs more colours than the rest give. */
+export const clashOrder = (palette: readonly Hue[], groups: readonly GroupWeight[], vision: Vision, target: DeltaE, avoid: readonly Avoid[] = []): PaletteOrder => {
   const seen = palette.map((h) => seenHue(h, vision));
   const scopes = groups.map((g) => ({ size: g.size, shown: g.shown.map((h) => seenHue(h, vision)) }));
   const score = seen.map((p) => scopes.reduce((n, g) => (nearest(p, g.shown) >= target ? n + g.size : n), 0));
-  return seen.map((_, j) => j).sort((a, b) => score[b] - score[a] || a - b);
+  const away = awayOf(avoid, vision);
+  const last = seen.map((p) => (away.some((a) => seenHueDistance(p, a.seen) < a.room) ? 2 : 0));
+  return seen.map((_, j) => j).sort((a, b) => last[a] - last[b] || score[b] - score[a] || a - b);
 };
 
 export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array.from({ length: count }, (_, i) => i % n);
@@ -96,9 +114,9 @@ export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array
    a group is dealt whenever some deal exists, the earlier referents keeping their first fits as long as one does. A group the
    first-fit walk deals is dealt as it would be. The steps back are bounded (STEPS), past which the group finds none. */
 const STEPS = 50000;
-export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target, hues: HueRule | null = REFERENT_FAMILIES): readonly Slot[] | null => {
+export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target, hues: HueRule | null = REFERENT_FAMILIES, away: readonly Away[] = []): readonly Slot[] | null => {
   const n = palette.length;
-  const clear = palette.map((p) => nearest(p, shown) >= target);
+  const clear = palette.map((p) => nearest(p, shown) >= target && away.every((a) => seenHueDistance(p, a.seen) >= a.room));
   const apart = palette.map((p, j) => palette.map((q, k) => j !== k && seenHueDistance(p, q) >= gap && !(hues && sameFamily(p, q, hues))));
   const slots: Slot[] = [];
   let steps = 0;
@@ -123,8 +141,9 @@ export const smartSlots = (count: number, palette: readonly SeenHue[], shown: re
    from the referents dealt before it, the earlier slot on a tie; past the palette's length the slots come round again.
    With `hues`, a slot of a family a referent before it wears stands a whole unit nearer, so it goes only where every
    family is worn. */
-export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], hues: HueRule | null = REFERENT_FAMILIES): readonly Slot[] => {
-  const room = palette.map((p) => nearest(p, shown));
+export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], hues: HueRule | null = REFERENT_FAMILIES, away: readonly Away[] = []): readonly Slot[] => {
+  /* a colour to avoid stands two units nearer, below a colour of a family already worn, so it goes only where every other is worn */
+  const room = palette.map((p) => nearest(p, shown) - (away.some((a) => seenHueDistance(p, a.seen) < a.room) ? 2 : 0));
   const slots: Slot[] = [];
   for (let i = 0; i < count; i++) {
     const left = palette.map((_, j) => j).filter((j) => !slots.slice(slots.length - (slots.length % palette.length)).includes(j));
@@ -138,18 +157,19 @@ export const farthestSlots = (count: number, palette: readonly SeenHue[], shown:
 /* One group as the dealer reads it: its referents in table order and the colours its scope shows. */
 export type GroupToDeal = { readonly ids: readonly ReferentId[]; readonly shown: readonly Hue[] };
 export type DealtGroup = { readonly ids: readonly ReferentId[]; readonly hues: readonly Hue[]; readonly mode: DealtMode };
-export type DealInput = { readonly palette: readonly Hue[]; readonly mode: RefMode; readonly vision: Vision; readonly target: DeltaE };
+export type DealInput = { readonly palette: readonly Hue[]; readonly mode: RefMode; readonly vision: Vision; readonly target: DeltaE; readonly avoid?: readonly Avoid[] };
 
 /* The largest group dealt farthest apart as soon as the doubled gap fails. */
 const FARTHEST_MAX = 3;
-export const dealGroup = (g: GroupToDeal, { palette, mode, vision, target }: DealInput): DealtGroup => {
+export const dealGroup = (g: GroupToDeal, { palette, mode, vision, target, avoid = [] }: DealInput): DealtGroup => {
   const as = (slots: readonly Slot[], how: DealtMode): DealtGroup => ({ ids: g.ids, hues: slots.map((s) => palette[s]), mode: how });
   if (mode === 'order' || g.ids.length === 0) return as(inOrderSlots(g.ids.length, palette.length), 'order');
   const seenPalette = palette.map((h) => seenHue(h, vision));
   const shown = g.shown.map((h) => seenHue(h, vision));
   const n = g.ids.length;
-  const smart = smartSlots(n, seenPalette, shown, target, 2 * target) ?? (n > FARTHEST_MAX ? smartSlots(n, seenPalette, shown, target) : null);
-  return smart ? as(smart, 'smart') : as(farthestSlots(n, seenPalette, shown), 'farthest');
+  const away = awayOf(avoid, vision);
+  const smart = smartSlots(n, seenPalette, shown, target, 2 * target, REFERENT_FAMILIES, away) ?? (n > FARTHEST_MAX ? smartSlots(n, seenPalette, shown, target, target, REFERENT_FAMILIES, away) : null);
+  return smart ? as(smart, 'smart') : as(farthestSlots(n, seenPalette, shown, REFERENT_FAMILIES, away), 'farthest');
 };
 
 export const huesOfGroups = (groups: readonly DealtGroup[]): RefHues =>
