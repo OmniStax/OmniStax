@@ -6,9 +6,12 @@
    book says how wide it prints each image, those widths in
    data-original-width; the button and the image block are made here, on
    demand. The button reads "Original" while
-   the live figure is shown and "Live" while the book's is: a figure with an
-   original always replaces a book figure, so it is a Figure and never a Sim,
-   and the word on the button names the drawing it will bring back. */
+   the live figure is shown and "Live" while the book's is, the word naming the
+   drawing it will bring back. The book's caption keeps the figure's own label
+   (root RULES item 14: the label follows the number, and the reader sees no
+   other word): "Figure N" where the figure carries the book's number, and
+   "Sim" where it carries none, as in a book whose sources number no figure of
+   its own, though its Sim still keeps the source's image behind the toggle. */
 
 const CLS = 'show-original';
 
@@ -37,9 +40,10 @@ const imageOf = ({ src, width }: Original, alt: string): HTMLImageElement => {
    head, where the live figure's own number and description sit, so the one that is
    showing is the one the reader reads; the stylesheet hides the other. A correction of
    the caption waits as a marker at the figure's end and follows the caption's words. */
+export const originalEyebrow = (number: string | undefined): string => (number ? `Figure ${number}` : 'Sim');
 const captionOf = (fig: HTMLElement, head: HTMLElement): HTMLElement => {
   const have = head.querySelector<HTMLElement>(':scope > .ocap'); if (have) return have;
-  const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = fig.dataset.figure ? `Figure ${fig.dataset.figure}` : 'Figure';
+  const cap = el('p', 'ocap'); const num = el('span', 'eyebrow'); num.textContent = originalEyebrow(fig.dataset.figure);
   const text = el('span'); text.textContent = fig.dataset.originalCaption ?? ''; text.append(...fig.querySelectorAll(':scope > sup.fn')); cap.append(num, text); head.appendChild(cap);
   return cap;
 };
