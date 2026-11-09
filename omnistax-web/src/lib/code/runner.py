@@ -372,7 +372,7 @@ class Charges:
         return out
 
 
-H = '__omnistax_cost'
+H = '__omnistax_cost__'  # a dunder name: inside a class body Python mangles __x, never __x__
 
 
 def helper(name, node, args):
