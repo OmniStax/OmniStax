@@ -332,6 +332,21 @@ const ok = (what) => console.log(`ok: ${what}`);
     assert(/i = 0\s+j = 4/.test(await readout.innerText()), `another input starts the trace again: ${await readout.innerText()}`);
     assert(ferrs.length === 0, `no page errors on the figure (${scheme}): ${ferrs.join('\n')}`);
     ok(`the debugger figure steps in the ${scheme} theme`);
+    /* The code and the drawing fill the row: side by side they meet with no strip between them and the
+       drawing reaches the row's right edge; stacked, the code spans the row. Wide, then narrow. */
+    for (const width of [1400, 640]) {
+      await fp.setViewportSize({ width, height: 950 });
+      await fp.waitForTimeout(300);
+      const g = await fig.locator('.dbg-row').evaluate((row) => {
+        const box = (e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width }; };
+        return { row: box(row), cp: box(row.querySelector('.cp')), draw: box(row.querySelector('.dbg-draw')) };
+      });
+      const near = (a, b) => Math.abs(a - b) <= 1.5;
+      const side = g.draw.t < g.cp.b - 1;
+      if (side) assert(near(g.cp.r, g.draw.l) && near(g.draw.r, g.row.r), `side by side at ${width}px the code and the drawing share the row: ${JSON.stringify(g)}`);
+      else assert(near(g.cp.l, g.row.l) && near(g.cp.r, g.row.r), `stacked at ${width}px the code spans the row: ${JSON.stringify(g)}`);
+      ok(`at ${width}px the debugger row has no dead strip (${side ? 'side by side' : 'stacked'}, ${scheme})`);
+    }
     await fp.close();
   }
   await browser.close();

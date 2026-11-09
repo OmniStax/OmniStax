@@ -495,8 +495,11 @@ article.page .try{height:36px;padding:0 18px;font-size:0.9rem;text-decoration:no
 /* a debugger figure (fig/codepanel.ts, F.debug): the code left of the drawing, stacked when the pane is narrow.
    The code is page text in the mono; no syntax colouring, only the referents' names wear colour. */
 .dbg-row{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
-.dbg-row>.cp{flex:0 1 auto;min-width:0;max-width:100%;border-right:1px solid var(--rule)}
-.dbg-draw{flex:1 1 28rem;min-width:0;position:relative;align-self:center}
+/* Both grow, in very different measure: side by side the drawing takes the row's spare width and the code
+   keeps its own, so no dead strip opens between them; when the code wraps above the drawing it is alone on
+   its line and its small share of growth fills that line, so its panel spans the figure. */
+.dbg-row>.cp{flex:1 1 auto;min-width:0;max-width:100%;border-right:1px solid var(--rule)}
+.dbg-draw{flex:1000 1 28rem;min-width:0;position:relative;align-self:center}
 .cp{display:flex;flex-direction:column;font-family:var(--mono);font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;font-size:0.8rem;background:var(--panel);color:var(--ink)}
 .cp-body{flex:1;overflow-x:auto}
 .cp-src{--cp-pad:10px;position:relative;margin:0;padding:var(--cp-pad) 0;font:inherit;line-height:var(--cp-lh,1.5em);background:transparent;border:0;overflow:visible}
