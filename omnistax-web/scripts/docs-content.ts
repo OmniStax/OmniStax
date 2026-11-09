@@ -133,7 +133,110 @@ from it and what the validator checks is in
 [content-tables.md](content-tables.md).
 `;
 
-export const document = (): string => [HEAD, ...LEVELS.map(level)].join('\n');
+/* What text.html may hold beside the tables is not a schema; the one part of it with attributes of its own
+   to get right is written here, beside the tables, and checked by check:content (content/codeset.ts). */
+const TEXT_PARTS = `## \`text.html\`: code sets
+
+A code listing the book offers in several languages is one \`<div class="code-set">\`
+holding one \`<pre data-lang>\` per language. The reader sees one at a time, the
+book's code language (Python until they choose another, kept per book), and a
+button group on the set's head switches every listing of the book, the figures'
+code panels included. A lone \`<pre>\` outside a set stays as it is.
+
+\`\`\`html
+<div class="code-set">
+  <pre data-lang="python"><code>def two_sum(nums, target): …</code></pre>
+  <pre data-lang="java" data-ai="claude-opus-5-5 high"><code>int[] twoSum(int[] nums, int target) { … }</code></pre>
+</div>
+\`\`\`
+
+| attribute | on | required | description |
+| --- | --- | --- | --- |
+| \`class="code-set"\` | \`<div>\` | yes | Marks the set. It holds nothing but its \`<pre>\` elements; the build adds the head. |
+| \`data-no-python\` | \`<div>\` | where Python is absent | Why the set has no Python, the default, in a few words. |
+| \`data-lang\` | \`<pre>\` | yes | One of \`python\`, \`java\`, \`cpp\`, \`javascript\`, each at most once in a set; the buttons stand in that order, labelled Python, Java, C++, JavaScript. |
+| \`data-ai\` | \`<pre>\` | on a translation | What translated a variant the source does not print: the model's API id and, after a space, the effort (\`low\`, \`medium\`, \`high\`, \`max\`). The variant wears the AI mark, whose hover names them. A variant the source prints carries none. |
+
+A variant holds its code escaped as HTML inside \`<code>\`, with no math: a dollar
+sign is \`&#36;\`. The check fails a set with an unknown or repeated language, no
+Python and no \`data-no-python\`, a \`data-ai\` it cannot read, math, or anything
+beside its \`<pre>\` elements, and warns on a set every variant of which carries
+\`data-ai\`. A debugger figure's code panel takes the same languages through
+\`F.code\` (\`docs/prompts/interactive-figures.md\`).
+
+## \`text.html\`: provenance per block
+
+A book joined from several works names each \`sources\` row of \`book.json\` by an
+\`id\` and gives it the credit its licence asks for (\`author\`, \`license\`,
+\`license_url\`, and \`copyright\` and \`notice\` where the licence asks for them).
+Every block of its text then says which work it comes from:
+
+\`\`\`html
+<section id="arraystack" data-source="ods" data-locator="ods:arrays#sec:arraystack">
+<section id="amortized" data-source="oiwiki" data-locator="oiwiki:basic/amortized-analysis#引入"
+         data-ai="claude-opus-5-5 high" data-translated-from="zh">
+\`\`\`
+
+| attribute | on | required | description |
+| --- | --- | --- | --- |
+| \`data-source\` | \`<section>\`; a \`<figure>\`, a code set's \`<div>\` or a \`<pre>\` inside one | on every top-level \`<section>\` of such a book | The id of the \`sources\` row the passage comes from. A figure or a listing inside a block is the block's unless it names a work of its own. A block holds one work's passage. |
+| \`data-locator\` | where \`data-source\` is | no | The passage, in the work's own locator scheme, which starts with the work's id: \`ods:arrays#sec:arraystack\`. |
+| \`data-ai\` | \`<section>\` | on a block the AI wrote or translated | The model's API id and, after a space, the effort. The block wears the AI mark at the end of its heading (or of its first paragraph where it has none), whose hover names them; nothing else on the page says so. |
+| \`data-translated-from\` | \`<section>\` | on a translation | The BCP 47 tag of the language the passage was translated from (\`zh\`). The mark's hover reads "Translated from Chinese by …" and the footer's line for the work "translated from the Chinese and adapted". It needs \`data-ai\`. Where the work's \`sources\` row names a \`language\` other than the book's, every block of it that carries \`data-ai\` is read as translated from that language, and the attribute is needed only to say otherwise. |
+
+The footer of such a page credits only the works its blocks, figures and code sets
+name and the origins of its exercises (an origin that is also a \`sources\` id is
+credited from that row, else from its \`exercise_sources\` row): title linked to the
+work, author, copyright line, licence linked, and "adapted" or "translated from the
+… and adapted", each work's notice after its line (folded under "License notice"
+where it runs long); then the book's own line, "Adapted by OmniStax as part of … and
+shared under …", the AI and the section's \`notes\`. A book whose \`sources\` rows carry
+no ids keeps the book-wide credit. The check fails a \`data-source\` that names no row
+(or names an NC work), a credited work with no \`license\`, a \`data-locator\` with no
+\`data-source\`, a \`data-ai\` it cannot read, and a \`data-translated-from\` that is no
+language tag, has no \`data-ai\` or stands on anything but a \`<section>\`; it warns on
+a locator outside its work's scheme and on a top-level block that names no work.
+
+## \`exercises-nc.json\`: NC exercise cards
+
+A book shared under CC BY-SA may set exercise cards whose source is under a
+NonCommercial licence (CC BY-NC-SA: MIT OpenCourseWare, Project Euler) only as cards
+of their own, kept out of every other unit of the book. A section keeps them in
+\`<chapter>/<section>/exercises-nc.json\`, beside its \`section.json\`:
+
+\`\`\`json
+{ "section": "1.5", "license": "CC BY-NC-SA 4.0", "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "exercises": [ { "id": "nc1", "origin": "mitocw-6-046j-spring2012", … } ],
+  "exercise_concepts": [ { "exercise": "nc1", "concept": "amortized-analysis" } ] }
+\`\`\`
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| \`section\` | \`string\` | no | The section the file stands in; the check holds it to its folder. |
+| \`license\` | \`string\` | no | The licence the cards are shared under, an NC licence. Each card prints it as its own licence line, "This card is shared under CC BY-NC-SA 4.0."; absent, a card prints its origin's licence there. |
+| \`license_url\` | \`string\` | no | The licence's own page, which the line links. |
+| \`exercises\` | rows of \`exercises\` | no | The cards, row for row as \`section.json\`'s. |
+| \`exercise_concepts\` | rows of \`exercise_concepts\` | no | Which concepts each card tests. |
+
+The cards are set with the section's own, after them. Each wears the credit under
+its prompt that any card with an origin wears (its origin's title, author and
+licence, from the \`exercise_sources\` row) and its own licence line under that. The
+check fails a file whose \`section\` is another's or whose \`license\` is not NC, and a card whose
+origin is missing or not under an NC licence (one whose name holds \`NC\` or
+\`NonCommercial\`), a card id that \`section.json\` uses, a kind, cite, place or concept
+that names nothing; and NC material anywhere else: an exercise of \`section.json\`
+whose origin is NC, and a locator of an NC source (\`<id>:…\`) in the text, the
+figures table, \`figures.js\` or another exercise.
+
+**The BY-SA edition.** \`npm run export:by-sa -- <book folder> <out folder>\` (in
+\`omnistax-web\`) copies the book, its tracked files where it is a git checkout,
+without any \`exercises-nc.json\` and without the NC rows of \`book.json\`'s
+\`exercise_sources\` and \`sources\`. The copy is a book like any other: point the
+content root at the folder holding it to check or build it,
+\`OMNISTAX_CONTENT_DIR=<parent of out folder> npm run build\`.
+`;
+
+export const document = (): string => [HEAD, ...LEVELS.map(level), TEXT_PARTS].join('\n');
 
 /* ---------- the command ---------- */
 

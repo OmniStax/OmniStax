@@ -24,7 +24,6 @@ The file's own fields. Every other field of `book.json` is one of the tables bel
 | `publisher` | `string` | yes | Who published the book. |
 | `authors` | `string[]` | no | The authors named on the book, in the order it names them. |
 | `source_url` | `string?` | no | The book’s own page at the publisher. |
-| `sources` | `{ title, url }[]?` | no | The published works the book is made from, each by its title and its own page at the publisher, for a book that joins several; the attribution credits each. Absent, it credits the title and source_url. |
 | `copyright` | `string?` | no | The holder named in the book’s copyright notice, kept because the licence asks for it. |
 | `license` | `string` | yes | The licence the book is shared under, as its notice names it. |
 | `license_url` | `string?` | no | The licence’s own page. |
@@ -67,6 +66,22 @@ The kinds of exercise the book sets.
 | `id` | `string` | yes | The id an exercise names its kind by. |
 | `label` | `string` | yes | What the book calls exercises of this kind, as the card’s eyebrow prints it. |
 
+### `sources`
+
+The published works a book joins, for a book made from several; with ids, the works its blocks, figures, code sets and exercises name, each with the credit its licence asks for.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `id` | `string?` | no | The id a block of text.html names the work by in data-source, and an exercise’s origin where it names a work of this table. Written on every row or none: a book whose rows carry ids credits per block. |
+| `title` | `string` | yes | The work’s title as the publisher prints it. |
+| `url` | `string` | yes | The work’s own page at the publisher. |
+| `author` | `string?` | no | Who wrote the work, as it names them, such as “Pat Morin” or “Wikipedia contributors”. |
+| `copyright` | `string?` | no | The copyright line the work prints, kept because its licence asks for it. |
+| `license` | `string?` | no | The licence the work is shared under, as its notice names it, such as CC BY 4.0. A per-block credit needs it. |
+| `license_url` | `string?` | no | The licence’s own page. |
+| `notice` | `string?` | no | A notice the licence asks to travel with the work, as HTML: an MIT licence text, or terms such as OI Wiki’s thanks to its authors. The footer prints it under the work’s credit, folded where it runs long. |
+| `language` | `string?` | no | The language the work is written in, as a BCP 47 tag, where it is not the book’s: a block from it that carries data-ai is a translation from it, as though it said data-translated-from. |
+
 ### `exercise_sources`
 
 The sources other than the book that exercises are taken from.
@@ -80,6 +95,8 @@ The sources other than the book that exercises are taken from.
 | `url` | `string?` | no | The source’s own page. |
 | `license` | `string?` | no | The licence the source is shared under, as its notice names it. |
 | `license_url` | `string?` | no | The licence’s own page. |
+| `copyright` | `string?` | no | The copyright line the source prints, such as “Copyright (c) 2014 Exercism”, kept where its licence asks for it; the section footer prints it. |
+| `notice` | `string?` | no | A notice the licence asks to travel with the work, as HTML: an MIT or Apache licence text, or terms such as OI Wiki’s thanks to its authors. The section footer prints it under the source’s credit, folded where it runs long. |
 
 ### `concepts`
 
@@ -283,7 +300,7 @@ The exercises the section sets.
 | `cite` | `string?` | no | The local id of the passage the exercise turns on, which the card can show the reader. |
 | `figure` | `{ src, alt?, caption? }?` | no | A book figure the problem refers to, kept in the card. |
 | `prompt` | `string` | yes | The question as the book asks it. |
-| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", hint?, solution?, generated_by? }` | yes | The answer and how it is checked. |
+| `answer` | `{ type: "number", value, unit?, tol?, part?, hint?, solution?, generated_by? } \| { type: "multi", parts, solution?, generated_by? } \| { type: "choice", options, correct, hint?, solution?, generated_by? } \| { type: "open", hint?, solution?, generated_by? } \| { type: "code", python?, javascript?, tests, compare?, tol?, bound?, grow?, hint?, solution?, generated_by? }` | yes | The answer and how it is checked. |
 
 ### `exercise_concepts`
 
@@ -359,6 +376,47 @@ An exercise’s answer, one shape per way of checking it.
 | `solution` | `string?` | no | The answer the book gives, which the reader compares their own against. |
 | `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
 
+**`type = "code"`** — Code the reader writes, run against tests in their browser: a function the tests call, or a program reading stdin.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `type` | `"code"` | yes | Code the reader writes, run against tests in their browser: a function the tests call, or a program reading stdin. |
+| `python` | `{ entry?, starter?, reference, generated_by? }?` | no | The exercise in Python. |
+| `javascript` | `{ entry?, starter?, reference, generated_by? }?` | no | The exercise in JavaScript. |
+| `tests` | `{ args?, expect?, raises?, stdin?, stdout?, visible?, generated_by? }[]` | yes | The tests, one list for every language, all of one form; at least one visible and one hidden. |
+| `compare` | `"exact" \| "unordered" \| "tokens"?` | no | How a result is compared: exact (the default), unordered (the top level of the returned list as a multiset), or tokens (stdout word by word). |
+| `tol` | `number?` | no | The relative tolerance a float in a result is checked to, as a fraction such as 0.00001; one in a billion where absent. |
+| `bound` | `"1" \| "log n" \| "n" \| "n log n" \| "n^2" \| "n^3" \| "2^n"?` | no | The growth of steps with n a passing solution may not exceed, checked by counting lines run on the inputs grow builds. With grow. |
+| `grow` | `string?` | no | A JavaScript function (n, rand) => input that builds a worst-case input of size n: the argument list for a function, or the stdin text for a program. rand() is a seeded number in [0, 1) and rand.int(lo, hi) a seeded integer between them. With bound. |
+| `hint` | `string?` | no | A nudge the reader can ask for before seeing the answer. |
+| `solution` | `string?` | no | The worked answer, as the book gives it or as the AI wrote it; the reference code where absent. |
+| `generated_by` | `"source" \| "ai"` | no | Whether the answer comes from the book’s own key or was written by the AI that built the section. |
+
+### `code_languages`
+
+A code answer in one language: the function its tests call, what the editor opens with, and the reference the build runs.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `entry` | `string?` | no | The function the tests call, in this language. Absent where the answer is a program the tests feed on stdin. |
+| `starter` | `string` | no | What the editor opens with. |
+| `reference` | `string` | yes | A solution that passes every test and, where the answer names a bound, grows no faster than it; the build runs it (npm run check:code). |
+| `generated_by` | `"source" \| "ai"` | no | Whether the reference comes from the source or was written by the AI that built the section. |
+
+### `code_tests`
+
+One test of a code answer, in one of three forms: args and expect, args and raises, or stdin and stdout. A value is JSON, which a returned tuple, set or None is read as.
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `args` | `unknown[]?` | no | The arguments the entry is called with, as JSON. With expect or raises. |
+| `expect` | `unknown?` | no | The value the call returns, as JSON: a tuple is a list, a set a sorted list, None is null. |
+| `raises` | `string?` | no | The name of the exception the call raises, such as ValueError, instead of returning. |
+| `stdin` | `string?` | no | What the program reads on stdin. With stdout. |
+| `stdout` | `string?` | no | What the program writes; trailing spaces and blank lines at the end are not compared unless compare is exact. |
+| `visible` | `boolean` | no | Whether the reader sees the test and Run runs it. Hidden tests run on Submit; they ship to the reader’s device, so hidden is not secret. |
+| `generated_by` | `"source" \| "ai"` | no | Whether the test comes from the source or was written by the AI that built the section. |
+
 ### `footnotes`
 
 The notes printed at the end of the section, each named by one marker `<sup class="fn" data-note="…"></sup>` in the text, the summary or another note’s html: the book’s footnotes under the book’s numbers, and OmniStax’s corrections of the book, numbered [1], [2]… by the app and AI-marked. A correction may also stand in an exercise’s prompt, option, hint or solution, where its card numbers it and prints it under the card, not at the section’s end; or name a figure, whose original caption it corrects.
@@ -426,3 +484,103 @@ One move of a node’s work.
 | `uses` | `number[]` | no | The 0-based indices into the node’s `assumes` of the facts and earlier results this move relies on; empty for a move of pure algebra. |
 | `cap` | `string?` | no | Why the move is allowed, one or two sentences in the book’s voice, only for a move beyond grade-school algebra or a non-obvious reason a fact applies. |
 | `map` | `record of string \| string[]?` | no | Where one key splits into several or several merge into one on this move: each old key to its new key or keys, so each part travels to its place. |
+
+## `text.html`: code sets
+
+A code listing the book offers in several languages is one `<div class="code-set">`
+holding one `<pre data-lang>` per language. The reader sees one at a time, the
+book's code language (Python until they choose another, kept per book), and a
+button group on the set's head switches every listing of the book, the figures'
+code panels included. A lone `<pre>` outside a set stays as it is.
+
+```html
+<div class="code-set">
+  <pre data-lang="python"><code>def two_sum(nums, target): …</code></pre>
+  <pre data-lang="java" data-ai="claude-opus-5-5 high"><code>int[] twoSum(int[] nums, int target) { … }</code></pre>
+</div>
+```
+
+| attribute | on | required | description |
+| --- | --- | --- | --- |
+| `class="code-set"` | `<div>` | yes | Marks the set. It holds nothing but its `<pre>` elements; the build adds the head. |
+| `data-no-python` | `<div>` | where Python is absent | Why the set has no Python, the default, in a few words. |
+| `data-lang` | `<pre>` | yes | One of `python`, `java`, `cpp`, `javascript`, each at most once in a set; the buttons stand in that order, labelled Python, Java, C++, JavaScript. |
+| `data-ai` | `<pre>` | on a translation | What translated a variant the source does not print: the model's API id and, after a space, the effort (`low`, `medium`, `high`, `max`). The variant wears the AI mark, whose hover names them. A variant the source prints carries none. |
+
+A variant holds its code escaped as HTML inside `<code>`, with no math: a dollar
+sign is `&#36;`. The check fails a set with an unknown or repeated language, no
+Python and no `data-no-python`, a `data-ai` it cannot read, math, or anything
+beside its `<pre>` elements, and warns on a set every variant of which carries
+`data-ai`. A debugger figure's code panel takes the same languages through
+`F.code` (`docs/prompts/interactive-figures.md`).
+
+## `text.html`: provenance per block
+
+A book joined from several works names each `sources` row of `book.json` by an
+`id` and gives it the credit its licence asks for (`author`, `license`,
+`license_url`, and `copyright` and `notice` where the licence asks for them).
+Every block of its text then says which work it comes from:
+
+```html
+<section id="arraystack" data-source="ods" data-locator="ods:arrays#sec:arraystack">
+<section id="amortized" data-source="oiwiki" data-locator="oiwiki:basic/amortized-analysis#引入"
+         data-ai="claude-opus-5-5 high" data-translated-from="zh">
+```
+
+| attribute | on | required | description |
+| --- | --- | --- | --- |
+| `data-source` | `<section>`; a `<figure>`, a code set's `<div>` or a `<pre>` inside one | on every top-level `<section>` of such a book | The id of the `sources` row the passage comes from. A figure or a listing inside a block is the block's unless it names a work of its own. A block holds one work's passage. |
+| `data-locator` | where `data-source` is | no | The passage, in the work's own locator scheme, which starts with the work's id: `ods:arrays#sec:arraystack`. |
+| `data-ai` | `<section>` | on a block the AI wrote or translated | The model's API id and, after a space, the effort. The block wears the AI mark at the end of its heading (or of its first paragraph where it has none), whose hover names them; nothing else on the page says so. |
+| `data-translated-from` | `<section>` | on a translation | The BCP 47 tag of the language the passage was translated from (`zh`). The mark's hover reads "Translated from Chinese by …" and the footer's line for the work "translated from the Chinese and adapted". It needs `data-ai`. Where the work's `sources` row names a `language` other than the book's, every block of it that carries `data-ai` is read as translated from that language, and the attribute is needed only to say otherwise. |
+
+The footer of such a page credits only the works its blocks, figures and code sets
+name and the origins of its exercises (an origin that is also a `sources` id is
+credited from that row, else from its `exercise_sources` row): title linked to the
+work, author, copyright line, licence linked, and "adapted" or "translated from the
+… and adapted", each work's notice after its line (folded under "License notice"
+where it runs long); then the book's own line, "Adapted by OmniStax as part of … and
+shared under …", the AI and the section's `notes`. A book whose `sources` rows carry
+no ids keeps the book-wide credit. The check fails a `data-source` that names no row
+(or names an NC work), a credited work with no `license`, a `data-locator` with no
+`data-source`, a `data-ai` it cannot read, and a `data-translated-from` that is no
+language tag, has no `data-ai` or stands on anything but a `<section>`; it warns on
+a locator outside its work's scheme and on a top-level block that names no work.
+
+## `exercises-nc.json`: NC exercise cards
+
+A book shared under CC BY-SA may set exercise cards whose source is under a
+NonCommercial licence (CC BY-NC-SA: MIT OpenCourseWare, Project Euler) only as cards
+of their own, kept out of every other unit of the book. A section keeps them in
+`<chapter>/<section>/exercises-nc.json`, beside its `section.json`:
+
+```json
+{ "section": "1.5", "license": "CC BY-NC-SA 4.0", "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "exercises": [ { "id": "nc1", "origin": "mitocw-6-046j-spring2012", … } ],
+  "exercise_concepts": [ { "exercise": "nc1", "concept": "amortized-analysis" } ] }
+```
+
+| field | type | required | description |
+| --- | --- | --- | --- |
+| `section` | `string` | no | The section the file stands in; the check holds it to its folder. |
+| `license` | `string` | no | The licence the cards are shared under, an NC licence. Each card prints it as its own licence line, "This card is shared under CC BY-NC-SA 4.0."; absent, a card prints its origin's licence there. |
+| `license_url` | `string` | no | The licence's own page, which the line links. |
+| `exercises` | rows of `exercises` | no | The cards, row for row as `section.json`'s. |
+| `exercise_concepts` | rows of `exercise_concepts` | no | Which concepts each card tests. |
+
+The cards are set with the section's own, after them. Each wears the credit under
+its prompt that any card with an origin wears (its origin's title, author and
+licence, from the `exercise_sources` row) and its own licence line under that. The
+check fails a file whose `section` is another's or whose `license` is not NC, and a card whose
+origin is missing or not under an NC licence (one whose name holds `NC` or
+`NonCommercial`), a card id that `section.json` uses, a kind, cite, place or concept
+that names nothing; and NC material anywhere else: an exercise of `section.json`
+whose origin is NC, and a locator of an NC source (`<id>:…`) in the text, the
+figures table, `figures.js` or another exercise.
+
+**The BY-SA edition.** `npm run export:by-sa -- <book folder> <out folder>` (in
+`omnistax-web`) copies the book, its tracked files where it is a git checkout,
+without any `exercises-nc.json` and without the NC rows of `book.json`'s
+`exercise_sources` and `sources`. The copy is a book like any other: point the
+content root at the folder holding it to check or build it,
+`OMNISTAX_CONTENT_DIR=<parent of out folder> npm run build`.

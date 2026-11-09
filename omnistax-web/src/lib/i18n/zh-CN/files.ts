@@ -90,6 +90,8 @@ export const files: Readonly<Record<keyof typeof source, string>> = {
   'files.sync.record.pomodoros': '番茄钟记录',
   'files.sync.record.practice': '练习答案、概念掌握度和练习设置',
   'files.sync.record.practiceLinks': '与练习关联的笔记、对话和草稿页',
+  'files.sync.record.codeDrafts': '你在编程练习里写下的代码',
+  'files.sync.record.codeLang': '{book} 的代码语言',
   'files.sync.record.practicePages': '每个练习标签页显示的内容',
   'files.sync.record.practiceSessions': '练习记录',
   'files.sync.record.scopes': '每个辅助视图固定的位置',

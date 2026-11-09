@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { findBooks, TRANSLATIONS_DIR } from '../src/lib/content/load';
@@ -23,6 +23,17 @@ test('findBooks: a translation under its source’s translations/ is a book of i
   const dir = await root();
   const found = await findBooks(contentRoot(dir));
   assert.deepEqual(found.map((f) => [f.id, path.relative(dir, f.dir), f.translationOf]), [['a', 'Book A', undefined], ['a-zh-cn', path.join('Book A', TRANSLATIONS_DIR, 'zh-CN'), 'a']]);
+});
+
+test('findBooks: a book linked into the content root is found as one kept there', async () => {
+  const dir = await root();
+  const elsewhere = await mkdtemp(path.join(os.tmpdir(), 'omnistax-linked-'));
+  const book = JSON.parse(await readFile(path.join('tests', 'fixtures', 'framed-book', 'book.json'), 'utf8')) as Record<string, unknown>;
+  await writeFile(path.join(elsewhere, 'book.json'), JSON.stringify({ ...book, id: 'b' }));
+  await symlink(elsewhere, path.join(dir, 'Book B'));
+  await symlink(path.join(dir, 'nowhere'), path.join(dir, 'Dangling'));
+  const found = await findBooks(contentRoot(dir));
+  assert.deepEqual(found.map((f) => [f.id, path.relative(dir, f.dir)]).sort(), [['a', 'Book A'], ['a-zh-cn', path.join('Book A', TRANSLATIONS_DIR, 'zh-CN')], ['b', 'Book B']]);
 });
 
 test('the watcher bumps the translation a change lies under, not its source', async () => {

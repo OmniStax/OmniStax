@@ -1,0 +1,30 @@
+{
+ "section": "1.1",
+ "license": "CC BY-NC-SA 4.0",
+ "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+ "exercises": [
+  {
+   "id": "nc1",
+   "source_id": "mitocw:ps6#6-1",
+   "source_number": "Problem 6-1",
+   "origin": "mitocw",
+   "kind": "exercise",
+   "bloom": "Analyze",
+   "place": {
+    "at": "end"
+   },
+   "cite": "amortized",
+   "prompt": "Rebalance a tree.",
+   "answer": {
+    "type": "open",
+    "solution": "<p>Rebuild it.</p>"
+   }
+  }
+ ],
+ "exercise_concepts": [
+  {
+   "exercise": "nc1",
+   "concept": "amortized"
+  }
+ ]
+}

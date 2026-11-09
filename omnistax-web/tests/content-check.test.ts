@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { loadBook, mediaRootsOf, withInheritedTypes } from '../src/lib/content/load';
 import { bookDir, bookId } from '../src/lib/types/ids';
-import { BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
+import { AnswerSchema, BookSchema, ChapterSchema, SectionSchema } from '../src/lib/content/schema';
 import {
-  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops,
+  checkAnchors, checkDraws, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkConceptLinks, checkConceptNames, checkConcepts, checkContent, checkFigureAi, checkFigureRefs, checkFigures, checkDerivations, checkRefs, checkSources, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkTypes, checkTypeSpans, checkConceptSpans, checkReferents, checkWidths, checkPrereqCycles, prereqLoops, checkCodeAnswers, checkCodeSets,
   citedNumbers, contentOf, errorsOf, checkLanguage, checkTranslationMeta, checkParity,
 } from '../src/lib/content/check';
 import type { Check, Content, Finding } from '../src/lib/content/check';
@@ -322,7 +322,8 @@ test('checkFigures: a folded figure whose text does not print the joined string,
 });
 
 /* The eyebrow follows from the row: Sim for an interactive figure that replaces nothing, Figure with the book's numbers for
-   one that transforms a book figure, Figure or Figure N for a faithful copy, Figure N for a photograph. */
+   one that transforms a book figure, Figure or Figure N for a faithful copy, Figure N for a photograph, and none for a
+   photograph with no number. */
 const labelled = (row: object, attrs: string, eyebrow: string | undefined) => ({ section: { figures: [row] }, textHtml: figureOf(attrs, eyebrow) });
 test('checkFigures: the eyebrow of every figure reads what its row says', () => {
   const sim = { id: 'sim-ruler', kind: 'sim' };
@@ -330,6 +331,10 @@ test('checkFigures: the eyebrow of every figure reads what its row says', () => 
   assert.deepEqual(run(checkFigures, labelled(sim, 'class="sim" id="sim-ruler"', 'Animation')), ['16.1/section.json figures[sim-ruler]: reads "Animation" in the text and should read "Sim"']);
   assert.deepEqual(run(checkFigures, labelled(sim, 'class="sim" id="sim-ruler"', 'Figure')), ['16.1/section.json figures[sim-ruler]: reads "Figure" in the text and should read "Sim"']);
   assert.deepEqual(run(checkFigures, labelled(sim, 'class="sim" id="sim-ruler"', undefined)), ['16.1/section.json figures[sim-ruler]: has no eyebrow in the text; it should read "Sim"']);
+  /* a figure is called Figure only when it is numbered and keeps the book's image: unnumbered, a sim with an original is still a Sim */
+  const kept = { id: 'sim-ruler', kind: 'sim', originals: ['/a.jpg'] };
+  assert.deepEqual(run(checkFigures, labelled(kept, 'class="sim" id="sim-ruler" data-original="/a.jpg"', 'Sim')), []);
+  assert.deepEqual(run(checkFigures, labelled(kept, 'class="sim" id="sim-ruler" data-original="/a.jpg"', 'Figure')), ['16.1/section.json figures[sim-ruler]: reads "Figure" in the text and should read "Sim"']);
   assert.deepEqual(run(checkFigures, { textHtml: TEXT.replace('Figure 16.2', 'Sim') }), ['16.1/section.json figures[sim-ruler]: reads "Sim" in the text and should read "Figure 16.2"'], 'a sim that replaces a book figure is a Figure');
   assert.deepEqual(run(checkFigures, { section: folded(['16.3']), textHtml: FOLDED.replace('Figure 16.2 + 16.3', 'Figure 16.2') }), ['16.1/section.json figures[sim-ruler]: reads "Figure 16.2" in the text and should read "Figure 16.2 + 16.3"'], 'a folded figure reads every number');
   assert.deepEqual(run(checkFigures, { textHtml: TEXT.replace('Figure 16.2</span>', 'Figure 16.2<span class="tag">3D</span></span>') }), [], 'a badge nested in the eyebrow is not part of the label');
@@ -340,7 +345,8 @@ test('checkFigures: the eyebrow of every figure reads what its row says', () => 
   const photo = { id: 'fig-guitar', kind: 'photo', number: '16.8' };
   assert.deepEqual(run(checkFigures, { section: { figures: [photo] }, textHtml: '<figure class="photo" id="fig-guitar" data-figure="16.8"><img src="x"><figcaption><span class="eyebrow">Figure 16.8</span><span>The strings.</span></figcaption></figure>' }), []);
   assert.deepEqual(run(checkFigures, labelled(photo, 'class="photo" id="fig-guitar" data-figure="16.8"', 'Figure')), ['16.1/section.json figures[fig-guitar]: reads "Figure" in the text and should read "Figure 16.8"']);
-  assert.deepEqual(run(checkFigures, labelled({ id: 'fig-guitar', kind: 'photo' }, 'class="photo" id="fig-guitar"', 'Figure')), ['16.1/section.json figures[fig-guitar]: is a photograph with no number, so its eyebrow has nothing to read']);
+  assert.deepEqual(run(checkFigures, labelled({ id: 'fig-guitar', kind: 'photo' }, 'class="photo" id="fig-guitar"', 'Figure')), ['16.1/section.json figures[fig-guitar]: is a photograph with no number, so it carries no eyebrow, and its eyebrow reads "Figure"']);
+  assert.deepEqual(run(checkFigures, { section: { figures: [{ id: 'fig-guitar', kind: 'photo' }] }, textHtml: '<figure class="photo" id="fig-guitar"><img src="x"><figcaption><span>The strings.</span></figcaption></figure>' }), [], 'a photograph with no number carries no eyebrow');
 });
 
 /* The book's display widths ride on the row as `widths`, one per image, and on the text as data-width (a photograph's
@@ -505,6 +511,58 @@ test('a translation’s media are its own and then its source’s, and a transla
   assert.deepEqual(mediaRootsOf([source, own], source), [path.join('/root/B', 'media')]);
   assert.deepEqual(mediaRootsOf([source, own], own), [path.join('/root/B/translations/zh-CN', 'media'), path.join('/root/B', 'media')]);
   assert.throws(() => mediaRootsOf([own], own), /translation_of "b" names no book under the content root/);
+});
+
+/* ---------- code answers ---------- */
+
+const CODE = { type: 'code', python: { entry: 'two_sum', reference: 'def two_sum(nums, target):\n    return None\n' }, tests: [{ args: [[1], 2], expect: null, visible: true }, { args: [[2], 4], expect: null }] };
+const codeEx = (answer: object) => ({ section: { exercises: [{ id: 'p1', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'How far?', answer }] } });
+
+test('the schema takes a code answer of one form and refuses what its shape cannot be', () => {
+  const ok = AnswerSchema.parse(CODE);
+  assert.equal(ok.type === 'code' && ok.tests[1].visible, false, 'a test is hidden unless it says otherwise');
+  assert.equal(ok.type === 'code' && ok.python?.starter, '');
+  const refused = (o: object): string => { const r = AnswerSchema.safeParse({ ...CODE, ...o }); return r.success ? '' : r.error.issues.map((i) => i.message).join('; '); };
+  assert.match(refused({ python: undefined }), /names no language/);
+  assert.match(refused({ tests: [CODE.tests[0]] }), /at least 2|>=2/i);
+  assert.match(refused({ tests: [CODE.tests[0], { stdin: '1', stdout: '2' }] }), /mixes test forms/);
+  assert.match(refused({ tests: [{ args: [1] }, CODE.tests[1]] }), /tests\[0\] is of no one form/);
+  assert.match(refused({ python: { reference: 'x' } }), /python names no entry/);
+  assert.match(refused({ bound: 'n' }), /bound and grow/);
+  assert.match(refused({ bound: 'n^4', grow: '(n) => [n]' }), /Invalid enum value/);
+  assert.match(refused({ compare: 'tokens' }), /only stdout has/);
+  assert.match(refused({ tests: [{ ...CODE.tests[0], hidden: true }, CODE.tests[1]] }), /Unrecognized key/);
+});
+
+test('checkCodeAnswers: a visible and a hidden test, the entry defined, grow that parses, and a language the app can run', () => {
+  assert.deepEqual(run(checkCodeAnswers, codeEx(CODE)), []);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, tests: CODE.tests.map((t) => ({ ...t, visible: true })) })), ['16.1/section.json exercises[p1]: answer has no hidden test, so Submit checks nothing Run did not']);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, tests: CODE.tests.map((t) => ({ ...t, visible: false })) })), ['16.1/section.json exercises[p1]: answer has no visible test, so Run has nothing to run']);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, python: { entry: 'twoSum', reference: 'def two_sum(): pass' } })), ['16.1/section.json exercises[p1]: answer.python.reference does not define twoSum, which the tests call']);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, bound: 'n', grow: '(n, rand) => [[...Array(n).keys()], -1]' })), []);
+  assert.deepEqual(run(checkCodeAnswers, codeEx({ ...CODE, bound: 'n', grow: '(n, rand) => [[' })), ['16.1/section.json exercises[p1]: answer.grow does not parse as a JavaScript function (n, rand) => input']);
+  const js = run(checkCodeAnswers, codeEx({ ...CODE, python: undefined, javascript: { entry: 'twoSum', reference: 'function twoSum(nums, target) { return null; }' } }));
+  assert.deepEqual(js, ['16.1/section.json exercises[p1]: answer is in javascript only, which the app cannot run yet']);
+  assert.deepEqual(said(errorsOf(checkContent(fixture(codeEx(CODE))))), [], 'a code card in the smallest book is no error anywhere else');
+});
+
+test('checkCodeSets: one <pre data-lang> per language, Python or a reason, a translation naming its maker, no math', () => {
+  const set = (inner: string, attrs = ''): Parts => ({ textHtml: `${TEXT}<div class="code-set"${attrs}>${inner}</div>` });
+  const py = '<pre data-lang="python"><code>x = 1</code></pre>', java = '<pre data-lang="java" data-ai="claude-opus-5-5 high"><code>int x = 1;</code></pre>';
+  const where = '16.1/text.html code set 1: ';
+  assert.deepEqual(run(checkCodeSets), []);
+  assert.deepEqual(run(checkCodeSets, set(py + java)), []);
+  assert.deepEqual(run(checkCodeSets, set(java.replace(' data-ai="claude-opus-5-5 high"', ''), ' data-no-python="the source prints Java only"')), []);
+  assert.deepEqual(run(checkCodeSets, set(java)), [`${where}has no Python, the default; add it or say why in data-no-python`, `${where}has no variant the source prints: every <pre> carries data-ai`]);
+  assert.deepEqual(run(checkCodeSets, set(py + py)), [`${where}has two <pre data-lang="python">`]);
+  assert.deepEqual(run(checkCodeSets, set(`${py}<pre data-lang="rust"><code>let x = 1;</code></pre>`)), [`${where}has a <pre data-lang="rust">, and the languages are python, java, cpp and javascript`]);
+  assert.deepEqual(run(checkCodeSets, set(`${py}<pre><code>x</code></pre>`)), [`${where}has a <pre> with no data-lang`]);
+  assert.deepEqual(run(checkCodeSets, set(py + java.replace('claude-opus-5-5 high', 'claude-opus-5-5 huge'))), [`${where}<pre data-lang="java"> has data-ai="claude-opus-5-5 huge", which is not "<model id>" or "<model id> <low|medium|high|max>"`]);
+  assert.deepEqual(run(checkCodeSets, set(py.replace('x = 1', 'x = $a$'))), [`${where}<pre data-lang="python"> holds math, which code never does: a dollar sign in code is &#36;`]);
+  assert.deepEqual(run(checkCodeSets, set(`<p>Two sums.</p>${py}`)), [`${where}holds "<p>Two sums.</p>" beside its <pre> elements, and a code set holds only <pre data-lang>`]);
+  assert.deepEqual(run(checkCodeSets, set(py, ' data-no-python="why"')), [`${where}has Python and says data-no-python`]);
+  /* a <pre> outside a set is the text's own and is left alone */
+  assert.deepEqual(run(checkCodeSets, { textHtml: `${TEXT}<pre><code>$x$</code></pre>` }), []);
 });
 
 test('checkAttributeMarkup: a figure\'s original caption may write maths, which the app sets where it shows the caption', () => {

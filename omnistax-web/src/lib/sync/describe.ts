@@ -13,7 +13,7 @@ const RECORD: Readonly<Record<string, MessageKey>> = {
   'omnistax-fill-all': 'files.sync.record.fillAll', 'omnistax-finger-draws': 'files.sync.record.fingerDraws', 'omnistax-lock-grace': 'files.sync.record.lockGrace',
   'omnistax-pomodoro-len': 'files.sync.record.pomodoroLen', 'omnistax-dictation-lang': 'files.sync.record.dictationLang', 'omnistax-pomodoro-lock': 'files.sync.record.pomodoroLock',
   'omnistax-shortcuts': 'files.sync.record.shortcuts', 'omnistax-practice': 'files.sync.record.practice', 'omnistax-practice-sessions': 'files.sync.record.practiceSessions',
-  'omnistax-practice-links': 'files.sync.record.practiceLinks', 'omnistax-practice-pages': 'files.sync.record.practicePages', 'omnistax-library': 'files.sync.record.library',
+  'omnistax-practice-links': 'files.sync.record.practiceLinks', 'omnistax-code-drafts': 'files.sync.record.codeDrafts','omnistax-practice-pages': 'files.sync.record.practicePages', 'omnistax-library': 'files.sync.record.library',
   'omnistax-explorer': 'files.sync.record.explorer', 'omnistax-notedocs': 'files.sync.record.notedocs', 'omnistax-layout': 'files.sync.record.layout',
   'omnistax-scopes': 'files.sync.record.scopes', 'omnistax-folded': 'files.sync.record.folded', 'omnistax-hidden-figs': 'files.sync.record.hiddenFigs',
   'omnistax-seen-releases': 'files.sync.record.seenReleases', 'omnistax-auto-update': 'files.sync.record.autoUpdate', 'omnistax-file-index': 'files.sync.record.fileIndex',
@@ -26,6 +26,7 @@ const RECORD: Readonly<Record<string, MessageKey>> = {
 const PER_BOOK: readonly (readonly [RegExp, MessageKey])[] = [
   [/^omnistax-notes-(.+)$/, 'files.sync.record.notes'],
   [/^omnistax-highlights-(.+)$/, 'files.sync.record.highlights'],
+  [/^omnistax-code-lang-(.+)$/, 'files.sync.record.codeLang'],
   [/^omnistax-colours-(.+)$/, 'files.sync.record.colours'],
 ];
 

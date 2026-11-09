@@ -11,8 +11,11 @@
    referent of the group wears, that stands at least the target from
    every colour the group's scope shows and at least twice the target from every
    referent of the group dealt before it, and of another hue family than each of
-   those (oklab.ts); the scope's colours may share its family. Where some
-   referent finds none, a group of three or fewer is dealt farthest apart
+   those (oklab.ts; for referents a family is also every colour whose tint, its hue and
+   chroma with lightness left out, stands within 0.08 of another's in the nearer theme,
+   since a dark greyish yellow beside an olive reads as one hue); the scope's colours may share its family. A referent
+   that finds none sends the walk back to move the one before it on to its next fit. Where some
+   referent still finds none, a group of three or fewer is dealt farthest apart
    instead: each referent in turn takes the colour left that stands farthest
    from all of those, one of a family a referent before it wears standing
    nearer than any that is not; a larger group walks
@@ -23,7 +26,7 @@
    tried first. Pure throughout. */
 import type { Hex, Hue } from './model';
 import { type Offer, type PaletteId, PALETTES, pairsOf } from './palettes';
-import { type DeltaE, type HueRule, type Seen, type SeenHue, type Vision, HUE_FAMILIES, sameFamily, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
+import { type DeltaE, type HueRule, type Seen, type SeenHue, type Vision, REFERENT_FAMILIES, sameFamily, seenHue, seenHueDistance, seenDistance, seenOf } from './oklab';
 
 export type ReferentId = string;
 export type RefMode = 'order' | 'smart';
@@ -88,26 +91,39 @@ export const clashOrder = (palette: readonly Hue[], groups: readonly GroupWeight
 export const inOrderSlots = (count: number, n: number): readonly Slot[] => Array.from({ length: count }, (_, i) => i % n);
 
 /* The smart walk: the slot each referent wears, or null where one finds none. `gap` is how far the group's referents stand from each
-   other, and `hues` keeps each of them in a family of its own. */
-export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target, hues: HueRule | null = HUE_FAMILIES): readonly Slot[] | null => {
+   other, and `hues` keeps each of them in a family of its own. Referent i takes the first slot from i onwards that fits; where a
+   later referent then finds none, the walk steps back and moves the latest referent before it on to its next slot that fits, so
+   a group is dealt whenever some deal exists, the earlier referents keeping their first fits as long as one does. A group the
+   first-fit walk deals is dealt as it would be. The steps back are bounded (STEPS), past which the group finds none. */
+const STEPS = 50000;
+export const smartSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], target: DeltaE, gap: DeltaE = target, hues: HueRule | null = REFERENT_FAMILIES): readonly Slot[] | null => {
   const n = palette.length;
   const clear = palette.map((p) => nearest(p, shown) >= target);
+  const apart = palette.map((p, j) => palette.map((q, k) => j !== k && seenHueDistance(p, q) >= gap && !(hues && sameFamily(p, q, hues))));
   const slots: Slot[] = [];
-  for (let i = 0; i < count; i++) {
-    const fits = (j: Slot): boolean => clear[j] && !slots.includes(j)
-      && slots.every((s) => seenHueDistance(palette[j], palette[s]) >= gap && !(hues && sameFamily(palette[j], palette[s], hues)));
-    const slot = Array.from({ length: n }, (_, k) => (i + k) % n).find(fits);
-    if (slot === undefined) return null;
-    slots.push(slot);
-  }
-  return slots;
+  let steps = 0;
+  const fits = (j: Slot): boolean => clear[j] && slots.every((s) => apart[j][s]);
+  const walk = (i: number): boolean => {
+    if (i === count) return true;
+    for (let k = 0; k < n; k++) {
+      if (++steps > STEPS) return false;
+      const j = (i + k) % n;
+      if (!fits(j)) continue;
+      slots.push(j);
+      /* a deal that leaves fewer slots than referents still to come cannot finish */
+      if (palette.reduce((m, _, q) => (fits(q) ? m + 1 : m), 0) >= count - i - 1 && walk(i + 1)) return true;
+      slots.pop();
+    }
+    return false;
+  };
+  return walk(0) ? slots : null;
 };
 
 /* Farthest apart: each referent in turn takes the slot left that stands farthest from what the scope shows and
    from the referents dealt before it, the earlier slot on a tie; past the palette's length the slots come round again.
    With `hues`, a slot of a family a referent before it wears stands a whole unit nearer, so it goes only where every
    family is worn. */
-export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], hues: HueRule | null = HUE_FAMILIES): readonly Slot[] => {
+export const farthestSlots = (count: number, palette: readonly SeenHue[], shown: readonly SeenHue[], hues: HueRule | null = REFERENT_FAMILIES): readonly Slot[] => {
   const room = palette.map((p) => nearest(p, shown));
   const slots: Slot[] = [];
   for (let i = 0; i < count; i++) {

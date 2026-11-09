@@ -26,6 +26,9 @@ import * as SLOPE from './slope';
 import * as SPACE from './space';
 import * as POLAR from './polar';
 import * as Q from './quantum';
+import * as TR from './trace';
+import { codePanel, type Code, type CodeOpts } from './codepanel';
+import { makeDs, type DsHost } from './dsa';
 import { ease, lerp, partial, timeline, beatAt, progressAt, valueAt, MK_MACRO, solve, snapTo, nextSpecial, trackAt, keyframes, blend, partAlpha, partOff, stagger, resample, lerpPts, blendFn, parseRgba, mixRgba, BEAT_MS, REST_MS, type Rgba, type Blendable, type Ease, type BeatTime, type Scripted } from './motion';
 
 export type Ctx = CanvasRenderingContext2D;
@@ -3976,6 +3979,195 @@ function circuitFig(d: { readonly stage: HTMLElement; readonly fig: HTMLElement;
 }
 const circuit = Object.assign(circuitFig, { run: Q.run, layout: Q.layoutOf, ket: Q.ketTex, bits: Q.bitsOf, prepare: Q.prepare });
 
+/* ---------- a debugger: code stepped block by block beside its drawing ----------
+   docs/design-code-and-debugger.md §2. `F.code(d, …)` sets the shown code into the stage, left of the canvas
+   (codepanel.ts); `F.trace((at) => …)` records a figure's frames from its own JS copy of that code (trace.ts);
+   `F.debug(d, { code, trace | inputs, draw })` steps the two together on the figure's one transport, the way
+   the circuit does (root 14: the program's time is the clock): play, the timeline and speed, a dot on the
+   scrubber for every stop, and step, step into and step out. The time runs over the stops of the present
+   level, each exact in either direction; a step button plays the one move from where the cursor is to where
+   it goes, and reduced motion jumps. `draw` gets the frame shown and the one it came from, `k` (0 … 1, eased)
+   between them for the pointers' motion, the block and its level, what the block touches, and the lines the
+   step ran. The variables of the frame are the readout (the watch), unless `watch: false`. Inputs (hit, miss,
+   duplicates) are a choice that swaps the trace. */
+type DebugInput = { readonly value: string; readonly label: string; readonly trace: readonly TR.Frame[] };
+type DebugOpts = {
+  readonly code: Code; readonly trace?: readonly TR.Frame[]; readonly inputs?: readonly DebugInput[]; readonly value?: string;
+  readonly level?: number; readonly beat?: number;
+  readonly watch?: false | readonly string[];
+  readonly draw: (g: DebugState) => void;
+};
+export type DebugState = {
+  readonly ctx: Ctx | null; readonly frame: TR.Frame; readonly prev: TR.Frame; readonly k: number;
+  readonly block: TR.Block | null; readonly level: number; readonly levels: number;
+  readonly touched: ReadonlySet<string>; readonly executed: ReadonlySet<number>;
+  readonly p: number; readonly stop: number; readonly stops: number; readonly input: string | null;
+  /* a numeric variable eased from the frame it came from to the frame shown */
+  num: (name: string) => number;
+};
+export type Debug = {
+  readonly cursor: TR.Cursor; readonly laid: TR.Laid; readonly input: Picker | null;
+  step: () => void; back: () => void; into: () => void; out: () => void;
+  go: (c: TR.Cursor) => void; set: (trace: readonly TR.Frame[]) => void;
+};
+const DICON = {
+  step: '<svg viewBox="0 0 24 24"><path d="M4 7h11V4l5 5-5 5v-3H4z"/><rect x="4" y="17" width="16" height="3" rx="1"/></svg>',
+  into: '<svg viewBox="0 0 24 24"><path d="M10 3h4v9h3.5L12 18l-5.5-6H10z"/><rect x="4" y="19" width="16" height="3" rx="1"/></svg>',
+  out: '<svg viewBox="0 0 24 24"><path d="M10 21h4v-9h3.5L12 6l-5.5 6H10z"/><rect x="4" y="2" width="16" height="3" rx="1"/></svg>',
+};
+/* a value as the watch writes it: Python's spelling where the code shown is Python, else null, true and false */
+const watchValue = (v: TR.Value | undefined, py = true): string =>
+  v === undefined ? '' : v === null ? (py ? 'None' : 'null') : typeof v === 'string' ? JSON.stringify(v) : typeof v === 'boolean' ? (py ? (v ? 'True' : 'False') : String(v))
+    : typeof v === 'object' ? (Array.isArray(v) ? `[${v.map((x) => watchValue(x, py)).join(', ')}]` : `{${Object.entries(v).map(([k, x]) => `${k}: ${watchValue(x, py)}`).join(', ')}}`) : String(v);
+function code(d: { readonly stage: HTMLElement; readonly c: HTMLCanvasElement | null }, o: CodeOpts): Code {
+  const row = el('div', 'dbg-row');
+  if (d.c) d.stage.insertBefore(row, d.c); else d.stage.prepend(row);
+  const cp = codePanel(row, o);
+  if (d.c) row.appendChild(el('div', 'dbg-draw')).appendChild(d.c);
+  return cp;
+}
+type DebugSim = { readonly stage: HTMLElement; readonly fig: HTMLElement; readonly controls: HTMLElement; readonly readout: HTMLElement; readonly c: HTMLCanvasElement | null };
+function debugFig(d: DebugSim, o: DebugOpts): Debug {
+  const cp = o.code, beat = o.beat ?? 1.4, inputs = o.inputs ?? [];
+  /* the watch spells values as the language shown does, and a switch of language redraws it on the same stop */
+  const py = (): boolean => cp.lang === 'python';
+  cp.onLang(() => { dots(); touch(d.fig); });
+  let inValue = o.value ?? inputs[0]?.value ?? null;
+  const traceNow = (): readonly TR.Frame[] => inputs.find((x) => x.value === inValue)?.trace ?? o.trace ?? inputs[0]?.trace ?? [];
+  const levelOf = (l: TR.Laid): number => Math.max(0, Math.min(l.stops.length - 1, o.level ?? TR.defaultLevel(l)));
+  let laid = TR.lay(traceNow(), cp.tree), level = levelOf(laid), S = TR.stopsAt(laid, level);
+  if (!laid.frames.length) console.error('F.debug: the trace has no frames');
+  const cy = cycle(() => Math.max(0, S.length - 1), 1.2);
+  if (REDUCED) cy.tau = 0;   /* a debugger opens on its first stop, at rest */
+  const simNow = (): Sim | undefined => sims.find((x) => x.fig === d.fig);
+  /* a step button's move: from one frame to another over the moving part of a beat, then the time lands on the stop */
+  let jump: { from: number; to: number; t0: number } | null = null, came = -1, tick: (() => void) | null = null;
+  const moveMs = (): number => (beat * 1000 * 0.6) / (simNow()?.speed ?? 1);
+  const jumpK = (): number => (jump ? Math.min(1, (now() - jump.t0) / moveMs()) : 1);
+  const land = (): void => { if (!jump) return; came = jump.from; cy.tau = Math.max(0, S.indexOf(jump.to)); cy.wait = 0; jump = null; };
+  const pause = (): void => { const s = simNow(); if (s && s.playing) { s.playing = false; s.sync?.(); } };
+  const cursor = (): TR.Cursor => { if (jump) return { p: jump.to, level }; const sc = TR.scrub(S.length, cy.now()); return { p: S[sc.to] ?? 0, level }; };
+  let dotEls: HTMLElement[] = [], btns: Record<'step' | 'into' | 'out', HTMLButtonElement> | null = null;
+  const setLevel = (L: number): void => { level = L; S = TR.stopsAt(laid, level); dots(); };
+  function go(c: TR.Cursor, animate = true): void {
+    pause(); land();
+    const from = cursor().p;
+    if (c.level !== level) setLevel(c.level);
+    if (!animate || REDUCED || c.p === from) { if (c.p !== from) came = from; cy.tau = Math.max(0, S.indexOf(c.p)); cy.wait = 0; touch(d.fig); sync(); return; }
+    jump = { from, to: c.p, t0: now() };
+    if (!tick) { const t = (): void => { touch(d.fig); if (jumpK() >= 1) { land(); tickers.delete(t); tick = null; sync(); } }; tick = t; tickers.add(t); }
+    touch(d.fig);
+  }
+  const retrace = (fr: readonly TR.Frame[]): void => {
+    jump = null; came = -1; laid = TR.lay(fr, cp.tree); setLevel(levelOf(laid)); cy.reset(); if (REDUCED) cy.tau = 0; touch(d.fig);
+  };
+  const input = inputs.length > 1 ? (inputs.length > 4 ? select : choice)(d.controls, {
+    label: `\\text{${msg('fig.debug.inputLabel')}}`, key: 'input', value: inValue ?? undefined, aria: msg('fig.debug.inputAria'), ms: 0,
+    options: inputs.map((x) => ({ value: x.value, label: x.label })),
+    onInput: (v) => { inValue = v; retrace(traceNow()); },
+  }) : null;
+
+  /* the bar: a dot on the scrubber per stop, named by the block it ends */
+  const labelAt = (i: number): string => {
+    const p = S[i], b = TR.blockAt(laid, p, level);
+    if (i === 0) return msg('fig.debug.start');
+    if (b) return msg('fig.debug.after', { label: b.label ?? b.id });
+    return i === S.length - 1 ? msg('fig.debug.end') : msg('fig.code.line', { n: cp.shownLine(laid.frames[p]?.line ?? 0) });
+  };
+  function dots(): void {
+    const s = d.fig.querySelector<HTMLInputElement>('.transport .scrub'); if (!s) return;
+    let w = s.parentElement!;
+    if (!w.classList.contains('dv-track')) { w = el('span', 'dv-track'); s.replaceWith(w); w.appendChild(s); }
+    dotEls.forEach((b) => b.remove());
+    const N = Math.max(1, S.length - 1);
+    dotEls = S.map((_, i) => {
+      const b = w.appendChild(el('button', 'dv-dot')); b.type = 'button';
+      const t = labelAt(i); b.title = t; b.setAttribute('aria-label', t);
+      b.style.left = `calc(8px + (100% - 16px) * ${i / N})`;
+      b.addEventListener('click', () => go({ p: S[i], level }, false));
+      return b;
+    });
+  }
+  function sync(): void {
+    if (!btns) return;
+    const c = cursor(), atEnd = TR.step(laid, c).p === c.p;
+    btns.step.disabled = atEnd;
+    btns.into.disabled = atEnd;
+    btns.out.disabled = level <= 0;
+  }
+  const watchEl = o.watch === false ? null : d.readout.appendChild(el('div', 'dbg-watch'));
+  function watch(f: TR.Frame, touched: ReadonlySet<string>): void {
+    if (!watchEl) return;
+    const names = (o.watch || Object.keys(f.vars)).filter((n) => n in f.vars);
+    watchEl.replaceChildren(...names.map((n) => {
+      const s = el('span', 'dbg-var'), nm = s.appendChild(el('span', 'dbg-name')); nm.textContent = n;
+      const c = cp.colour(n); if (c) nm.style.color = c;
+      s.classList.toggle('touched', touched.has(n));
+      s.appendChild(document.createTextNode(` = ${watchValue(f.vars[n], py())}`)); return s;
+    }));
+  }
+
+  function draw(): void {
+    const { frames } = laid; if (!frames.length) return;
+    let from: number, to: number, k: number, stop: number;
+    if (jump) { from = jump.from; to = jump.to; k = ease.smooth(jumpK()); stop = Math.max(0, S.indexOf(to)); }
+    else {
+      const sc = TR.scrub(S.length, cy.now());
+      to = S[sc.to] ?? 0; stop = sc.to; k = ease.smooth(sc.k);
+      from = sc.k >= 1 && came >= 0 && came !== to ? came : S[sc.from] ?? 0;
+    }
+    const frame = frames[to], prev = frames[from] ?? frame, block = TR.blockAt(laid, to, level), touched = TR.touchedAt(laid, block);
+    const executed = TR.executed(laid, Math.min(from, to), Math.max(from, to));
+    dotEls.forEach((b, j) => b.classList.toggle('at', j === stop));
+    const sm = simNow(); if (sm) syncScrub(sm);   /* the scrubber follows a step made while paused too */
+    cp.show({ block, executed, line: frame.line, touched });
+    watch(frame, touched);
+    const ctx = d.c ? begin(d.c).ctx : null;
+    o.draw({
+      ctx, frame, prev, k, block, level, levels: laid.stops.length, touched, executed, p: to, stop, stops: S.length, input: inValue,
+      num: (n) => { const a = prev.vars[n], b = frame.vars[n]; return typeof a === 'number' && typeof b === 'number' ? a + (b - a) * k : typeof b === 'number' ? b : NaN; },
+    });
+    sync();
+  }
+  register(d.fig, {
+    update: (dt) => {
+      if (jump) return; came = -1;
+      if (!REDUCED) { cy.step(dt, () => 1 / beat); return; }
+      cy.wait += dt; if (cy.wait < beat) return;     /* reduced motion plays by jumping from stop to stop */
+      cy.wait = 0; cy.tau = Math.floor(cy.tau) >= S.length - 1 ? 0 : Math.floor(cy.tau) + 1;
+    },
+    draw,
+  });
+  /* the transport is register's; the step buttons join it before the speed, and a drag of its scrubber ends a move */
+  const bar = d.fig.querySelector<HTMLElement>('.transport');
+  const api: Debug = {
+    get cursor() { return cursor(); }, get laid() { return laid; }, input,
+    step: () => go(TR.step(laid, cursor())),
+    back: () => go(TR.back(laid, cursor()), false),
+    into: () => go(TR.stepInto(laid, cursor())),
+    out: () => go(TR.stepOut(laid, cursor())),
+    go: (c) => go(c),
+    set: (fr) => retrace(fr),
+  };
+  if (bar) {
+    bar.classList.add('debug');
+    const mkBtn = (k: 'step' | 'into' | 'out', key: MessageKey, act: () => void): HTMLButtonElement => {
+      const b = el('button', `tbtn dbg-${k}`); b.type = 'button'; b.innerHTML = DICON[k]; b.title = msg(key); b.setAttribute('aria-label', b.title);
+      b.addEventListener('click', act); return b;
+    };
+    btns = { step: mkBtn('step', 'fig.debug.step', api.step), into: mkBtn('into', 'fig.debug.stepInto', api.into), out: mkBtn('out', 'fig.debug.stepOut', api.out) };
+    const speed = bar.querySelector('.speed');
+    [btns.step, btns.into, btns.out].forEach((b) => bar.insertBefore(b, speed));
+    bar.querySelector('.scrub')?.addEventListener('input', () => { jump = null; came = -1; });
+    /* the left arrow on a step button goes back one stop, exact */
+    bar.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft' && (e.target as HTMLElement).classList.contains('tbtn')) { e.preventDefault(); api.back(); } });
+  }
+  dots(); sync();
+  return api;
+}
+const debug = debugFig;
+const traceOf = TR.record;
+
 export const FIG = {
   $, $$, REDUCED, get macros() { return active().macros; }, get KOPT() { return KOPT(); }, tex, typeset, renderMath, get SYM() { return active().symbols; },
   get PAL() { return PAL; }, get CC() { return SHOWN.concepts; }, get shown() { return SHOWN; }, setShown, readPal, C, cat, ref, paintRefs, alpha, redrawAll, el: elOf, fact, fmt, LW, makeCanvas, begin, ctl, byId, sim,
@@ -3997,6 +4189,8 @@ export const FIG = {
   space, space3d,
   polar,
   bloch, circuit,
+  /* a debugger figure (docs/design-code-and-debugger.md §2): the code panel, a trace, the stepper, the data structures */
+  code, trace: traceOf, debug, ds: makeDs((): DsHost => FIG),
 };
 export type Fig = typeof FIG;
 

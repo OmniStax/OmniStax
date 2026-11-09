@@ -307,3 +307,26 @@ test('Symbols sits under Concepts: off, symbols and slider values read in ink wh
   assert.ok(!/cc-symbols[^}]*data-ref/.test(css), 'a split subscript keeps its referent colour');
   assert.ok(!/cc-symbols[^}]*slider-thumb/.test(css));
 });
+
+/* A dark greyish yellow and an olive are 32 degrees apart, two families by hue, and read as one olive to the eye: the
+   referents of one group are kept a tint apart as well (REFERENT_FAMILIES), and the walk steps back rather than give up
+   where the first fit leaves a later referent nowhere to go (CS book 1.6, sim-idol-venn's R and David). */
+test('referents read as one family where their tints stand near, though their hues are a family apart', async () => {
+  const { HUE_FAMILIES, REFERENT_FAMILIES, sameFamily } = await import('../src/lib/colours/oklab');
+  const yellow = seenHue({ light: '#443303', dark: '#FFCD4F' }, 'normal'), olive = seenHue({ light: '#677806', dark: '#899E01' }, 'normal');
+  assert.equal(sameFamily(yellow, olive, HUE_FAMILIES), false, 'the categories keep the plain rule');
+  assert.equal(sameFamily(yellow, olive, REFERENT_FAMILIES), true);
+  assert.equal(sameFamily(seenHue(grey(40), 'normal'), seenHue(grey(90), 'normal'), REFERENT_FAMILIES), false, 'greys have no tint to share');
+});
+test('a group the first fit cannot deal is dealt smart by stepping back', () => {
+  const lch = (h: number): Hue => { const x = hexOfLab(labOfLch([0.6, 0.15, h])); return { light: x, dark: x }; };
+  /* hues 0, 60, 85 and 35: the first fit gives referent 1 the 60, which leaves referent 2 only hues within a family of it
+     or of the 0; moving referent 1 on to the 85 leaves it the 35 */
+  const palette = [0, 60, 85, 35].map((h) => seenHue(lch(h), 'normal'));
+  assert.deepEqual(smartSlots(2, palette, [], 0.01, 0.01), [0, 1], 'a group the first fit deals is dealt as it would be');
+  assert.deepEqual(smartSlots(3, palette, [], 0.01, 0.01), [0, 2, 3]);
+  assert.equal(smartSlots(4, palette, [], 0.01, 0.01), null, 'four cannot be dealt from these');
+  const families = referentHues(DEFAULT_REFERENTS, 'normal');
+  const eight = dealGroup({ ids: ids(8), shown: INKS }, { palette: families, mode: 'smart', vision: 'normal', target: TARGET_DEFAULT });
+  assert.equal(eight.mode, 'smart', 'eight referents find eight families among the thirty-six');
+});

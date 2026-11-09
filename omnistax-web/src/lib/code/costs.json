@@ -1,0 +1,28 @@
+{
+  "about": "What a builtin costs in count mode, beyond the lines it is called from. n is the length of the container the operation works on, i the index it works at, k the length of what it takes or makes. Read by runner.py and, from slice 3, by the JavaScript instrumenter. Anything not listed is free: dict and set lookups, deque.popleft, appends.",
+  "python": {
+    "on": ["list", "tuple", "str", "bytes", "bytearray", "deque"],
+    "operators": { "in": "n", "slice": "k", "del": "n-i", "concat": "k" },
+    "methods": {
+      "index": "n", "count": "n", "remove": "n", "insert": "n-i", "pop": "n-i",
+      "extend": "k", "copy": "n", "sort": "n log n", "reverse": "n", "find": "n", "join": "k"
+    },
+    "functions": {
+      "sorted": "n log n", "sum": "n", "min": "n", "max": "n", "any": "n", "all": "n",
+      "list": "n", "tuple": "n", "set": "n", "frozenset": "n", "dict": "n",
+      "bisect.bisect_left": "log n", "bisect.bisect_right": "log n", "bisect.bisect": "log n",
+      "bisect.insort_left": "n", "bisect.insort_right": "n", "bisect.insort": "n",
+      "heapq.heappush": "log n", "heapq.heappop": "log n", "heapq.heappushpop": "log n", "heapq.heapreplace": "log n",
+      "heapq.heapify": "n", "heapq.nlargest": "n", "heapq.nsmallest": "n"
+    }
+  },
+  "javascript": {
+    "methods": {
+      "indexOf": "n", "lastIndexOf": "n", "includes": "n", "splice": "n-i", "shift": "n", "unshift": "n",
+      "slice": "k", "concat": "k", "sort": "n log n", "reverse": "n", "fill": "n", "join": "n",
+      "map": "n", "filter": "n", "reduce": "n", "forEach": "n", "some": "n", "every": "n", "find": "n", "findIndex": "n"
+    },
+    "operators": { "spread": "k" },
+    "functions": { "Array.from": "k" }
+  }
+}

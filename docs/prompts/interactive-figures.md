@@ -14,6 +14,8 @@ One line per figure in `plan.md`, before any code:
 id · replaces (Figure N.M, "Figure N.M + N.K" when folded, or Sim) · concept ids it serves · value add (root rule 24.4) · arrows: kinematic (naming what moves or flows), symbolic, or none (24.1; kinematic sets the floor at a moving figure) · moving, with what moves, or still, with the reason · sliders and choices with their types · what the headline reads · graph below, beside, or none · 3D, with the orbit bound and the reason, or 2D
 ```
 
+A debugger figure (code stepped block by block beside its drawing) adds three fields after the headline: the blocks, each `id [first–last line] touches`, nested by line containment; the inputs the choice swaps (hit, miss, duplicates, adversarial); and the level it opens at, or "default" (the coarsest with at least three stops where every step changes something). Its code is verbatim and its credit comes from the block's attribution.
+
 One figure per idea or result the section introduces; a worked example gets one only when it adds a quantity the section figure does not show. A sketch figure in the book is replaced when motion or variation helps the reader learn its idea, and kept as the book draws it otherwise (root rule 14). Every photograph and unnumbered image is listed with keep or drop and the reason. A replacing figure starts from the book's figure but is laid out for the one thing the reader should see first, which the plan line names in its headline; it does not copy the book's layout, labels or clutter for their own sake. Where it covers the same quantities as the book's figure, the book's numbers are the slider defaults, so the figure reproduces the book's case on load. A replacing figure's `data-original-caption` is the book's caption as plain text; it may write maths as `$…$` (the build sets nothing inside an attribute, and the app sets the maths under the page's macros where the book's caption is shown), and never markup. A `FIGURE` block that carries `width:` copies its widths to the row's `widths` and to `data-width` or `data-original-width` in the text; where any image lacks one, `widths` stays empty. Two to four sliders per figure, each carrying the type of its variable as its colour class, or an empty class when untyped. Extra simulations go in a separate list after the required figures, one line each saying what the reader would see; none is built until picked or until `config.md` says the plan decides. Scene above graph for a horizontal scene, graph beside for a vertical one, graph alone when the graph is the idea.
 
 ## 2. The drawing layer
@@ -291,6 +293,51 @@ F.circuit(d, { wires: 2, probs: true, steps: [{ g: 'H', t: 0 }, { g: 'X', t: 1, 
   inputs: ['00', '01', '10', '11'].map((b) => ({ value: b, label: `|${b}⟩`, state: b })), onDraw: (q) => tex(d.readout, `|\\Psi\\rangle = ${q.ket()}`) });
 ```
 
+A debugger (`F.code`, `F.trace`, `F.debug`; the engine in `trace.ts`, the panel in `codepanel.ts`, the design in `docs/design-code-and-debugger.md` §2). The code is page text in the mono, no syntax colouring: only the names in `refs` wear colour, their referents'. A name is coloured as a bare token; an attribute after a dot (`node.next`, C++'s `p->next`) stays ink, except an attribute of the object itself that `refs` names with its receiver: `refs: {'self.n': () => F.ref('n')}` colours the `n` of Python's `self.n`, and the same key colours Java's and JavaScript's `this.n` and C++'s `this->n` (a key spelt `this.n` or `this->n` works alike). A bare `n` in `refs` leaves `self.n` in ink, and the trace's touched names and the watch use the key as written. A block is a line range; blocks nest by containment (a partial overlap is a console error). An instance of a block is a run of frames on its lines, a call made inside it included, and each loop iteration is one; the reader steps from instance end to instance end at a level of the nesting.
+
+```
+const code = F.code(d, {lang: 'python' | 'java' | 'cpp' | 'javascript', src, blocks: [{id, lines: [a, b], label, touches: [names]}], refs: {name: () => F.ref(id)}})
+                                          the shown code beside the canvas (stacked in a narrow pane); the block shown wears a band, its
+                                          label is the figure's note, the lines the last step ran are dotted in the gutter; refs are read
+                                          in draw, so write each as a function
+F.code(d, {src: {python, java, cpp, javascript}, canonical = 'python', lineMap: {java: {L: l | [l, …]}, …},
+           ai: {java: '<model id> <effort>', …}, blocks: [{id, lines: [a, b] | {python: [a, b], java: [c, e]}, …}],
+           refs: {name: …} | {python: {two_sum: …}, java: {twoSum: …}}})
+                                          the same code in several languages (METHOD decision 20 of the CS book): a button group on the
+                                          panel's head, Python, Java, C++, JavaScript, sets the book's code language, which every panel
+                                          and code set of the book follows (Python where a listing lacks the choice); a switch keeps the
+                                          stop. The trace is recorded in the canonical language's lines; lineMap carries each canonical
+                                          line to the other language's line or lines (absent, the lines are the same), so the band, the
+                                          gutter dots and the line the stop rests on follow the language shown. A block keeps one id and
+                                          gives its lines per language where the mapped span would be wrong (the canonical's required).
+                                          A language the source does not print names its translator in `ai` and wears the AI mark;
+                                          refs per language where the names differ; the watch shows the trace's (canonical) names
+                                          and spells values as the shown language does (None/True in Python, null/true otherwise).
+                                          code.lang (shown), code.langs, code.setLang(l) (this panel only), code.onLang(f)
+const frames = F.trace((at) => { …; at(L, {i, j, s}, ['compare', i, j]); … })   the figure's own JS copy of the shown code, numbered as
+                                          shown: a frame is "line L finished; these are the variables now", an optional event after;
+                                          at.enter(fn) / at.leave() around a call; snapshots capped at 64 items, 3 levels, 5,000 frames
+const dbg = F.debug(d, {code, trace | inputs: [{value, label, trace}], level, beat = 1.4, watch, draw(g)})
+                                          the transport: play, the timeline over the stops of the level (a dot each), step, step into,
+                                          step out, speed; ← on a step button goes back one stop; inputs are a choice that swaps the trace;
+                                          the readout is the watch (the frame's variables, or those `watch` names; `watch: false` for none)
+g = {ctx, frame, prev, k, block, level, levels, touched, executed, p, stop, stops, input, num(name)}   draw's argument: the frame
+                                          shown and the one it came from, k 0 … 1 eased between them, num(name) a number eased by k
+dbg.step() .back() .into() .out() .go({p, level}) .set(frames)   dbg.cursor  dbg.laid (the trace over its blocks)
+F.ds.strip(ctx, {y, values, base: 0 | 1, x, w, cell, h, dim, name}) -> S   array cells, indices beneath; base 1 draws a sentinel a₀;
+                                          S.x(i) the centre of cell i, fractional between cells; S.l S.r S.t S.b S.cell
+F.ds.pointer(ctx, S, [{at, name, color}], {side})   arrows to the cells at fractional positions, names at their tails; pointers
+                                          sharing a cell stand side by side over it and ease apart
+F.ds.region(ctx, S, {from, to, color, kind: 'shade' | 'bracket', label, side})   an invariant's shading or the window's bracket
+F.ds.counts(ctx, S, {counts: {key: n}, y, color, name, hot})   the count row under a variable window
+```
+```js
+const code = F.code(d, { src: SRC, blocks: [{ id: 'init', lines: [2, 3], label: 'start at both ends', touches: ['i', 'j'] }, …],
+  refs: { i: () => F.ref('l'), j: () => F.ref('r') } });
+F.debug(d, { code, inputs: [{ value: 'hit', label: 'hit', trace: run(A, 10) }, { value: 'miss', label: 'miss', trace: run(A, 13) }],
+  draw: (g) => { const S = F.ds.strip(g.ctx, { y: 230, values: A }); F.ds.pointer(g.ctx, S, [{ at: g.num('i'), name: 'i', color: F.ref('l') }, { at: g.num('j'), name: 'j', color: F.ref('r') }]); } });
+```
+
 `v.label` is one line pinned to a point of the scene; `v.headline` is the stage's own band at the top edge, wrapped like a flat headline, and labels stay out of it. A label (a `label` mark of `F.space3d` too) is kept whole inside the stage: near the bottom or a side edge it slides in rather than being cut off. Both are optional, as are hover names (`v.pickable`), a legend and a note: each is prebuilt in one style, and a figure carries it only where it adds value (root rule 26.13). Buttons are off by default: `spin: 'idle'` turns the scene on a predetermined path and shows the spin button (default `'off'`, no button); `zoom: true` shows zoom in and out (the wheel zooms regardless); `views: [{label,yaw,pitch}]` is never a default and needs the plan line to argue the viewpoint (root rule 26.2). `pitch` and `yaw` are `[min,max]` or `'free'`; the aspect comes from the stage's `data-h` or `h`, never inline. A part's own rotation (`v.part(x).rotation`) persists under the orbit. The scene mounts on the page's THREE global and disposes itself; without WebGL every call is a safe no-op and the stage shows one line.
 
 Colours: `C('t'|'x'|...)` for typed quantities, `PAL.ink / muted / rule / soft / panel` for everything else, `F.el('O')` only as the fill of an atom, ion or molecule and `F.el('e-')`, `F.el('p+')`, `F.el('n0')` as the fill of a lone electron, proton or neutron (a charge's sign is told by its label, never by a hue), `F.ref(id)` for the section's referents and `F.cat(i)` for other instances with no element that must be told apart, and a hex only where the colour is the physical fact and the plan names it: a named constant, named as the fact, unchanged in both themes, drawn through `F.fact(hex)` (the NFPA diamond of Chemistry 2e 1.3; a spectral colour computed from a wavelength goes through `F.fact` too). No other hex literal in a figure. `alpha(PAL.ink, 0.3 to 0.4)` at 2 to 3 px for guide lines.
@@ -324,4 +371,4 @@ Readout: `tex(d.readout, ...)` writes the equation with the current numbers thro
 
 ## 5. Check, once
 
-Build into an outDir outside the repo, serve it, and run a headless Playwright pass with the Node package (`require('playwright')` in a `.cjs` script; it is installed globally, so run the script with `NODE_PATH` set to the global node_modules, `/opt/node-tools/node_modules` here; Python has no Playwright; `python3 -m http.server <port> -d <outDir>` serves a build) over the page in light and dark: no console or page error, every `<img>` with `naturalWidth > 0`, every `figure.sim` with a canvas, a `.transport` on moving figures only and none on still ones, every eyebrow reading "Sim", "Figure N.M", or "Figure" alone for a sim that replaces an unnumbered book figure (its row keeps the image in `originals`), as its row says. Screenshot every figure once at 1400 wide in both themes at its slider extremes, then one pass of fixes for labels touching, non-round ticks, text clipped at an edge or drawn outside the canvas, a label under the headline. A figure that moves or morphs is judged from frames, not from its end state: capture each change mid-way (about 40 %) and at rest, in light and dark, and once with reduced motion, and look at them as a reader. Read the caption and the plan line again against what the figure now does. Do not loop.
+Build into an outDir outside the repo, serve it, and run a headless Playwright pass with the Node package (`require('playwright')` in a `.cjs` script; it is installed globally, so run the script with `NODE_PATH` set to the global node_modules, `/opt/node-tools/node_modules` here; Python has no Playwright; `python3 -m http.server <port> -d <outDir>` serves a build) over the page in light and dark: no console or page error, every `<img>` with `naturalWidth > 0`, every `figure.sim` with a canvas, a `.transport` on moving figures only and none on still ones, every eyebrow reading "Sim" or "Figure N.M" as its row says (an unnumbered sim reads "Sim" even where its row keeps the book's image in `originals`). Screenshot every figure once at 1400 wide in both themes at its slider extremes, then one pass of fixes for labels touching, non-round ticks, text clipped at an edge or drawn outside the canvas, a label under the headline. A figure that moves or morphs is judged from frames, not from its end state: capture each change mid-way (about 40 %) and at rest, in light and dark, and once with reduced motion, and look at them as a reader. Read the caption and the plan line again against what the figure now does. Do not loop.

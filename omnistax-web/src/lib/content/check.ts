@@ -15,7 +15,9 @@ import { inheritedTypes, splitSub } from './load';
 import type { BookTree, SectionSource, SheetSource } from './load';
 import { CORRECTIONS_ID, NOTES_ID, REF, SUMMARY_ID, notedIds, printedNumbers } from './fragment';
 import { type FrontRole, pageRoleOf, pagesOf as framedPagesOf } from './roles';
-import type { BookDTO, ChapterDTO, ExerciseRowDTO, FigureRowDTO, FrontPageRefDTO, SectionDTO } from './schema';
+import { CODE_LANGS, codeIssues, isNonCommercial, type ExercisesNcDTO, type BookDTO, type ChapterDTO, type ExerciseRowDTO, type FigureRowDTO, type FrontPageRefDTO, type SectionDTO } from './schema';
+import type { Lang } from '../code/types';
+import { growBody } from '../code/grow';
 import { cellNumber } from './sheets';
 import { drvTarget, restatesFact, restatesResult } from '../fig/derivation';
 import { isHex, normHex } from '../colours/model';
@@ -23,6 +25,9 @@ import { REFERENT_COUNT } from '../colours/referents';
 import { asidesOf, referentGroups } from '../colours/scopes';
 import { isElementSymbol } from '../fig/elements';
 import { figureLiterals, figureRefs } from './figrefs';
+import { codeSetIssues, codeSetWarnings, codeSetsOf } from './codeset';
+import { creditsPerBlock, provenanceOf } from './provenance';
+import { parseMaker } from '../code/langs';
 import { conceptSpanIds } from './conceptspans';
 import { functionNames, readRow } from '../grapher/expr';
 import type { TableSheetDTO } from './sheets';
@@ -48,6 +53,7 @@ export type SectionContent = {
   readonly textHtml: string;          /* the article body, ids still local */
   readonly sourceMd: string | null;   /* the section's source.md, or nothing where the section keeps none */
   readonly figuresJs: string;         /* the section's figures.js, empty where it keeps none */
+  readonly nc?: ExercisesNcDTO | null;   /* the section's exercises-nc.json, where it keeps one */
 };
 export type ChapterContent = { readonly dto: ChapterDTO; readonly intro?: SectionContent; readonly sections: readonly SectionContent[]; readonly summary?: SectionContent };
 /* The whole book as the checks read it: the three files, and the text and source of every page that is built. */
@@ -436,6 +442,34 @@ export const checkFootnotes: Check = (content) =>
     ];
   });
 
+/* A code answer, read without running it (`npm run check:code` runs it): what the schema says of its
+   shape, at least one test the reader sees and one they do not, the entry each language names defined
+   in its reference, and a grow that parses as JavaScript. An answer in JavaScript alone works once the
+   JavaScript runner lands, and is a warning until then. */
+const defines = (lang: Lang, code: string, entry: string): boolean => {
+  const name = entry.replace(/[$]/g, '\\$');
+  return lang === 'python'
+    ? new RegExp(`^\\s*(?:async\\s+)?def\\s+${name}\\s*\\(|^${name}\\s*=`, 'm').test(code)
+    : new RegExp(`\\bfunction\\s*\\*?\\s*${name}\\s*\\(|\\b(?:const|let|var)\\s+${name}\\s*=`).test(code);
+};
+const RUNNABLE: readonly Lang[] = ['python'];
+export const checkCodeAnswers: Check = (content) =>
+  pagesOf(content).flatMap((s) => s.dto.exercises.flatMap((e) => {
+    const a = e.answer; if (a.type !== 'code') return [];
+    const where = inSection(s, 'exercises', e.id);
+    const langs = CODE_LANGS.filter((l) => a[l] !== undefined);
+    let growOk = true;
+    if (a.grow !== undefined) { try { void new Function('rand', growBody(a.grow, 1)); } catch { growOk = false; } }
+    return [
+      ...codeIssues(a).map((what) => error(where, `answer ${what}`)),
+      ...(a.tests.some((x) => x.visible) ? [] : [error(where, 'answer has no visible test, so Run has nothing to run')]),
+      ...(a.tests.some((x) => !x.visible) ? [] : [error(where, 'answer has no hidden test, so Submit checks nothing Run did not')]),
+      ...langs.flatMap((l) => { const entry = a[l]?.entry; return entry !== undefined && !defines(l, a[l]?.reference ?? '', entry) ? [error(where, `answer.${l}.reference does not define ${entry}, which the tests call`)] : []; }),
+      ...(growOk ? [] : [error(where, 'answer.grow does not parse as a JavaScript function (n, rand) => input')]),
+      ...(langs.some((l) => RUNNABLE.includes(l)) ? [] : [warning(where, `answer is in ${langs.join(' and ')} only, which the app cannot run yet`)]),
+    ];
+  }));
+
 /* An attribute's value is plain text: a "<" in it is markup, and a "$" maths no attribute can show. The build
    sets no maths inside a tag; the one attribute the app sets maths from is a figure's data-original-caption,
    which it renders under the page's macros where the book's caption is shown, so a "$" is allowed there. The
@@ -447,6 +481,106 @@ export const checkAttributeMarkup: Check = (content) =>
   pagesOf(content).flatMap((s) => Array.from(s.textHtml.matchAll(TAG), (t) => Array.from(t[1].matchAll(ATTR))).flat()
     .flatMap(([, name, dq, sq]) => ((MATH_ATTRS.has(name) ? /</ : /[<$]/).test(dq ?? sq) ? [error(`${s.dto.id}/text.html`, `attribute ${name}="${(dq ?? sq).slice(0, 60)}" carries a ${MATH_ATTRS.has(name) ? '"<"' : '"<" or "$"'}; an attribute's value is plain text`)] : [])));
 
+/* A code set (codeset.ts): one listing in several languages, one <pre data-lang> each, Python present or the
+   set saying why, a translation naming what translated it, and no math. */
+export const checkCodeSets: Check = (content) =>
+  pagesOf(content).flatMap((s) => codeSetsOf(s.textHtml).flatMap((set, i) => {
+    const where = `${s.dto.id}/text.html code set ${i + 1}`;
+    return [...codeSetIssues(set).map((w) => error(where, w)), ...codeSetWarnings(set).map((w) => warning(where, w))];
+  }));
+
+/* Provenance per block (provenance.ts). Every data-source names a row of book.json's sources by id, so the
+   footer can credit it; a data-locator stands with a data-source and is written in its scheme (`ods:…` for
+   ods); a translated block says what translated it; and in a book that credits per block, a top-level
+   <section> that names no work is said, since the footer would credit nothing for it. */
+const TRANSLATED_FROM = /^[a-z]{2,3}(-[A-Za-z]{4})?(-[A-Z]{2})?$/;
+/* the <section> blocks of a text that stand in no other <section>, by their opening tags */
+const topSections = (html: string): readonly string[] => {
+  let depth = 0; const out: string[] = [];
+  for (const m of html.matchAll(/<section\b[^>]*>|<\/section>/g)) {
+    if (m[0] === '</section>') { depth = Math.max(0, depth - 1); continue; }
+    if (depth === 0) out.push(m[0]);
+    depth += 1;
+  }
+  return out;
+};
+export const checkProvenance: Check = (content) => {
+  const works = new Map((content.book.sources ?? []).flatMap((w) => (w.id === undefined ? [] : [[w.id, w] as const])));
+  const perBlock = creditsPerBlock(content.book);
+  return pagesOf(content).flatMap((s) => {
+    const file = `${s.dto.id}/text.html`;
+    const findings = provenanceOf(s.textHtml).flatMap((p): readonly Finding[] => {
+      const where = `${file} <${p.tag}${p.id ? ` id="${p.id}"` : ''}>`;
+      const w = p.source === undefined ? undefined : works.get(p.source);
+      return [
+        ...(p.source === undefined || w ? [] : [error(where, perBlock ? `data-source="${p.source}" names no row of book.json sources` : `data-source="${p.source}", but book.json sources carry no ids to name`)]),
+        ...(w && isNonCommercial(w.license) ? [error(where, `data-source="${p.source}" is under ${w.license}, and NC material stands only on an NC exercise card (exercises-nc.json)`)] : []),
+        ...(w && perBlock && w.license === undefined ? [error(where, `data-source="${p.source}" names a work whose sources row has no license, so its credit cannot name one`)] : []),
+        ...(p.locator !== undefined && p.source === undefined ? [error(where, 'has a data-locator and no data-source')] : []),
+        ...(p.locator !== undefined && p.source !== undefined && !p.locator.startsWith(`${p.source}:`) ? [warning(where, `data-locator="${p.locator.slice(0, 40)}" is not in ${p.source}'s scheme ("${p.source}:…")`)] : []),
+        ...(p.ai !== undefined && parseMaker(p.ai) === null ? [error(where, `data-ai="${p.ai}" is not "<model id>" or "<model id> <low|medium|high|max>"`)] : []),
+        ...(p.translatedFrom !== undefined && p.ai === undefined ? [error(where, 'has data-translated-from and no data-ai: a translation names what translated it')] : []),
+        ...(p.translatedFrom !== undefined && p.tag !== 'section' ? [error(where, 'has data-translated-from, which a <section> block carries')] : []),
+        ...(p.translatedFrom !== undefined && !TRANSLATED_FROM.test(p.translatedFrom) ? [error(where, `data-translated-from="${p.translatedFrom}" is not a language tag such as zh or zh-CN`)] : []),
+      ];
+    });
+    const unsourced = perBlock && s.dto.role === 'section'
+      ? topSections(s.textHtml).filter((tag) => !/\sdata-source="/.test(tag)).map((tag) => warning(file, `${tag.slice(0, 60)} names no data-source, so the footer credits no work for it`))
+      : [];
+    return [...findings, ...unsourced];
+  });
+};
+
+/* NC exercise cards (exercises-nc.json). A card names an exercise source whose licence is NC, its rows resolve
+   as section.json's do, and NC material stands nowhere else: no exercise of section.json takes an NC origin, and
+   no locator of an NC source ("mitocw-…:") stands in the text, the figures or another exercise. Keeping NC material
+   apart is the rule of a book that is not itself NC and credits its works block by block (its sources rows carry
+   ids); a book under an NC licence, or one that keeps no such provenance, may set NC exercises in section.json. */
+export const keepsNcApart = (book: Content['book']): boolean =>
+  !isNonCommercial(book.license) && (book.sources ?? []).some((r) => r.id !== undefined);
+export const checkNcCards: Check = (content) => {
+  const apart = keepsNcApart(content.book);
+  const origins = new Map((content.book.exerciseSources ?? []).map((o) => [o.id, o] as const));
+  const nc = new Set([...(content.book.exerciseSources ?? []), ...(content.book.sources ?? [])].filter((o) => isNonCommercial(o.license)).flatMap((o) => (o.id === undefined ? [] : [o.id])));
+  const concepts = idsOf(content.book.concepts, (c) => c.id);
+  const kinds = idsOf(content.book.exerciseKinds, (k) => k.id);
+  const locatorsIn = (text: string): readonly string[] => [...nc].filter((id) => text.includes(`${id}:`));
+  return sectionsOf(content).flatMap((s) => {
+    const file = `${s.dto.id}/exercises-nc.json`, own = idsOf(s.dto.exercises, (e) => e.id);
+    const cards = s.nc?.exercises ?? [], cardIds = idsOf(cards, (e) => e.id), ids = localIds(s.textHtml);
+    const ofCards = cards.flatMap((e): readonly Finding[] => {
+      const where = `${file} exercises[${e.id}]`, o = e.origin === undefined ? undefined : origins.get(e.origin);
+      return [
+        ...(e.origin === undefined ? [error(where, 'names no origin; an NC card names the exercise source whose licence it wears')]
+          : !o ? [error(where, `origin "${e.origin}" names no row of book.json exercise_sources`)]
+            : !isNonCommercial(o.license) ? [error(where, `origin "${e.origin}" is under ${o.license ?? 'no license'}, not an NC licence; the card belongs in section.json`)] : []),
+        ...(own.has(e.id) ? [error(where, 'has the id of an exercise of section.json')] : []),
+        ...ref(where, 'kind', kinds, e.kind),
+        ...(e.cite === undefined || ids.has(e.cite) ? [] : [error(where, `cites "${e.cite}", which is no id of the text`)]),
+        ...(e.place.at === 'inline' && !ids.has(e.place.after) ? [error(where, `is set after "${e.place.after}", which is no id of the text`)] : []),
+      ];
+    });
+    const ofFile = s.nc ? [
+      ...(s.nc.section === undefined || s.nc.section === String(s.dto.id) ? [] : [error(file, `section is "${s.nc.section}", but the file stands in ${s.dto.id}`)]),
+      ...(s.nc.license === undefined || isNonCommercial(s.nc.license) ? [] : [error(file, `license is ${s.nc.license}, and the cards of exercises-nc.json are shared under an NC licence`)]),
+    ] : [];
+    const ofConcepts = (s.nc?.exercise_concepts ?? []).flatMap((r) => {
+      const where = `${file} exercise_concepts[${r.exercise} × ${r.concept}]`;
+      return [...ref(where, 'exercise', cardIds, r.exercise), ...ref(where, 'concept', concepts, r.concept)];
+    });
+    const elsewhere = !apart ? [] : [
+      ...s.dto.exercises.flatMap((e) => [
+        ...(e.origin !== undefined && nc.has(e.origin) ? [error(inSection(s, 'exercises', e.id), `origin "${e.origin}" is under an NC licence; an NC card lives in exercises-nc.json`)] : []),
+        ...locatorsIn(JSON.stringify(e)).filter((id) => id !== e.origin).map((id) => error(inSection(s, 'exercises', e.id), `holds a locator of ${id}, an NC source`)),
+      ]),
+      ...locatorsIn(s.textHtml).map((id) => error(`${s.dto.id}/text.html`, `holds a locator of ${id}, an NC source, which only an NC card may name`)),
+      ...locatorsIn(JSON.stringify(s.dto.figures)).map((id) => error(inSection(s, 'figures', '*'), `holds a locator of ${id}, an NC source`)),
+      ...locatorsIn(s.figuresJs).map((id) => error(`${s.dto.id}/figures.js`, `holds a locator of ${id}, an NC source`)),
+    ];
+    return [...ofFile, ...ofCards, ...ofConcepts, ...elsewhere];
+  });
+};
+
 /* The figures table and the text say the same thing until the build injects the
    one from the other: one row per <figure> the text draws, no row for a figure
    it does not, and the same number on both. A sim that folds several book
@@ -457,23 +591,27 @@ export const checkAttributeMarkup: Check = (content) =>
    The eyebrow follows from the row. An interactive figure that replaces
    nothing in the book is a Sim, and its eyebrow reads exactly that; one that
    transforms a book figure is still a Figure, and its eyebrow reads "Figure"
-   with every number it carries, or "Figure" alone where the book's figure is
-   unnumbered (the row keeps its image among the originals). A faithful copy reads "Figure" or "Figure N"
-   as its number says, and a photograph reads "Figure N". The kind sim names
+   with every number it carries. A figure is a Figure only when it carries the
+   book's number and keeps the book's image as its original: an unnumbered sim is
+   a Sim even where its row keeps the book's image. A faithful copy reads "Figure" or "Figure N"
+   as its number says, and a photograph reads "Figure N", or carries no eyebrow
+   where it has no number. The kind sim names
    the mechanism, a simulation the reader can play with, and the label
    follows from the number. */
 const numbersOf = (f: FigureRowDTO): readonly string[] => (f.number === undefined ? [] : [f.number, ...f.folds]);
 /* What a row's eyebrow must read, or nothing where the row cannot be labelled (a photograph with no number). */
 export const eyebrowOf = (f: FigureRowDTO): string | undefined => {
   const printed = printedNumbers(f);
-  /* a sim that replaces an unnumbered book figure (it keeps the book's image as an original) is a Figure, as a kept unnumbered image is */
-  if (f.kind === 'sim') return printed !== undefined ? `Figure ${printed}` : f.originals.length ? 'Figure' : 'Sim';
+  /* a sim is a Figure only when it carries the book's number; unnumbered, it is a Sim even where it keeps the book's image as an original */
+  if (f.kind === 'sim') return printed !== undefined ? `Figure ${printed}` : 'Sim';
   if (f.kind === 'figure') return printed === undefined ? 'Figure' : `Figure ${printed}`;
   return printed === undefined ? undefined : `Figure ${printed}`;
 };
 const eyebrowFinding = (where: string, f: FigureRowDTO, read: string | undefined): readonly Finding[] => {
   const expected = eyebrowOf(f);
-  if (expected === undefined) return [error(where, 'is a photograph with no number, so its eyebrow has nothing to read')];
+  /* a photograph a book keeps without a number (one whose sources number no figure of its own) carries its caption
+     and credit and no eyebrow, since there is no label for it to read (root RULES item 14: no other word) */
+  if (expected === undefined) return read === undefined ? [] : [error(where, `is a photograph with no number, so it carries no eyebrow, and its eyebrow reads "${read}"`)];
   if (read === undefined) return [error(where, `has no eyebrow in the text; it should read "${expected}"`)];
   return read === expected ? [] : [error(where, `reads "${read}" in the text and should read "${expected}"`)];
 };
@@ -915,7 +1053,7 @@ export const checkParity = (content: Content, source: Content): readonly Finding
   ];
 };
 
-export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta];
+export const CHECKS: readonly Check[] = [checkPages, checkRefs, checkTypes, checkTypeSpans, checkConceptSpans, checkFunctionSpans, checkReferents, checkReferentCount, checkColourDefault, checkHighlights, checkFixedColours, checkVariableRefs, checkDraws, checkAnchors, checkSpans, checkHandLinks, checkFootnotes, checkAttributeMarkup, checkBareScripts, checkFigures, checkFigureAi, checkWidths, checkFigureRefs, checkDerivations, checkSources, checkConcepts, checkConceptLinks, checkConceptNames, checkPrereqCycles, checkSheets, checkLanguage, checkTranslationMeta, checkCodeAnswers, checkCodeSets, checkProvenance, checkNcCards];
 export const checkContent: Check = (content) => CHECKS.flatMap((check) => check(content));
 export const errorsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'error');
 export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => findings.filter((f) => f.level === 'warning');
@@ -928,7 +1066,7 @@ export const warningsOf = (findings: readonly Finding[]): readonly Finding[] => 
    tables are taken as written, before any type is inherited, since a stored
    override is itself something to check. */
 const readIf = (file: string): Promise<string | null> => fs.readFile(file, 'utf8').then((s) => s, () => null);
-const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')), figuresJs: s.figuresJs });
+const pageContent = async (s: SectionSource): Promise<SectionContent> => ({ dto: s.dto, textHtml: s.textHtml, sourceMd: await readIf(path.join(s.dir, 'source.md')), figuresJs: s.figuresJs, ...(s.nc ? { nc: s.nc } : {}) });
 const frontContent = async (s: SectionSource | undefined): Promise<SectionContent | undefined> => (s ? pageContent(s) : undefined);
 /* The introduction and summary of a level, as fields only where the level keeps them, so a fixture without them reads the same as one written without them. */
 const framed = (intro: SectionContent | undefined, summary: SectionContent | undefined) => ({ ...(intro ? { intro } : {}), ...(summary ? { summary } : {}) });

@@ -1,8 +1,8 @@
 /* The calculator as the page reads it: one request to the engine and the answer
-   it gives, the worker started the first time anything asks, and the small
-   pure pieces the page draws with (a step's sentence split into text and
-   formulas, the grapher's address, the expression an address carries). */
-import type { CasMessage, CasPost } from './worker';
+   it gives, through the one Python worker (py/host.ts), and the small pure
+   pieces the page draws with (a step's sentence split into text and formulas,
+   the grapher's address, the expression an address carries). */
+import { askPython, PyError } from '../py/host';
 import { t } from '../i18n';
 
 export type CasOp = 'integral' | 'derivative';
@@ -30,37 +30,11 @@ export type CasReply = CasAnswer | CasPreview | CasRefusal;
 /* A request SymPy has not answered by then is abandoned with its worker. */
 export const TIMEOUT_MS = 20000;
 
-type Waiting = { readonly done: (r: CasReply) => void; readonly fail: (e: Error) => void; readonly timer: ReturnType<typeof setTimeout> };
-let worker: Worker | null = null;
-let next = 0;
-let engineReady = false;
-const waiting = new Map<number, Waiting>();
-
-const drop = (why: string): void => {
-  worker?.terminate(); worker = null; engineReady = false;
-  [...waiting.values()].forEach((w) => { clearTimeout(w.timer); w.fail(new Error(why)); });
-  waiting.clear();
-};
-const workerFor = (): Worker => {
-  if (worker) return worker;
-  const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-  w.onmessage = (e: MessageEvent<CasPost>) => {
-    const m = e.data, held = waiting.get(m.id); if (!held) return;
-    waiting.delete(m.id); clearTimeout(held.timer);
-    if ('failed' in m) held.fail(new Error(t('sheets.cas.loadFailed'))); else held.done(JSON.parse(m.reply) as CasReply);
-  };
-  w.onerror = () => drop(t('sheets.cas.loadFailed'));
-  return worker = w;
-};
-
 export const ask = (q: CasRequest): Promise<CasReply> =>
-  new Promise((done, fail) => {
-    const id = next++, w = workerFor();
-    /* The first request also waits for Pyodide and SymPy to arrive. */
-    const timer = setTimeout(() => drop(t('sheets.cas.timeout')), engineReady ? TIMEOUT_MS : TIMEOUT_MS * 6);
-    waiting.set(id, { done: (r) => { engineReady = true; done(r); }, fail, timer });
-    w.postMessage({ id, request: JSON.stringify(q) } satisfies CasMessage);
-  });
+  askPython('cas', JSON.stringify(q), TIMEOUT_MS).then(
+    (reply) => JSON.parse(reply) as CasReply,
+    (e: unknown) => { throw new Error(t(e instanceof PyError && e.reason === 'timeout' ? 'sheets.cas.timeout' : 'sheets.cas.loadFailed')); },
+  );
 
 /* A step's sentence, "Substitute $u = x^2$", as text and formulas in turn. */
 export type Piece = { readonly tex: boolean; readonly s: string };

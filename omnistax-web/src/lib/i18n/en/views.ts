@@ -45,6 +45,8 @@ export const views = {
   'views.colours.backToBookFor': 'Back to the book\'s color for {name}',
   'views.colours.backToDefaultOff': 'Back to the book\'s default (off)',
   'views.colours.backToDefaultOn': 'Back to the book\'s default (on)',
+  'views.colours.codeLanguage': 'Code language',
+  'views.colours.codeLanguageExplain': 'Every code listing in this book shows this language. Switching it on any listing changes it here too.',
   'views.colours.colorCode': 'Color code',
   'views.colours.colorOf': 'Color of {name}',
   'views.colours.conceptsOff': 'Concepts is off for this book, so these colors do not show on its pages.',

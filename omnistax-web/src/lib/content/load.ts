@@ -6,7 +6,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
-import { BookSchema, ChapterSchema, SectionSchema, BOOK_HIGHLIGHTS_DEFAULT, formOf } from './schema';
+import { BookSchema, ChapterSchema, ExercisesNcSchema, SectionSchema, BOOK_HIGHLIGHTS_DEFAULT, formOf } from './schema';
+import type { ExercisesNcDTO } from './schema';
 import { SheetDataSchema } from './sheets';
 import type { SheetDataDTO } from './sheets';
 import type {
@@ -36,6 +37,7 @@ export type SectionSource = {
   readonly role: PageRole;
   readonly url: string;             /* the address the site serves the page at */
   readonly dto: SectionDTO;         /* the tables as the section writes them, which the validator reads */
+  readonly nc: ExercisesNcDTO | null;   /* the section's exercises-nc.json, its NC cards, where it keeps one */
   readonly meta: SectionMetaDTO;
   readonly textHtml: string;        /* article body, local ids, math prerendered, concept spans typed */
   readonly summaryHtml: string;     /* the section's own summary, math prerendered; empty where the book prints none */
@@ -236,6 +238,14 @@ export const exercisesOf = (s: SectionDTO, locale: Locale = 'en'): readonly Exer
   });
 };
 
+/* A section's NC cards (exercises-nc.json), read as its own exercises are, set after them. Each is marked `nc`
+   so that a card and the practice set can tell it apart; its licence line is the file's licence, else its origin's (credited, below). */
+export const NC_FILE = 'exercises-nc.json';
+export const ncExercisesOf = (s: SectionDTO, nc: ExercisesNcDTO | null, locale: Locale = 'en'): readonly ExerciseDTO[] =>
+  (nc === null ? [] : exercisesOf({ ...s, exercises: nc.exercises, exerciseConcepts: nc.exercise_concepts }, locale).map((e) => ({
+    ...e, nc: true as const, ...(nc.license === undefined ? {} : { cardLicense: { name: nc.license, ...(nc.license_url === undefined ? {} : { url: nc.license_url }) } }),
+  })));
+
 /* One row per span, as the text reads it, with the span qualified by its
    section: a span that introduces two concepts is one row with two names. */
 export const coverageOf = (s: SectionDTO): readonly CoverageDTO[] => {
@@ -315,10 +325,11 @@ export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => s
 /* One page's folder read into a source, or nothing where the folder holds no page. */
 const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: readonly MediaRoot[]): Promise<SectionSource | null> => {
   if (!(await exists(path.join(dir, 'section.json')))) return null;
-  const [dto, text, figuresJs] = await Promise.all([
+  const [dto, text, figuresJs, nc] = await Promise.all([
     readJson(path.join(dir, 'section.json'), SectionSchema),
     readText(path.join(dir, 'text.html')),
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
+    exists(path.join(dir, NC_FILE)).then((ok) => (ok ? readJson(path.join(dir, NC_FILE), ExercisesNcSchema) : null)),
   ]);
   const rows = math.rows.filter((v) => v.section === dto.id);
   const inForce = pageRowsOf(math.rows, dto.id);
@@ -335,7 +346,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   return {
     dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
     footnotes: dto.footnotes.map((f) => ({ ...f, html: marked(rendered(f.html)) })),
-    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto, math.locale), exercisesLead,
+    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: [...exercisesOf(dto, math.locale), ...ncExercisesOf(dto, nc, math.locale)], exercisesLead, nc,
     counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])), macros: macroTypes }),
     refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead), macros: macroTypes }),
   };
@@ -368,7 +379,8 @@ const loadChapter = async (root: string, book: BookDTO, dir: string, dto: Chapte
   ]);
   const credited = (e: ExerciseDTO): ExerciseDTO => {
     const credit = book.exerciseSources?.find((r) => r.id === e.origin);
-    return credit ? { ...e, credit } : e;
+    const own = e.nc && !e.cardLicense && credit?.license ? { cardLicense: { name: credit.license, ...(credit.license_url ? { url: credit.license_url } : {}) } } : {};
+    return credit ? { ...e, credit, ...own } : e;
   };
   const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }))
     .map((s) => ({ ...s, exercises: s.exercises.map(credited) }));
@@ -407,12 +419,17 @@ export const loadSheets = async (root: BookDir, book: BookDTO): Promise<readonly
 const sheetEntry = (book: BookDTO, s: SheetSource): SheetEntry =>
   ({ id: s.row.id, title: s.row.title, kind: s.row.kind, url: sheetUrl(book.id, s.row.id), data: `${sheetUrl(book.id, s.row.id)}sheet.json` });
 
+/* A page that shows code: a code set in its text, or a code panel in its figures. */
+const showsCode = (s: SectionSource | undefined): boolean => !!s && (/<div\b[^>]*\bclass="(?:[^"]*\s)?code-set[\s"]/.test(s.textHtml) || /\bF\.code\s*\(/.test(s.figuresJs));
+const anyCode = (tree: Pick<BookTree, 'intro' | 'chapters' | 'summary'>): boolean =>
+  showsCode(tree.intro) || showsCode(tree.summary) || tree.chapters.some((ch) => showsCode(ch.intro) || showsCode(ch.summary) || ch.sections.some(showsCode));
 const manifestOf = (book: BookDTO, tree: Pick<BookTree, 'intro' | 'chapters' | 'summary' | 'sheets'>): BookManifest => ({
   id: bookId(book.id), title: book.title, publisher: book.publisher, authors: book.authors, sourceUrl: book.sourceUrl, copyright: book.copyright, license: book.license, licenseUrl: book.licenseUrl, openstax: book.openstax,
   language: book.language, ...(book.translationOf !== undefined ? { translationOf: book.translationOf } : {}),
   types: typesOf(book.types), macros: macrosOf(book.symbols), symbols: symbolsOf(book.symbols), exerciseKinds: kindsOf(book.exerciseKinds),
   ...(book.colours ? { colours: book.colours } : {}), highlights: book.highlights ?? BOOK_HIGHLIGHTS_DEFAULT,
   sheets: tree.sheets.map((s) => sheetEntry(book, s)),
+  ...(anyCode(tree) ? { listings: true as const } : {}),
   exercises: `${bookUrl(book.id)}exercises.json`, concepts: `${bookUrl(book.id)}concepts.json`,
   ...(tree.intro ? { intro: entryOf(tree.intro) } : {}),
   chapters: tree.chapters.map((ch): ChapterEntry => ({
@@ -484,7 +501,11 @@ export const TRANSLATIONS_DIR = 'translations';
 export const findBooks = async (root: ContentRoot): Promise<readonly BookFolder[]> => {
   const subdirs = async (dir: string): Promise<readonly string[]> => {
     const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
-    return entries.filter((e) => e.isDirectory()).map((e) => path.join(dir, e.name));
+    /* a book kept in a repository of its own may be linked into the content root rather than cloned there */
+    const isDir = async (e: (typeof entries)[number]): Promise<boolean> =>
+      e.isDirectory() || (e.isSymbolicLink() && (await fs.stat(path.join(dir, e.name)).then((s) => s.isDirectory(), () => false)));
+    const flags = await Promise.all(entries.map(isDir));
+    return entries.filter((_, i) => flags[i]).map((e) => path.join(dir, e.name));
   };
   const bookAt = async (dir: BookDir): Promise<readonly BookFolder[]> => {
     if (!(await exists(path.join(dir, 'book.json')))) return [];
