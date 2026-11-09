@@ -101,8 +101,9 @@ export const assignStable = ({ categories, colours, pages, fixed, vision, stored
 };
 
 export type DefaultResult = { readonly colours: BookColoursDTO; readonly moves: readonly Move[] };
-/* What the script writes: stable from the stored colours unless reshuffle asks for a fresh smart assignment. */
-export const defaultAssignment = (types: readonly string[], manifest: BookManifest, o: { readonly pins?: Pins; readonly reshuffle?: boolean } = {}): DefaultResult => {
+/* What the script writes: stable from the stored colours unless reshuffle asks for a fresh smart assignment, or
+   reorder for a fresh referent order alone (the types keep their colours), which also turns on referentAvoid. */
+export const defaultAssignment = (types: readonly string[], manifest: BookManifest, o: { readonly pins?: Pins; readonly reshuffle?: boolean; readonly reorder?: boolean } = {}): DefaultResult => {
   const vision = DEFAULT_VISION;
   const pins = o.pins ?? manifest.colours?.pins;
   const prior = manifest.colours && manifest.colours.palette === FAMILIES.id && manifest.colours.vision === vision && !o.reshuffle ? manifest.colours : undefined;
@@ -118,8 +119,9 @@ export const defaultAssignment = (types: readonly string[], manifest: BookManife
   const kept = Object.fromEntries(Object.keys(pins ?? {}).filter((k) => assign.has(k)).map((k) => [k, assign.get(k) as Hue]));
   const assigned: BookColoursDTO = { palette: FAMILIES.id, vision, assign: Object.fromEntries([...assign].map(([k, h]) => [k, { light: h.light, dark: h.dark }])), ...(Object.keys(kept).length ? { pins: kept } : {}) };
   /* the referent order is kept too once written, so referents do not change colour as pages are added */
-  const refs = prior?.referentOrder ?? referentOrder({ ...manifest, colours: assigned }, NO_CHOICES, DEFAULT_REFERENTS.palette);
-  return { colours: { ...assigned, referentOrder: [...refs] }, moves };
+  const refs = (o.reorder ? undefined : prior?.referentOrder) ?? referentOrder({ ...manifest, colours: assigned }, NO_CHOICES, DEFAULT_REFERENTS.palette);
+  const avoid = o.reorder || prior?.referentAvoid ? { referentAvoid: true } : {};
+  return { colours: { ...assigned, ...avoid, referentOrder: [...refs] }, moves };
 };
 export const defaultColours = (types: readonly string[], manifest: BookManifest, pins?: Pins): BookColoursDTO =>
   defaultAssignment(types, manifest, pins ? { pins } : {}).colours;
@@ -128,4 +130,4 @@ export const defaultColours = (types: readonly string[], manifest: BookManifest,
 export const isFreshDefault = (stored: BookColoursDTO | undefined, fresh: BookColoursDTO): boolean =>
   stored !== undefined && stored.palette === fresh.palette && stored.vision === fresh.vision
   && JSON.stringify(stored.assign) === JSON.stringify(fresh.assign) && JSON.stringify(stored.pins ?? {}) === JSON.stringify(fresh.pins ?? {})
-  && JSON.stringify(stored.referentOrder) === JSON.stringify(fresh.referentOrder);
+  && JSON.stringify(stored.referentOrder) === JSON.stringify(fresh.referentOrder) && Boolean(stored.referentAvoid) === Boolean(fresh.referentAvoid);

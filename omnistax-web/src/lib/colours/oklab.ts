@@ -142,6 +142,8 @@ export const GROUNDS: Readonly<Record<'light' | 'dark', readonly Hex[]>> = {
 };
 /* The page's ink and muted text (--ink, --muted), on every page in both themes. */
 export const INKS: readonly Hue[] = [{ light: '#1B1F27', dark: '#E7E9EE' }, { light: '#5D6470', dark: '#9AA2AF' }];
+/* The colour figures mark a failure with (--bad, figlib's PAL.bad), in both themes. */
+export const BAD: Hue = { light: '#B91C1C', dark: '#F87171' };
 
 export const luminanceOf = ([r, g, b]: Linear): number => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 export const contrastOf = (x: Linear, y: Linear): Contrast => {

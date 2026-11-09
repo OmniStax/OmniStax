@@ -15,7 +15,7 @@ import type { BookId } from '../types/ids';
 import { type Palette, type PaletteId, DEFAULT_VISION, FAMILIES, paletteById, paletteId, pairsOf } from './palettes';
 import { type Vision, INKS, isVision } from './oklab';
 import {
-  type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefMode, type RefSettings, DEFAULT_REFERENTS, TARGET_DEFAULT, clashOrder, dealGroup, huesOfGroups,
+  type DealtGroup, type GroupWeight, type PaletteOrder, type RefHues, type RefMode, type RefSettings, DEFAULT_REFERENTS, REFERENT_AVOID, TARGET_DEFAULT, clashOrder, dealGroup, huesOfGroups,
   inPaletteOrder, isPaletteOrder, isRefMode, referentHues, sameOrder,
 } from './referents';
 import { type CountKey, fixedHueOf, isCategoryKey } from './counts';
@@ -346,7 +346,7 @@ const referentsAtPage = (m: BookManifest, c: Choices, at: SectionEntry, scheme: 
   const settings = referentsOf(c);
   const own = referentHues(settings, vision);
   const palette = settings.mode === 'smart' ? inPaletteOrder(own, walkOrder(m, settings)) : own;
-  const deal = { palette, mode: settings.mode, vision, target: TARGET_DEFAULT };
+  const deal = { palette, mode: settings.mode, vision, target: TARGET_DEFAULT, avoid: m.colours?.referentAvoid ? REFERENT_AVOID : [] };
   const groups = groupsOf(at).map((g): GroupReferents => ({
     ...dealGroup({ ids: g.referents, shown: shownAt(m, c, scheme, g.shows) }, deal), figures: g.figures,
   }));
@@ -366,12 +366,13 @@ export const bookReferents = (m: BookManifest, c: Choices): readonly PageReferen
 };
 
 /* The order smart walks a referent palette in for this book: every referent group of the book, weighed by its
-   referents, with the colours its scope shows under these choices and their vision. */
+   referents, with the colours its scope shows under these choices and their vision; the colours that read as PAL.bad
+   or as ink go last (REFERENT_AVOID). */
 export const referentOrder = (m: BookManifest, c: Choices, palette: RefSettings['palette']): PaletteOrder => {
   const vision = visionOf(m, c);
   const scheme = schemeOf(m, c);
   const groups = withReferents(m).flatMap((at) => groupsOf(at).map((g): GroupWeight => ({ size: g.referents.length, shown: shownAt(m, c, scheme, g.shows) })));
-  return clashOrder(referentHues({ palette, mode: 'smart' }, vision), groups, vision, TARGET_DEFAULT);
+  return clashOrder(referentHues({ palette, mode: 'smart' }, vision), groups, vision, TARGET_DEFAULT, REFERENT_AVOID);
 };
 
 /* ---------- the stylesheet ---------- */
