@@ -241,6 +241,10 @@ test('checkHandLinks: a hand link to an id of this page or another, qualified by
   assert.deepEqual(run(checkHandLinks, linked('16.1-sim-radial')), ['16.1/text.html: links to "#16.1-sim-radial", but the page has no id "sim-radial"']);
   assert.deepEqual(run(checkHandLinks, linked('16.3-sim-wave')), ['16.1/text.html: links to "#16.3-sim-wave", but page 16.3 is not built']);
   assert.match(run(checkHandLinks, linked('17.2-sim-wave'))[0], /waits on section "17.2"/);
+  /* an exercise card is rendered as ex-<id> (exerciseDomId), so a link to one of the page's exercises lands */
+  const ex = { exercises: [{ id: 'a5', source_id: 'fs-1', kind: 'problem', bloom: 'Apply', place: { at: 'end' }, prompt: 'p', answer: { type: 'open' } }] };
+  assert.deepEqual(run(checkHandLinks, { ...linked('16.1-ex-a5'), section: ex }), []);
+  assert.deepEqual(run(checkHandLinks, { ...linked('16.1-ex-a9'), section: ex }), ['16.1/text.html: links to "#16.1-ex-a9", but the page has no id "ex-a9"']);
 });
 
 test('checkFootnotes: every marker names a row, every row has one marker, a book note keeps its number and a correction none', () => {

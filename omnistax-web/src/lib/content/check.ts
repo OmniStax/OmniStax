@@ -379,7 +379,9 @@ export const checkSpans: Check = (content) =>
 const HAND_HREF = /<a\b[^>]*\bhref="#([^"]+)"/g;
 const PAGE_QUALIFIED = /^(\d+\.\w+|intro|summary)-(.+)$/;
 export const checkHandLinks: Check = (content) => {
-  const pages = pagesOf(content), ids = new Map(pages.map((s) => [String(s.dto.id), localIds(s.textHtml)] as const));
+  /* a page's ids are its text's and its exercise cards' (the app renders each card as ex-<id>, exerciseDomId) */
+  const exerciseIds = (s: (typeof pages)[number]): readonly string[] => [...s.dto.exercises, ...(s.nc?.exercises ?? [])].map((e) => `ex-${e.id}`);
+  const pages = pagesOf(content), ids = new Map(pages.map((s) => [String(s.dto.id), new Set([...localIds(s.textHtml), ...exerciseIds(s)])] as const));
   return pages.flatMap((s) => [...new Set(Array.from(s.textHtml.matchAll(HAND_HREF), (m) => m[1]))].flatMap((href): readonly Finding[] => {
     const q = PAGE_QUALIFIED.exec(href), page = q ? q[1] : String(s.dto.id), local = q ? q[2] : href;
     if (RESERVED_NOTE_ID.test(local)) return [];
