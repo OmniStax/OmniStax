@@ -6,7 +6,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
-import { BookSchema, ChapterSchema, SectionSchema, BOOK_HIGHLIGHTS_DEFAULT, formOf } from './schema';
+import { BookSchema, ChapterSchema, ExercisesNcSchema, SectionSchema, BOOK_HIGHLIGHTS_DEFAULT, formOf } from './schema';
+import type { ExercisesNcDTO } from './schema';
 import { SheetDataSchema } from './sheets';
 import type { SheetDataDTO } from './sheets';
 import type {
@@ -35,6 +36,7 @@ export type SectionSource = {
   readonly role: PageRole;
   readonly url: string;             /* the address the site serves the page at */
   readonly dto: SectionDTO;         /* the tables as the section writes them, which the validator reads */
+  readonly nc: ExercisesNcDTO | null;   /* the section's exercises-nc.json, its NC cards, where it keeps one */
   readonly meta: SectionMetaDTO;
   readonly textHtml: string;        /* article body, local ids, math prerendered, concept spans typed */
   readonly summaryHtml: string;     /* the section's own summary, math prerendered; empty where the book prints none */
@@ -229,6 +231,14 @@ export const exercisesOf = (s: SectionDTO, locale: Locale = 'en'): readonly Exer
   });
 };
 
+/* A section's NC cards (exercises-nc.json), read as its own exercises are, set after them. Each is marked `nc`
+   so that a card and the practice set can tell it apart; its licence line is the file's licence, else its origin's (credited, below). */
+export const NC_FILE = 'exercises-nc.json';
+export const ncExercisesOf = (s: SectionDTO, nc: ExercisesNcDTO | null, locale: Locale = 'en'): readonly ExerciseDTO[] =>
+  (nc === null ? [] : exercisesOf({ ...s, exercises: nc.exercises, exerciseConcepts: nc.exercise_concepts }, locale).map((e) => ({
+    ...e, nc: true as const, ...(nc.license === undefined ? {} : { cardLicense: { name: nc.license, ...(nc.license_url === undefined ? {} : { url: nc.license_url }) } }),
+  })));
+
 /* One row per span, as the text reads it, with the span qualified by its
    section: a span that introduces two concepts is one row with two names. */
 export const coverageOf = (s: SectionDTO): readonly CoverageDTO[] => {
@@ -308,10 +318,11 @@ export const metaOf = (s: SectionDTO, place: PagePlace, render: (s: string) => s
 /* One page's folder read into a source, or nothing where the folder holds no page. */
 const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: readonly MediaRoot[]): Promise<SectionSource | null> => {
   if (!(await exists(path.join(dir, 'section.json')))) return null;
-  const [dto, text, figuresJs] = await Promise.all([
+  const [dto, text, figuresJs, nc] = await Promise.all([
     readJson(path.join(dir, 'section.json'), SectionSchema),
     readText(path.join(dir, 'text.html')),
     exists(path.join(dir, 'figures.js')).then((ok) => (ok ? readText(path.join(dir, 'figures.js')) : '')),
+    exists(path.join(dir, NC_FILE)).then((ok) => (ok ? readJson(path.join(dir, NC_FILE), ExercisesNcSchema) : null)),
   ]);
   const rows = math.rows.filter((v) => v.section === dto.id);
   const own = pageMacrosOf(math.symbols, rows);
@@ -327,7 +338,7 @@ const loadPage = async (dir: string, place: PagePlace, math: PageMath, media: re
   return {
     dir, role: dto.role, url: place.url, dto, meta: metaOf(dto, place, rendered, typesWorn(dto.figures, rows, `${lead}\n${prose}`), marked), textHtml, summaryHtml, figuresJs,
     footnotes: dto.footnotes.map((f) => ({ ...f, html: marked(rendered(f.html)) })),
-    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: exercisesOf(dto, math.locale), exercisesLead,
+    figures: dto.figures, macros: own, coverage: coverageOf(dto), exercises: [...exercisesOf(dto, math.locale), ...ncExercisesOf(dto, nc, math.locale)], exercisesLead, nc,
     counts: pageCounts({ prose: [prose, lead, summaryHtml, exercisesLead], figures: dto.figures, rowTypes: rows.flatMap((v) => (v.type ? [v.type] : [])), macros: macroTypes }),
     refGroups: referentGroups({ referents: dto.referents, figures: dto.figures, text: prose, asides: asidesOf(lead, summaryHtml, exercisesLead), macros: macroTypes }),
   };
@@ -360,7 +371,8 @@ const loadChapter = async (root: string, book: BookDTO, dir: string, dto: Chapte
   ]);
   const credited = (e: ExerciseDTO): ExerciseDTO => {
     const credit = book.exerciseSources?.find((r) => r.id === e.origin);
-    return credit ? { ...e, credit } : e;
+    const own = e.nc && !e.cardLicense && credit?.license ? { cardLicense: { name: credit.license, ...(credit.license_url ? { url: credit.license_url } : {}) } } : {};
+    return credit ? { ...e, credit, ...own } : e;
   };
   const linked = linkChapterFigures(pagesOf({ intro, sections: loaded.filter((s): s is SectionSource => s !== null), summary }))
     .map((s) => ({ ...s, exercises: s.exercises.map(credited) }));

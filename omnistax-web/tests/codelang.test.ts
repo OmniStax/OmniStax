@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { LISTING_LANGS, LISTING_LABELS, inOrder, parseMaker, pickLang } from '../src/lib/code/langs';
 import { codeLangKey, codeLangOf, onCodeLang, parseCodeLang, setCodeLang } from '../src/lib/settings/codelang';
 import * as TR from '../src/lib/fig/trace';
-import { codePanel, tokenize } from '../src/lib/fig/codepanel';
+import { attrKey, codePanel, tokenize } from '../src/lib/fig/codepanel';
 import { codeSets, codeSetsOf, renderCodeSet } from '../src/lib/content/codeset';
 import { categoryOf, recordIssue } from '../src/lib/backup/schema';
 import { describeRecord } from '../src/lib/sync/describe';
@@ -233,6 +233,37 @@ test('the tokenizer reads each language’s comments and strings', () => {
   assert.deepEqual(names('i = 0 # j', 'python'), ['i']);
   assert.deepEqual(names('s = `i ${j}`', 'javascript'), ['s']);
   assert.deepEqual(names('s = `i`', 'java'), ['s', 'i'], 'a backtick quotes only in JavaScript');
+});
+
+test('the tokenizer reads an attribute of self or this as a token of its own, and leaves any other attribute out', () => {
+  const toks = (src: string, l: Parameters<typeof tokenize>[1]) => tokenize(src, l).flat().filter((t) => t.t !== 'other' && t.t !== 'str' && t.t !== 'comment').map((t) => (t.t === 'attr' ? `${t.of}` : t.s));
+  assert.deepEqual(toks('self.n = n + self.m.size', 'python'), ['self', 'self.n', 'n', 'self', 'self.m'], 'm.size: size is another attribute');
+  assert.deepEqual(toks('this.n = node.next;', 'java'), ['this', 'this.n', 'node']);
+  assert.deepEqual(toks('this.n += 1', 'javascript'), ['this', 'this.n']);
+  assert.deepEqual(toks('this->n = p->next;', 'cpp'), ['this', 'this->n', 'p'], 'after -> a name is an attribute in C++');
+  assert.deepEqual(toks('this.n', 'python'), ['this'], 'only Python’s own receiver counts in Python');
+  assert.equal(tokenize('x = self.n  # n', 'python')[0].map((t) => t.s).join(''), 'x = self.n  # n', 'the tokens are still the line');
+});
+
+test('attrKey finds an attribute in refs only where refs names it with a receiver, in any language’s spelling', () => {
+  assert.equal(attrKey({ 'self.n': '#a00' }, 'self.n'), 'self.n');
+  assert.equal(attrKey({ 'self.n': '#a00' }, 'this->n'), 'self.n', 'one refs object serves C++');
+  assert.equal(attrKey({ 'this.n': '#a00', 'self.n': '#0a0' }, 'this.n'), 'this.n', 'the spelling written wins');
+  assert.equal(attrKey({ n: '#a00' }, 'self.n'), null, 'a bare n leaves self.n in ink');
+});
+
+test('a panel colours self.n as the referent named so, and keeps a bare n apart', () => {
+  setCodeLang('attr-book', 'python');
+  const src = { python: 'def add(self, x):\n    self.n += 1\n    n = 0', java: 'void add(int x) {\n    this.n += 1;\n    int n = 0; }' };
+  const { cp, el } = panelOf({ book: 'attr-book', src, lineMap: undefined, ai: undefined, blocks: [], refs: { 'self.n': '#a00' } });
+  cp.show({ block: null, touched: new Set(['self.n']) });
+  assert.deepEqual(all(el, 'cp-var').map((v) => `${v.textContent}=${v.style.color}:${v.classList.contains('touched')}`), ['n=#a00:true'], 'the n of self.n, not the bare n');
+  cp.setLang('java');
+  assert.deepEqual(all(el, 'cp-var').map((v) => `${v.textContent}=${v.dataset.var}`), ['n=self.n'], 'this.n wears it in Java');
+  const bare = panelOf({ book: 'attr-book', src, lineMap: undefined, ai: undefined, blocks: [], refs: { n: '#00a' } });
+  bare.cp.show({ block: null });
+  assert.deepEqual(all(bare.el, 'cp-var').map((v) => v.textContent), ['n'], 'a bare n colours only the bare n');
+  assert.equal(all(bare.el, 'cp-code')[1].textContent, '    self.n += 1');
 });
 
 /* ---------- the code set of the text, as the build prints it ---------- */

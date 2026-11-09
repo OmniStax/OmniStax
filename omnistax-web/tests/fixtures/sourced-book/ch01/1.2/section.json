@@ -1,0 +1,4 @@
+{
+ "id": "1.2", "chapter": "1", "title": "Models", "lead": "What a computer is, for counting.", "built": "2026-11-09",
+ "coverage": [{ "span": "model", "concept": "model", "verb": "introduces" }]
+}

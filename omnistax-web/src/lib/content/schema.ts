@@ -78,6 +78,8 @@ export const ExerciseSourceSchema = z.object({
   url: z.string().url().optional().describe('The source\u2019s own page.'),
   license: z.string().optional().describe('The licence the source is shared under, as its notice names it.'),
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
+  copyright: z.string().optional().describe('The copyright line the source prints, such as \u201cCopyright (c) 2014 Exercism\u201d, kept where its licence asks for it; the section footer prints it.'),
+  notice: z.string().optional().describe('A notice the licence asks to travel with the work, as HTML: an MIT or Apache licence text, or terms such as OI Wiki\u2019s thanks to its authors. The section footer prints it under the source\u2019s credit, folded where it runs long.'),
 }).strict();
 export type ExerciseSourceDTO = z.infer<typeof ExerciseSourceSchema>;
 
@@ -194,16 +196,28 @@ export const TranslationSchema = z.object({
 }).strict();
 export type TranslationDTO = z.infer<typeof TranslationSchema>;
 
+/* One work a book joins. The title and url are all a book credited as a whole needs; a book that credits
+   per block (text.html's data-source) names each row by id and gives it the credit its licence asks for. */
+export const BookSourceSchema = z.object({
+  id: z.string().optional().describe('The id a block of text.html names the work by in data-source, and an exercise\u2019s origin where it names a work of this table. Written on every row or none: a book whose rows carry ids credits per block.'),
+  title: z.string().describe('The work\u2019s title as the publisher prints it.'),
+  url: z.string().url().describe('The work\u2019s own page at the publisher.'),
+  author: z.string().optional().describe('Who wrote the work, as it names them, such as \u201cPat Morin\u201d or \u201cWikipedia contributors\u201d.'),
+  copyright: z.string().optional().describe('The copyright line the work prints, kept because its licence asks for it.'),
+  license: z.string().optional().describe('The licence the work is shared under, as its notice names it, such as CC BY 4.0. A per-block credit needs it.'),
+  license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
+  notice: z.string().optional().describe('A notice the licence asks to travel with the work, as HTML: an MIT licence text, or terms such as OI Wiki\u2019s thanks to its authors. The footer prints it under the work\u2019s credit, folded where it runs long.'),
+  language: z.string().regex(/^[a-z]{2,3}(-[A-Za-z]{4})?(-[A-Z]{2})?$/).optional().describe('The language the work is written in, as a BCP 47 tag, where it is not the book\u2019s: a block from it that carries data-ai is a translation from it, as though it said data-translated-from.'),
+}).strict();
+export type BookSourceDTO = z.infer<typeof BookSourceSchema>;
+
 export const BookSchema = z.object({
   id: z.string().describe('The book\u2019s id, which names its pages, the storage the reader keeps for it and the colour file they export.'),
   title: z.string().describe('The book\u2019s title as the publisher prints it.'),
   publisher: z.string().describe('Who published the book.'),
   authors: z.array(z.string()).default([]).describe('The authors named on the book, in the order it names them.'),
   source_url: z.string().url().optional().describe('The book\u2019s own page at the publisher.'),
-  sources: z.array(z.object({
-    title: z.string().describe('The work\u2019s title as the publisher prints it.'),
-    url: z.string().url().describe('The work\u2019s own page at the publisher.'),
-  }).strict()).min(1).optional().describe('The published works the book is made from, each by its title and its own page at the publisher, for a book that joins several; the attribution credits each. Absent, it credits the title and source_url.'),
+  sources: z.array(BookSourceSchema).min(1).optional().describe('The published works the book is made from, each by its title and its own page at the publisher, for a book that joins several; the attribution credits each. Absent, it credits the title and source_url. Where the rows carry ids, the book credits per block: each page\u2019s footer names only the works its blocks name in data-source, its exercises\u2019 origins among them (content-format.md, text.html: provenance).'),
   copyright: z.string().optional().describe('The holder named in the book\u2019s copyright notice, kept because the licence asks for it.'),
   license: z.string().describe('The licence the book is shared under, as its notice names it.'),
   license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
@@ -224,6 +238,7 @@ export const BookSchema = z.object({
   sheets: z.array(SheetSchema).default([]).describe('The reference sheets the book keeps beside its chapters, each a page of its own at the book\u2019s root.'),
   colours: BookColoursSchema.optional().describe('The book\u2019s default colour for each type and the order its referents walk the default referent palette in, written by `npm run colours:default -- <book-id>` and kept as it was written until the script is run again. Absent, the types take the hue-families palette in the order they are declared.'),
 }).strict().superRefine((b, ctx) => {
+  if (b.sources && b.sources.some((w) => w.id !== undefined) && b.sources.some((w) => w.id === undefined)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['sources'], message: 'sources rows carry an id on every row or on none' });
   if (b.translation !== undefined && b.translation_of === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['translation'], message: 'translation is written only on a book that names translation_of' });
 }).transform((b) => ({
   id: b.id, title: b.title, publisher: b.publisher, authors: b.authors, sourceUrl: b.source_url, copyright: b.copyright,
@@ -581,6 +596,22 @@ export const SectionSchema = z.object({
 }));
 export type SectionDTO = z.infer<typeof SectionSchema>;
 
+/* <chapter>/<section>/exercises-nc.json: the section's exercise cards under a NonCommercial licence, kept
+   out of section.json so that a book shared under a licence that allows commercial use (CC BY-SA) holds no
+   NC material in any of its own units, and an edition without them is the book with these files dropped
+   (npm run export:by-sa). Its two tables are section.json's own, row for row; each card names an origin
+   whose licence is NC, and wears its own licence line: the file's licence, else its origin's. */
+export const ExercisesNcSchema = z.object({
+  section: z.string().optional().describe('The section the file belongs to, its folder\u2019s number; the check holds it to that.'),
+  license: z.string().optional().describe('The licence the cards are shared under, which each card prints as its own licence line: an NC licence, such as CC BY-NC-SA 4.0. Absent, a card prints its origin\u2019s licence.'),
+  license_url: z.string().url().optional().describe('The licence\u2019s own page.'),
+  exercises: z.array(ExerciseSchema).default([]).describe('The section\u2019s NC exercise cards, set with its other exercises, after them.'),
+  exercise_concepts: z.array(ExerciseConceptSchema).default([]).describe('Which concepts each NC card tests.'),
+}).strict();
+export type ExercisesNcDTO = z.infer<typeof ExercisesNcSchema>;
+/* A licence that forbids commercial use, as a licence's name writes it: CC BY-NC-SA 4.0, CC BY-NC 3.0. */
+export const isNonCommercial = (license: string | undefined): boolean => license !== undefined && /\bNC\b|NonCommercial/i.test(license);
+
 /* ---------- every table by name, for the docs generator ---------- */
 
 /* Which of the three files a table is written in, and so which level of the
@@ -598,6 +629,7 @@ export const TABLES: Readonly<Record<string, TableDoc>> = {
   types: { level: 'book', file: 'book.json', field: 'types', schema: TypeSchema, note: 'The kinds of thing the book colours (a quantity, a curve, a part\u2026), in the order the colour scheme lays its hues along.' },
   symbols: { level: 'book', file: 'book.json', field: 'symbols', schema: SymbolSchema, note: 'Every symbol the book writes with a macro or names in a \\htmlData{sym=\u2026}.' },
   exercise_kinds: { level: 'book', file: 'book.json', field: 'exercise_kinds', schema: ExerciseKindSchema, note: 'The kinds of exercise the book sets.' },
+  sources: { level: 'book', file: 'book.json', field: 'sources', schema: BookSourceSchema, note: 'The published works a book joins, for a book made from several; with ids, the works its blocks, figures, code sets and exercises name, each with the credit its licence asks for.' },
   exercise_sources: { level: 'book', file: 'book.json', field: 'exercise_sources', schema: ExerciseSourceSchema, note: 'The sources other than the book that exercises are taken from.' },
   concepts: { level: 'book', file: 'book.json', field: 'concepts', schema: ConceptSchema, note: 'Every concept of the book, since ids are canonical and a chapter\u2019s prerequisites live in other chapters.' },
   forms: { level: 'book', file: 'book.json', field: 'concepts[].forms', schema: FormSchema, note: 'The equations that state one concept, the main form first.' },
@@ -694,6 +726,8 @@ const SourceNamedServedExerciseSchema = ExerciseSchema
     concepts: z.array(CONCEPT_REF).default([]),
     weights: z.record(z.number()).optional(),
     credit: ExerciseSourceSchema.optional(),
+    nc: z.literal(true).optional(),   /* an NC card, read from exercises-nc.json, which wears its licence on its face */
+    cardLicense: z.object({ name: z.string(), url: z.string().optional() }).optional(),   /* that licence line */
     corrections: z.array(z.object({ html: z.string(), solution: z.boolean().optional(), hint: z.boolean().optional() })).optional(),
   })
   .strip()
