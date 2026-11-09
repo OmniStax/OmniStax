@@ -100,7 +100,7 @@ TABLES: dict[TableName, Table] = {
         "id": _f(True), "label": _f(True)}, ("id", "label")),
     "exercise_sources": Table("book", ("id",), {
         "id": _f(True), "title": _f(True), "short": _f(), "author": _f(), "url": _f(),
-        "license": _f(), "license_url": _f()}, ("id", "short", "title", "author", "license")),
+        "license": _f(), "license_url": _f(), "copyright": _f(), "notice": _f()}, ("id", "short", "title", "author", "license")),
     "concepts": Table("book", ("id",), {
         "id": _f(True), "kind": _f(True, enum=KIND), "section": _f(True), "name": _f(True),
         "symbol": _f(), "terms": _f(kind="list"), "type": _f(), "statement": _f(), "forms": _f(kind="list")},
@@ -898,7 +898,7 @@ def cmd_write(args: argparse.Namespace) -> int:
     return report_write(book.id, place.label)
 
 
-SECTION_FIELDS = ("lead", "ai", "summary_html", "exercise_notes")
+SECTION_FIELDS = ("lead", "ai", "summary_html", "notes", "exercise_notes")
 
 
 def cmd_field(args: argparse.Namespace) -> int:
@@ -909,7 +909,7 @@ def cmd_field(args: argparse.Namespace) -> int:
     book = book_of(args.book)
     path = section_path(book, args.section)
     record = load(path)
-    value = args.value if args.name in ("lead", "summary_html", "exercise_notes") else json.loads(args.value)
+    value = args.value if args.name in ("lead", "summary_html", "notes", "exercise_notes") else json.loads(args.value)
     record[args.name] = value
     write_record(path, record)
     print(f"field: {args.section} {args.name} set")
@@ -1126,10 +1126,10 @@ def parser() -> argparse.ArgumentParser:
             w.add_argument("--unset", action="append", default=[], metavar="FIELD",
                            help="take a field out of the row; repeat for more")
 
-    field = subs.add_parser("field", help="set one of a section's own fields: lead, ai, summary_html, exercise_notes")
+    field = subs.add_parser("field", help="set one of a section's own fields: lead, ai, summary_html, notes, exercise_notes")
     field.add_argument("book")
-    field.add_argument("name", help="lead, ai, summary_html or exercise_notes")
-    field.add_argument("value", help="the text of a lead, summary_html or exercise_notes; JSON for ai")
+    field.add_argument("name", help="lead, ai, summary_html, notes or exercise_notes")
+    field.add_argument("value", help="the text of a lead, summary_html, notes or exercise_notes; JSON for ai")
     field.add_argument("--section", required=True)
 
     for name in ("merge", "log"):
