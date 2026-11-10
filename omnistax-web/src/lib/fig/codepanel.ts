@@ -11,6 +11,19 @@
    each other language maps those lines to its own (trace.ts, LineMap), so a switch keeps the stop the
    reader is on and only redraws the code. A language the AI translated wears the AI mark beside the group.
 
+   Pseudocode a source prints for the same algorithm is one more language of the panel, its first button,
+   and what a reader who has chosen no language sees. It is set as the source prints it: no strings and no
+   comments are read in it, only names.
+
+   What the code is run on is read in the code itself, so the eye stays on it (book RULES, Figures):
+   - the inputs, a choice of named cases, sit in the panel's call row, straight above the code they feed;
+   - an argument that keeps one value for the whole run is written as that value wherever the code reads it
+     after the line that declares it (`range(n, 0, -1)` reads `range(5, 0, -1)`), in the name's own colour
+     with a dotted line under it, and the call row says `n = 5`; the "n → 5" button on the head shows the
+     code as printed;
+   - a variable the last step changed or read says its value at the end of the last line run that names it,
+     as a debugger's inline values do. There is no watch panel under the drawing.
+
    The tokenizer is deliberately tiny: it finds names outside strings and comments, which is all the
    colouring needs, and carries a multi-line string or comment across lines. The styles are in global.css
    under `.cp`. */
@@ -33,7 +46,8 @@ const NAME = /[A-Za-z_$][A-Za-z0-9_$]*/y;
 /* the lines of src as tokens; joined back, each line's tokens are exactly that line */
 export function tokenize(src: string, lang: Lang): Tok[][] {
   const out: Tok[][] = [];
-  const hash = lang === 'python', slashes = !hash, backtick = lang === 'javascript', triples = lang === 'python' || lang === 'java';
+  const pseudo = lang === 'pseudocode';
+  const hash = lang === 'python', slashes = !hash && !pseudo, backtick = lang === 'javascript', triples = lang === 'python' || lang === 'java';
   let mode: Mode = null;
   for (const line of src.split('\n')) {
     const toks: Tok[] = [];
@@ -65,7 +79,7 @@ export function tokenize(src: string, lang: Lang): Tok[][] {
       const c = line[i];
       if ((hash && c === '#') || (slashes && line.startsWith('//', i))) { push('comment', line.slice(i)); i = line.length; break; }
       if (slashes && line.startsWith('/*', i)) { push('comment', '/*'); i += 2; mode = { end: '*/', t: 'comment' }; carry(); continue; }
-      if (c === '"' || c === "'" || (backtick && c === '`')) {
+      if (!pseudo && (c === '"' || c === "'" || (backtick && c === '`'))) {
         const triple = triples && line.startsWith(c.repeat(3), i);
         const q = triple ? c.repeat(3) : c;
         push('str', q); i += q.length; mode = { end: q, t: 'str' }; carry(); continue;
@@ -110,14 +124,24 @@ export type CodeOpts = {
   /* the book whose code language the panel follows; absent, the one the panel stands in */
   readonly book?: string;
 };
-export type Shown = { readonly block: Block | null; readonly executed?: ReadonlySet<number>; readonly line?: number; readonly touched?: ReadonlySet<string> };
+export type Shown = {
+  readonly block: Block | null; readonly executed?: ReadonlySet<number>; readonly line?: number; readonly touched?: ReadonlySet<string>;
+  /* the variables that may say their value inline, each as the watch writes it, by their canonical names */
+  readonly values?: ReadonlyMap<string, string>;
+  /* the arguments that keep one value for the whole run, each as written */
+  readonly consts?: ReadonlyMap<string, string>;
+};
 export type Code = {
   readonly el: HTMLElement;
   /* the language shown, its code and its number of lines */
   readonly lang: Lang; readonly src: string; readonly lines: number;
   readonly langs: readonly Lang[]; readonly canonical: Lang;
+  /* the code the trace's lines are numbered in */
+  readonly canonicalSrc: string;
   /* the canonical blocks the trace is stepped on */
   readonly tree: Tree;
+  /* the row above the code where the debugger sets its choice of inputs */
+  readonly call: HTMLElement;
   show: (s: Shown) => void;
   /* the colour of a code name, or null for ink */
   colour: (name: string) => string | null;
@@ -163,6 +187,10 @@ const listen = (): void => {
   });
 };
 
+/* Whether a run's fixed arguments are written as their values, for every panel of the page: the reader's
+   press on any panel's "values" button. Not kept across pages: the code as the source prints it is one press away. */
+let valuesOn = true;
+const valueFollowers = new Set<WeakRef<{ redraw: () => void }>>();
 const LINE_EM = 1.5;   /* the line height the band is placed by, in em; global.css .cp-src holds the same */
 export function codePanel(host: HTMLElement, o: CodeOpts): Code {
   const srcs = sources(o);
@@ -198,23 +226,28 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
   const mk = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string): HTMLElementTagNameMap[K] => { const e = doc.createElement(tag); e.className = cls; return e; };
   const el = mk('div', 'cp'); el.setAttribute('role', 'group'); el.setAttribute('aria-label', msg('fig.code.label'));
   /* the head: the button group, where there is more than one language, and the AI mark of a translation */
-  const head = langs.length > 1 || o.ai ? el.appendChild(mk('div', 'cp-head')) : null;
-  const group = head && langs.length > 1 ? head.appendChild(mk('div', 'cp-langs')) : null;
+  const head = el.appendChild(mk('div', 'cp-head'));
+  const group = langs.length > 1 ? head.appendChild(mk('div', 'cp-langs')) : null;
   group?.setAttribute('role', 'group'); group?.setAttribute('aria-label', msg('fig.code.language'));
   const buttons = new Map<Lang, HTMLButtonElement>();
   langs.forEach((l) => {
     if (!group) return;
-    const b = group.appendChild(mk('button', 'cp-lang')); b.type = 'button'; b.dataset.lang = l; b.textContent = LISTING_LABELS[l];
+    const b = group.appendChild(mk('button', 'cp-lang')); b.type = 'button'; b.dataset.lang = l; b.textContent = l === 'pseudocode' ? msg('fig.code.pseudocode') : LISTING_LABELS[l];
     b.addEventListener('click', () => { if (book) setCodeLang(book, l); else setLang(l); });
     buttons.set(l, b);
   });
-  const mark = head ? head.appendChild(mk('span', 'cp-ai')) : null;
+  const mark = head.appendChild(mk('span', 'cp-ai'));
+  const valuesBtn = head.appendChild(mk('button', 'cp-values')); valuesBtn.type = 'button'; valuesBtn.hidden = true;
+  valuesBtn.textContent = msg('fig.code.values'); valuesBtn.title = msg('fig.code.valuesHint');
+  valuesBtn.addEventListener('click', () => { valuesOn = !valuesOn; valueFollowers.forEach((w) => { const f = w.deref(); if (f) f.redraw(); else valueFollowers.delete(w); }); });
   const bylineOf = (l: Lang): string | null => {
     const s = o.ai?.[l]; if (s === undefined) return null;
     const m = parseMaker(s);
     if (!m) { console.error(`F.code: ai.${l} is "${s}", not "<model id> [low|medium|high|max]"`); return msg('content.ai.mark'); }
     return aiByline([m], currentLocale()) ?? msg('content.ai.mark');
   };
+  const callRow = el.appendChild(mk('div', 'cp-call'));
+  const call = callRow.appendChild(mk('div', 'cp-inputs')), args = callRow.appendChild(mk('div', 'cp-args'));
   const body = el.appendChild(mk('div', 'cp-body'));
   const pre = body.appendChild(mk('pre', 'cp-src')); pre.style.setProperty('--cp-lh', `${LINE_EM}em`);
   const band = pre.appendChild(mk('span', 'cp-band')); band.setAttribute('aria-hidden', 'true');
@@ -222,12 +255,15 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
   host.appendChild(el);
 
   let cur: Lang = pickLang(langs, book ? codeLangOf(book) : null);
-  let names: { name: string; el: HTMLElement }[] = [];
-  let rows: HTMLElement[] = [];
+  /* every name of the code shown: `name` is its refs key where it has one (so its colour), `word` what the code writes */
+  let names: { name: string; word: string; line: number; el: HTMLElement }[] = [];
+  let rows: HTMLElement[] = [], inlays: HTMLElement[] = [];
+  /* the first line of the code shown that writes a name: where an argument is declared */
+  let firstLine = new Map<string, number>();
   let last: Shown | null = null, lastBlock: string | null | undefined;
   const render = (): void => {
     rows.forEach((r) => r.remove());
-    names = [];
+    names = []; inlays = []; firstLine = new Map();
     const refs = refsOf(cur);
     rows = tokenize(srcs[cur] ?? '', cur).map((line, n) => {
       const row = pre.appendChild(mk('span', 'cp-line')); row.dataset.line = String(n + 1);
@@ -236,12 +272,20 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
       line.forEach((tk) => {
         const key = tk.t === 'name' ? (has(refs, tk.s) ? tk.s : null) : tk.t === 'attr' ? attrKey(refs, tk.of) : null;
         if (key !== null) {
-          const v = code.appendChild(mk('span', 'cp-var')); v.textContent = tk.s; v.dataset.var = key; names.push({ name: key, el: v });
+          const v = code.appendChild(mk('span', 'cp-var')); v.textContent = tk.s; v.dataset.var = key; names.push({ name: key, word: tk.s, line: n + 1, el: v });
+          if (!firstLine.has(key)) firstLine.set(key, n + 1);
+        } else if (tk.t === 'name') {
+          const v = code.appendChild(mk('span', 'cp-n')); v.textContent = tk.s; names.push({ name: tk.s, word: tk.s, line: n + 1, el: v });
+          if (!firstLine.has(tk.s)) firstLine.set(tk.s, n + 1);
         } else code.appendChild(doc.createTextNode(tk.s));
       });
       if (!line.length) code.appendChild(doc.createTextNode(' '));
+      inlays.push(row.appendChild(mk('span', 'cp-inlay')));
       return row;
     });
+    /* the panel is as wide as the code shown and one inline value, so a step never moves the drawing beside it */
+    const widest = Math.max(34, ...(srcs[cur] ?? '').split('\n').map((x) => x.length + 13));
+    el.style.setProperty('--cp-w', `calc(${Math.min(widest, 96)}ch + 3.4em + 14px)`);
     el.dataset.lang = cur;
     buttons.forEach((b, l) => { b.setAttribute('aria-pressed', String(l === cur)); b.classList.toggle('on', l === cur); });
     if (mark) {
@@ -263,7 +307,46 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
     const r = b ? rangeIn(b) : null;
     const ran = s.executed ? mapLines(map, s.executed) : new Set<number>();
     const at = new Set(s.line === undefined ? [] : mapLine(map, s.line));
-    names.forEach(({ name, el: v }) => { v.style.color = colour(name) ?? ''; v.classList.toggle('touched', !!s.touched?.has(name)); });
+    const consts = s.consts ?? new Map<string, string>(), values = s.values ?? new Map<string, string>();
+    valuesBtn.hidden = !consts.size; valuesBtn.classList.toggle('on', valuesOn); valuesBtn.setAttribute('aria-pressed', String(valuesOn));
+    /* a fixed argument reads as its value everywhere but on the line that declares it */
+    names.forEach(({ name, word, line, el: v }) => {
+      const c = colour(name);
+      v.style.color = c ?? ''; v.classList.toggle('touched', !!s.touched?.has(name));
+      const sub = valuesOn && consts.has(name) && firstLine.get(name) !== line;
+      const want = sub ? consts.get(name)! : word;
+      if (v.textContent !== want) v.textContent = want;
+      v.classList.toggle('cp-sub', sub);
+      if (sub) v.title = word; else v.removeAttribute('title');
+    });
+    /* inline values: an argument on its declaring line; a variable on the last line run that names it */
+    const says = new Map<number, [string, string][]>();
+    const say = (L: number, name: string, val: string): void => { const a = says.get(L) ?? []; a.push([name, val]); says.set(L, a); };
+    /* the fixed arguments stand in the call row, beside the inputs that set them: a signature is often too long to end on one */
+    const argKey = Array.from(consts, ([a, b]) => `${a}=${b}`).join(';');
+    if (args.dataset.k !== argKey) {
+      args.dataset.k = argKey;
+      args.replaceChildren(...Array.from(consts, ([name, val]) => {
+        const one = mk('span', 'cp-arg'), nm = one.appendChild(mk('span', 'cp-inlay-name')); nm.textContent = name;
+        one.appendChild(doc.createTextNode(` = ${val}`)); return one;
+      }));
+    }
+    args.querySelectorAll<HTMLElement>('.cp-inlay-name').forEach((e) => { e.style.color = colour(e.textContent ?? '') ?? ''; });
+    values.forEach((val, name) => {
+      if (consts.has(name)) return;
+      let L = -1;
+      names.forEach((x) => { if (x.name === name && ran.has(x.line) && x.line > L) L = x.line; });
+      if (L > 0) say(L, name, val);
+    });
+    inlays.forEach((box, n) => {
+      const list = says.get(n + 1) ?? [], key = list.map(([a, b]) => `${a}=${b}`).join(';');
+      if (box.dataset.k === key) { box.querySelectorAll<HTMLElement>('.cp-inlay-name').forEach((e) => { e.style.color = colour(e.textContent ?? '') ?? ''; }); return; }
+      box.dataset.k = key;
+      box.replaceChildren(...list.map(([name, val]) => {
+        const one = mk('span', 'cp-inlay-one'), nm = one.appendChild(mk('span', 'cp-inlay-name')); nm.textContent = name; nm.style.color = colour(name) ?? '';
+        one.appendChild(doc.createTextNode(` = ${val}`)); return one;
+      }));
+    });
     rows.forEach((row, n) => {
       const L = n + 1;
       row.classList.toggle('ran', ran.has(L));
@@ -274,6 +357,15 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
       band.style.top = `calc(var(--cp-pad) + ${r[0] - 1} * var(--cp-lh))`;
       band.style.height = `calc(${r[1] - r[0] + 1} * var(--cp-lh))`;
       band.classList.add('on');
+      /* a long listing scrolls inside its panel, never the page: the block shown is brought into the panel's view */
+      if (body.scrollHeight > body.clientHeight + 4) {
+        const a = rows[r[0] - 1], z = rows[r[1] - 1];
+        if (a && z) {
+          const top = a.offsetTop, bottom = z.offsetTop + z.offsetHeight;
+          if (top < body.scrollTop + 8) body.scrollTop = Math.max(0, top - 24);
+          else if (bottom > body.scrollTop + body.clientHeight - 8) body.scrollTop = Math.min(top - 24, bottom - body.clientHeight + 24);
+        }
+      }
     } else band.classList.remove('on');
     const id = b ? b.id : null;
     if (id !== lastBlock) {
@@ -296,12 +388,8 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
     void band.offsetHeight; band.style.transition = '';
     told.forEach((f) => f(cur));
   }
-  /* as wide as the widest language, so a switch does not move the drawing beside it */
-  if (langs.length > 1) {
-    const widest = Math.max(...langs.flatMap((l) => (srcs[l] ?? '').split('\n').map((x) => x.length)));
-    pre.style.minWidth = `calc(${widest}ch + 3.4em + 14px)`;
-  }
   render();
+  { const f = { redraw: (): void => { if (last) show(last); } }; (el as HTMLElement & { cpValues?: unknown }).cpValues = f; valueFollowers.add(new WeakRef(f)); }
   if (book && langs.length > 1) {
     listen();
     /* the panel's element holds its follower, so the follower lives as long as the panel does */
@@ -311,7 +399,7 @@ export function codePanel(host: HTMLElement, o: CodeOpts): Code {
   }
   return {
     el, get lang() { return cur; }, get src() { return srcs[cur] ?? ''; }, get lines() { return rows.length; },
-    langs, canonical, tree: t, show, colour, setLang, onLang: (f) => { told.push(f); },
+    langs, canonical, canonicalSrc: srcs[canonical] ?? '', tree: t, call, show, colour, setLang, onLang: (f) => { told.push(f); },
     shownLine: (line) => (cur === canonical ? line : mapLine(maps[cur], line)[0] ?? line),
   };
 }

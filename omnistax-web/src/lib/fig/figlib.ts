@@ -903,6 +903,20 @@ function measure(ctx: Ctx, s: string, o: Pick<TextOpts, 'size' | 'weight' | 'ita
   ctx.save(); const w = widthsOf(ctx, runs, shownAt(ctx, o.size ?? 22), o.weight ?? 400, !!o.italic).reduce((a, b) => a + b, 0); ctx.restore();
   return w;
 }
+/* `F.rich(ctx, parts, x, y, opts)`: one line set in more than one colour. A part is a string, set in ink (the plain
+   weight), or `[string, colour, weight?]`, set in that colour and semibold. It is how a figure colours the value
+   and not the sentence: in "checks 3 ≤ n − 1 = 7" only the 3 wears the cost colour, so the colour picks out
+   the one number worth finding (book RULES, Figures). */
+export type RichPart = string | readonly [string, Color, number?];
+/* `F.marked('checks [[3]] of 7', colour)`: the parts of a line whose `[[…]]` runs wear the colour, for F.rich */
+const marked = (s: string, color: Color): RichPart[] => s.split(/\[\[(.*?)\]\]/).map((t, i) => (i % 2 ? ([t, color] as const) : t));
+function rich(ctx: Ctx, parts: readonly RichPart[], x: Logical, y: Logical, o: TextOpts = {}): void {
+  const P = parts.filter((p) => (typeof p === 'string' ? p : p[0]) !== '').map((p) => (typeof p === 'string' ? ([p, PAL.ink, o.weight ?? 400] as const) : ([p[0], p[1], p[2] ?? 600] as const)));
+  const ws = P.map(([t, , w]) => measure(ctx, t, { size: o.size, weight: w, italic: o.italic, tex: o.tex }));
+  const total = ws.reduce((a, b) => a + b, 0), align = o.align ?? 'left';
+  let cx = align === 'center' ? x - total / 2 : align === 'right' || align === 'end' ? x - total : x;
+  P.forEach(([t, c, w], i) => { text(ctx, t, cx, y, c, { ...o, weight: w, align: 'left' }); cx += ws[i]; });
+}
 /* the height a size is shown at, in logical units */
 const shownH = (ctx: Ctx, size: number): Logical => shownAt(ctx, size)[0];
 const oneline = (ctx: Ctx, s: string, color?: Color): void => text(ctx, s, LW / 2, 46, color ?? PAL.ink, { size: 26, align: 'center', tex: true });
@@ -3988,13 +4002,19 @@ const circuit = Object.assign(circuitFig, { run: Q.run, layout: Q.layoutOf, ket:
    level, each exact in either direction; a step button plays the one move from where the cursor is to where
    it goes, and reduced motion jumps. `draw` gets the frame shown and the one it came from, `k` (0 … 1, eased)
    between them for the pointers' motion, the block and its level, what the block touches, and the lines the
-   step ran. The variables of the frame are the readout (the watch), unless `watch: false`. Inputs (hit, miss,
-   duplicates) are a choice that swaps the trace. */
-type DebugInput = { readonly value: string; readonly label: string; readonly trace: readonly TR.Frame[] };
+   step ran. The code and the drawing stand side by side and are seen together: the figure takes the pane's
+   width (global.css, figure.sim.dbg), the drawing is never drawn larger than the text column would draw it,
+   and never taller than the window. What the run is on is read in the code panel (codepanel.ts): the inputs
+   (hit, miss, duplicates, each a named case) are a choice in its call row that swaps the trace; an argument
+   that keeps one value for the whole run is written into the code as that value; and the variables named in
+   `watch` say their values inline, on the last line run that names them (`watch: false` for none). `args`,
+   on the figure or on an input, names fixed arguments the trace does not record. */
+type DebugInput = { readonly value: string; readonly label: string; readonly trace: readonly TR.Frame[]; readonly args?: Readonly<Record<string, TR.Value>> };
 type DebugOpts = {
   readonly code: Code; readonly trace?: readonly TR.Frame[]; readonly inputs?: readonly DebugInput[]; readonly value?: string;
   readonly level?: number; readonly beat?: number;
   readonly watch?: false | readonly string[];
+  readonly args?: Readonly<Record<string, TR.Value>>;
   readonly draw: (g: DebugState) => void;
 };
 export type DebugState = {
@@ -4023,9 +4043,30 @@ function code(d: { readonly stage: HTMLElement; readonly c: HTMLCanvasElement | 
   const row = el('div', 'dbg-row');
   if (d.c) d.stage.insertBefore(row, d.c); else d.stage.prepend(row);
   const cp = codePanel(row, o);
-  if (d.c) row.appendChild(el('div', 'dbg-draw')).appendChild(d.c);
+  if (d.c) { row.appendChild(el('div', 'dbg-draw')).appendChild(d.c); d.c.style.setProperty('--ch', d.c.dataset.h ?? '700'); }
+  d.stage.closest('figure')?.classList.add('dbg');
   return cp;
 }
+/* Whether the code assigns to a name anywhere: an argument it never assigns to keeps its value for the run. */
+const assigns = (src: string, name: string): boolean => {
+  const n = name.replace(/[$]/g, '\\$&');
+  const direct = new RegExp(`(^|[^\\w.])${n}\\s*(=(?!=)|[-+*/%&|^]=|//=|<<=|>>=|:=|←|\\+\\+|--)|(\\+\\+|--)\\s*${n}\\b|\\bfor\\s+(\\w+\\s*,\\s*)*${n}\\b`);
+  const tuple = new RegExp(`^\\s*[\\w\\s,]*\\b${n}\\b[\\w\\s,]*=(?!=)`);
+  return src.split('\n').slice(1).some((l) => direct.test(l) || tuple.test(l));
+};
+/* The arguments of a run that keep one value: scalars the trace records with the same value in every frame that
+   has them, which the code's first line names and no later line assigns to. */
+const fixedArgs = (frames: readonly TR.Frame[], src: string): Map<string, TR.Value> => {
+  const out = new Map<string, TR.Value>(), bad = new Set<string>();
+  const head = new Set((src.split('\n')[0] ?? '').match(/[A-Za-z_$][A-Za-z0-9_$]*/g) ?? []);
+  frames.forEach((f) => Object.entries(f.vars).forEach(([k, v]) => {
+    if (bad.has(k) || !head.has(k)) return;
+    if (v === null || typeof v === 'object' || (out.has(k) && out.get(k) !== v)) { bad.add(k); out.delete(k); return; }
+    out.set(k, v);
+  }));
+  out.forEach((_, k) => { if (assigns(src, k)) out.delete(k); });
+  return out;
+};
 type DebugSim = { readonly stage: HTMLElement; readonly fig: HTMLElement; readonly controls: HTMLElement; readonly readout: HTMLElement; readonly c: HTMLCanvasElement | null };
 function debugFig(d: DebugSim, o: DebugOpts): Debug {
   const cp = o.code, beat = o.beat ?? 1.4, inputs = o.inputs ?? [];
@@ -4033,9 +4074,17 @@ function debugFig(d: DebugSim, o: DebugOpts): Debug {
   const py = (): boolean => cp.lang === 'python';
   cp.onLang(() => { dots(); touch(d.fig); });
   let inValue = o.value ?? inputs[0]?.value ?? null;
-  const traceNow = (): readonly TR.Frame[] => inputs.find((x) => x.value === inValue)?.trace ?? o.trace ?? inputs[0]?.trace ?? [];
+  const inputNow = (): DebugInput | undefined => inputs.find((x) => x.value === inValue);
+  const traceNow = (): readonly TR.Frame[] => inputNow()?.trace ?? o.trace ?? inputs[0]?.trace ?? [];
+  /* the run's fixed arguments, as the code panel writes them in */
+  let fixed = new Map<string, TR.Value>();
+  const refix = (): void => {
+    fixed = fixedArgs(traceNow(), cp.canonicalSrc);
+    Object.entries({ ...(o.args ?? {}), ...(inputNow()?.args ?? {}) }).forEach(([k, v]) => { if (v !== null && typeof v !== 'object') fixed.set(k, v); });
+  };
   const levelOf = (l: TR.Laid): number => Math.max(0, Math.min(l.stops.length - 1, o.level ?? TR.defaultLevel(l)));
   let laid = TR.lay(traceNow(), cp.tree), level = levelOf(laid), S = TR.stopsAt(laid, level);
+  refix();
   if (!laid.frames.length) console.error('F.debug: the trace has no frames');
   const cy = cycle(() => Math.max(0, S.length - 1), 1.2);
   if (REDUCED) cy.tau = 0;   /* a debugger opens on its first stop, at rest */
@@ -4059,9 +4108,10 @@ function debugFig(d: DebugSim, o: DebugOpts): Debug {
     touch(d.fig);
   }
   const retrace = (fr: readonly TR.Frame[]): void => {
-    jump = null; came = -1; laid = TR.lay(fr, cp.tree); setLevel(levelOf(laid)); cy.reset(); if (REDUCED) cy.tau = 0; touch(d.fig);
+    jump = null; came = -1; laid = TR.lay(fr, cp.tree); refix(); setLevel(levelOf(laid)); cy.reset(); if (REDUCED) cy.tau = 0; touch(d.fig);
   };
-  const input = inputs.length > 1 ? (inputs.length > 4 ? select : choice)(d.controls, {
+  /* the inputs stand in the code panel's call row, over the code they feed; a long list is a dropdown */
+  const input = inputs.length > 1 ? (inputs.length > 6 ? select : choice)(cp.call, {
     label: `\\text{${msg('fig.debug.inputLabel')}}`, key: 'input', value: inValue ?? undefined, aria: msg('fig.debug.inputAria'), ms: 0,
     options: inputs.map((x) => ({ value: x.value, label: x.label })),
     onInput: (v) => { inValue = v; retrace(traceNow()); },
@@ -4095,17 +4145,18 @@ function debugFig(d: DebugSim, o: DebugOpts): Debug {
     btns.into.disabled = atEnd;
     btns.out.disabled = level <= 0;
   }
-  const watchEl = o.watch === false ? null : d.readout.appendChild(el('div', 'dbg-watch'));
-  function watch(f: TR.Frame, touched: ReadonlySet<string>): void {
-    if (!watchEl) return;
-    const names = (o.watch || Object.keys(f.vars)).filter((n) => n in f.vars);
-    watchEl.replaceChildren(...names.map((n) => {
-      const s = el('span', 'dbg-var'), nm = s.appendChild(el('span', 'dbg-name')); nm.textContent = n;
-      const c = cp.colour(n); if (c) nm.style.color = c;
-      s.classList.toggle('touched', touched.has(n));
-      s.appendChild(document.createTextNode(` = ${watchValue(f.vars[n], py())}`)); return s;
-    }));
-  }
+  /* the variables that say their value inline: the watched ones, where the value is short enough to sit on a line */
+  const INLINE_MAX = 22;
+  const inline = (f: TR.Frame): Map<string, string> => {
+    const out = new Map<string, string>();
+    if (o.watch === false) return out;
+    (o.watch ?? Object.keys(f.vars)).forEach((n) => {
+      if (!(n in f.vars)) return;
+      const v = watchValue(f.vars[n], py()); if (v.length <= INLINE_MAX) out.set(n, v);
+    });
+    return out;
+  };
+  const consts = (): Map<string, string> => new Map(Array.from(fixed, ([k, v]) => [k, watchValue(v, py())] as const));
 
   function draw(): void {
     const { frames } = laid; if (!frames.length) return;
@@ -4120,8 +4171,7 @@ function debugFig(d: DebugSim, o: DebugOpts): Debug {
     const executed = TR.executed(laid, Math.min(from, to), Math.max(from, to));
     dotEls.forEach((b, j) => b.classList.toggle('at', j === stop));
     const sm = simNow(); if (sm) syncScrub(sm);   /* the scrubber follows a step made while paused too */
-    cp.show({ block, executed, line: frame.line, touched });
-    watch(frame, touched);
+    cp.show({ block, executed, line: frame.line, touched, values: inline(frame), consts: consts() });
     const ctx = d.c ? begin(d.c).ctx : null;
     o.draw({
       ctx, frame, prev, k, block, level, levels: laid.stops.length, touched, executed, p: to, stop, stops: S.length, input: inValue,
@@ -4178,7 +4228,7 @@ export const FIG = {
   vectorTriangle, wrap,
   story, keyframes, solve, presence, fade3, fadeEl, regroup, layoutPlan,
   ease, lerp, partial, tween, tour, morph, morphAt,
-  arrival, stagger, resample, lerpPts, measure,
+  arrival, stagger, resample, lerpPts, measure, rich, marked,
   faded, mixColor, blendCurve, readout,
   plot, shade, riemann, tangent, secant, drag, band, judge,
   revolve,

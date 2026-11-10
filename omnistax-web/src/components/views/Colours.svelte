@@ -188,7 +188,7 @@
       <div class="eyebrow">{i18n.t('views.colours.codeLanguage')}</div>
       <p class="note explain">{i18n.t('views.colours.codeLanguageExplain')}</p>
       <div class="code-langs" role="radiogroup" aria-label={i18n.t('views.colours.codeLanguage')}>
-        {#each LISTING_LANGS as l (l)}<button type="button" role="radio" aria-checked={l === codeLang} class:on={l === codeLang} onclick={() => codeLangs.set(book, l)}>{LISTING_LABELS[l]}</button>{/each}
+        {#each LISTING_LANGS as l (l)}<button type="button" role="radio" aria-checked={l === codeLang} class:on={l === codeLang} onclick={() => codeLangs.set(book, l)}>{l === 'pseudocode' ? i18n.t('content.code.pseudocode') : LISTING_LABELS[l]}</button>{/each}
       </div>
     {/if}
 

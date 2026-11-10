@@ -15,14 +15,17 @@ import { describeRecord } from '../src/lib/sync/describe';
 
 /* ---------- the languages ---------- */
 
-test('the languages are Python, Java, C++ and JavaScript, in that order, Python the default', () => {
-  assert.deepEqual([...LISTING_LANGS], ['python', 'java', 'cpp', 'javascript']);
-  assert.deepEqual(LISTING_LANGS.map((l) => LISTING_LABELS[l]), ['Python', 'Java', 'C++', 'JavaScript']);
-  assert.deepEqual(inOrder(['javascript', 'cpp', 'rust', 'python', 'cpp']), ['python', 'cpp', 'javascript']);
+test('the languages are pseudocode, Python, Java, C++ and JavaScript, in that order; pseudocode is shown unchosen, Python where a listing lacks it', () => {
+  assert.deepEqual([...LISTING_LANGS], ['pseudocode', 'python', 'java', 'cpp', 'javascript']);
+  assert.deepEqual(LISTING_LANGS.map((l) => LISTING_LABELS[l]), ['Pseudocode', 'Python', 'Java', 'C++', 'JavaScript']);
+  assert.deepEqual(inOrder(['javascript', 'cpp', 'rust', 'python', 'pseudocode', 'cpp']), ['pseudocode', 'python', 'cpp', 'javascript']);
   assert.equal(pickLang(['python', 'java'], 'java'), 'java');
   assert.equal(pickLang(['python', 'java'], 'cpp'), 'python', 'a language the listing lacks falls back to Python');
   assert.equal(pickLang(['javascript', 'java'], 'cpp'), 'java', 'and without Python to the first in the book’s order');
   assert.equal(pickLang(['python'], null), 'python');
+  assert.equal(pickLang(['pseudocode', 'python', 'java'], 'pseudocode'), 'pseudocode', 'the default shows a listing’s pseudocode');
+  assert.equal(pickLang(['python', 'java'], 'pseudocode'), 'python', 'and Python where the listing has none');
+  assert.equal(pickLang(['pseudocode', 'python'], 'java'), 'python', 'a chosen language a listing lacks is Python, never pseudocode');
 });
 
 test('a translation names its maker as a model id and an effort', () => {
@@ -35,23 +38,23 @@ test('a translation names its maker as a model id and an effort', () => {
 
 /* ---------- the preference ---------- */
 
-test('the code language is the book’s, Python until chosen, and a choice reaches every listener with its book', () => {
+test('the code language is the book’s, the default (pseudocode, else Python) until chosen, and a choice reaches every listener with its book', () => {
   assert.equal(codeLangKey('cs'), 'omnistax-code-lang-cs');
   assert.equal(parseCodeLang('"java"'), 'java');
   assert.equal(parseCodeLang('"rust"'), null);
   assert.equal(parseCodeLang('java'), null, 'stored as JSON');
   assert.equal(parseCodeLang(null), null);
-  assert.equal(codeLangOf('pref-book'), 'python');
+  assert.equal(codeLangOf('pref-book'), 'pseudocode');
   const heard: string[] = [];
   const stop = onCodeLang((book, lang) => heard.push(`${book}:${lang}`));
   setCodeLang('pref-book', 'cpp');
   assert.equal(codeLangOf('pref-book'), 'cpp');
-  assert.equal(codeLangOf('other-book'), 'python', 'each book keeps its own');
+  assert.equal(codeLangOf('other-book'), 'pseudocode', 'each book keeps its own');
   setCodeLang('pref-book', 'rust' as never);
   stop();
-  setCodeLang('pref-book', 'python');
+  setCodeLang('pref-book', 'pseudocode');
   assert.deepEqual(heard, ['pref-book:cpp']);
-  assert.equal(codeLangOf('pref-book'), 'python');
+  assert.equal(codeLangOf('pref-book'), 'pseudocode');
 });
 
 test('the code language travels with a backup and a sync, as an appearance record of its book', () => {
@@ -129,6 +132,7 @@ type FakeEl = {
   listeners: Record<string, (() => void)[]>; ownerDocument: FakeDoc; offsetHeight: number; innerHTML: string;
   appendChild: (c: FakeEl) => FakeEl; remove: () => void; setAttribute: (k: string, v: string) => void; getAttribute: (k: string) => string | null;
   addEventListener: (k: string, f: () => void) => void; closest: () => null; textContent: string;
+  removeAttribute: (k: string) => void; replaceChildren: (...c: FakeEl[]) => void; querySelectorAll: (sel: string) => FakeEl[]; title: string;
 };
 type FakeDoc = { createElement: (t: string) => FakeEl; createTextNode: (s: string) => FakeEl; documentElement: { dataset: Record<string, string> } };
 const fakeDoc = (): FakeDoc => {
@@ -146,6 +150,9 @@ const fakeDoc = (): FakeDoc => {
       appendChild(c: FakeEl) { c.parent = e as unknown as FakeEl; e.children.push(c); return c; },
       remove() { const p = e.parent; if (p) p.children = p.children.filter((c) => c !== (e as unknown as FakeEl)); },
       setAttribute(k: string, v: string) { e.attrs[k] = v; }, getAttribute(k: string) { return e.attrs[k] ?? null; },
+      removeAttribute(k: string) { delete e.attrs[k]; if (k === 'title') e.title = ''; }, title: '',
+      replaceChildren(...c: FakeEl[]) { e.children = []; c.forEach((x) => { x.parent = e as unknown as FakeEl; e.children.push(x); }); },
+      querySelectorAll(sel: string) { return all(e as unknown as FakeEl, sel.replace(/^\./, '')).filter((x) => x !== (e as unknown as FakeEl)); },
       addEventListener(k: string, f: () => void) { (e.listeners[k] ??= []).push(f); }, closest: () => null,
     };
     return e as unknown as FakeEl;
@@ -211,14 +218,14 @@ test('referents are coloured per language where the names differ, and a lone str
   assert.deepEqual(all(el, 'cp-var').map((v) => `${v.textContent}=${v.style.color}`), ['pairSum=#a00']);
   assert.equal(cp.colour('pair_sum'), '#a00', 'the watch names the trace’s variables, the canonical ones');
   const plain = panelOf({ src: PY, lineMap: undefined, ai: undefined, blocks: [], book: '' });
-  assert.equal(all(plain.el, 'cp-head').length, 0, 'one language has no button group');
+  assert.equal(all(plain.el, 'cp-langs').length, 0, 'one language has no button group');
   assert.equal(plain.cp.lang, 'python');
 });
 
 test('the panel says what is wrong with its languages', () => {
   const bad = panelOf({ book: 'bad-book', src: { python: PY, java: JAVA, rust: 'fn x() {}' } as never, lineMap: { java: { 2: 40 } }, blocks: [{ id: 'b', lines: { java: [1, 2] } }] });
   assert.deepEqual(bad.errors, [
-    'F.code: src names "rust", which is not one of python, java, cpp, javascript',
+    'F.code: src names "rust", which is not one of pseudocode, python, java, cpp, javascript',
     'F.code: java maps line 2 to 40, which is no line of its code (14 lines)',
     'F.code: block "b" gives no lines in python, the language its trace is recorded in',
   ]);
@@ -280,4 +287,28 @@ test('the build gives a code set its button group and AI marks, and shows Python
   assert.ok(out.indexOf('data-lang="python"><code>x = 1') < out.indexOf('data-lang="java" data-ai="claude-opus-5-5 high" hidden><code>int x;'), 'the variants stand in the book’s order, all but the one shown hidden');
   const one = renderCodeSet(codeSetsOf('<div class="code-set"><pre data-lang="cpp"><code>int x;</code></pre></div>')[0], 'zh-CN');
   assert.equal(one, '<div class="code-set" data-langs="cpp" data-shown="cpp"><pre data-lang="cpp"><code>int x;</code></pre></div>', 'one language, no head');
+});
+
+test('a panel shows the source’s pseudocode first, writes a fixed argument in as its value and says a variable’s value on the last line run that names it', () => {
+  const doc = fakeDoc(), host = doc.createElement('div');
+  const cp = codePanel(host as unknown as HTMLElement, {
+    src: { pseudocode: 'Count(n):\n  for i ← 1 to n\n      Sing “i of n”', python: 'def count(n):\n    for i in range(1, n + 1):\n        print(i, n)' },
+    refs: { i: 'teal' }, book: '',
+  });
+  const el = host.children[0];
+  assert.deepEqual(cp.langs, ['pseudocode', 'python']);
+  assert.equal(cp.lang, 'pseudocode', 'unchosen, the pseudocode is shown');
+  assert.equal(cp.canonical, 'python', 'the trace is still numbered in Python');
+  assert.deepEqual(all(el, 'cp-lang').map((b) => b.textContent), ['Pseudocode', 'Python']);
+  cp.show({ block: null, executed: new Set([2, 3]), line: 3, values: new Map([['i', '2'], ['n', '5']]), consts: new Map([['n', '5']]) });
+  const lineText = (k: number): string => all(el, 'cp-line')[k].children.filter((c) => c.classList.contains('cp-code')).map((c) => c.textContent).join('');
+  assert.equal(lineText(0), 'Count(n):', 'the line that declares the argument keeps its name');
+  assert.equal(lineText(1), '  for i ← 1 to 5');
+  assert.equal(lineText(2), '      Sing “i of 5”', 'pseudocode has no strings: a name inside quotes is the variable');
+  assert.deepEqual(all(el, 'cp-sub').map((v) => v.title), ['n', 'n'], 'a value written in says its name on hover');
+  assert.deepEqual(all(el, 'cp-inlay').map((b) => b.textContent), ['', '', 'i = 2'], 'i says its value once, on the last line run that names it; n is already in the code');
+  assert.equal(all(el, 'cp-args')[0].textContent, 'n = 5', 'the call row says what the run is on');
+  cp.setLang('python');
+  assert.equal(lineText(1), '    for i in range(1, 5 + 1):');
+  assert.equal(lineText(2), '        print(i, 5)');
 });

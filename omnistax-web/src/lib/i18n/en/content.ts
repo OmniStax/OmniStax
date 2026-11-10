@@ -17,6 +17,7 @@ export const content = {
   'content.ai.with': ', with ',
   'content.chapter.eyebrow': 'Chapter {id} · {title}',
   'content.code.language': 'Code language',
+  'content.code.pseudocode': 'Pseudocode',
   'content.corrections': 'Corrections',
   'content.credit.access': ' Access for free at {url}.',
   'content.credit.adapted': 'adapted',

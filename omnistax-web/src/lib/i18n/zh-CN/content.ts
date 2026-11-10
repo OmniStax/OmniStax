@@ -15,6 +15,7 @@ export const content: Readonly<Record<keyof typeof source, string>> = {
   'content.ai.with': ' 与 ',
   'content.chapter.eyebrow': '第{id}章 · {title}',
   'content.code.language': '代码语言',
+  'content.code.pseudocode': '伪代码',
   'content.corrections': '勘误',
   'content.credit.access': '可在 {url} 免费获取。',
   'content.credit.adapted': '改编',

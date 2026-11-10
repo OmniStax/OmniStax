@@ -1,5 +1,6 @@
 /* The reader's code language for a book: the one language every code listing of that book shows, a code set
-   in the text and a debugger figure's code panel alike, Python until they choose another. Any listing's
+   in the text and a debugger figure's code panel alike; until they choose one, a listing shows the source's
+   pseudocode where it has it and Python where it has not. Any listing's
    button group changes it and every listing of the book follows at once, on every page and in every tab of
    this browser; the book's Theme page shows it too. Kept per book in this browser under one key, holding only
    a choice other than the default, as a JSON string ("java") so the backup reads it as it reads the
@@ -21,7 +22,7 @@ export const parseCodeLang = (raw: string | null): ListingLang | null => {
 const storage = (): Storage | null => { try { return typeof localStorage === 'undefined' ? null : localStorage; } catch { return null; } };
 /* What this tab was told, which stands even where the choice could not be written (a restore holding writes) */
 const told = new Map<string, ListingLang>();
-/* The book's code language: the reader's choice, else Python. */
+/* The book's code language: the reader's choice, else the default (pseudocode, which a listing without it reads as Python). */
 export const codeLangOf = (book: string): ListingLang => {
   const got = told.get(book); if (got) return got;
   let raw: string | null = null;
@@ -44,7 +45,7 @@ const wire = (): void => {
   window.addEventListener(EVENT, (e) => { const d = (e as CustomEvent<{ book: string; lang: ListingLang }>).detail; tell(d.book, d.lang); });
 };
 
-/* The reader chooses a language for a book; Python, the default, clears the choice. */
+/* The reader chooses a language for a book; the default clears the choice. */
 export const setCodeLang = (book: string, lang: ListingLang): void => {
   if (!book || !isListingLang(lang)) return;
   if (readerWritesAllowed()) {

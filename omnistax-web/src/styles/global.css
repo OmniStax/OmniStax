@@ -503,16 +503,31 @@ a.dv-drv:hover{color:var(--accent)}
 .dv-dot{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;border:1.5px dotted var(--muted);background:var(--bg);padding:0;cursor:pointer;z-index:2}
 .dv-dot:hover{border-color:var(--ink)}
 .dv-dot.at{border-style:solid;border-color:var(--ink);background:var(--ink)}
-/* a debugger figure (fig/codepanel.ts, F.debug): the code left of the drawing, stacked when the pane is narrow.
+/* a debugger figure (fig/codepanel.ts, F.debug): the code and its drawing are read together, so they stand
+   side by side and the pair fits a laptop's window. The figure lets go of the text column and takes the pane's
+   width (the pane is the container, .doc-host); the code keeps the width of the language shown, at most 46%
+   of the row, and scrolls inside its panel; the drawing takes the rest, never wider than the text column
+   would draw it (so its text is no larger there than in any other figure) and never taller than the window
+   leaves it. Below 760px of figure the code stands above the drawing.
    The code is page text in the mono; no syntax colouring, only the referents' names wear colour. */
-.dbg-row{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
-/* Both grow, in very different measure: side by side the drawing takes the row's spare width and the code
-   keeps its own, so no dead strip opens between them; when the code wraps above the drawing it is alone on
-   its line and its small share of growth fills that line, so its panel spans the figure. */
-.dbg-row>.cp{flex:1 1 auto;min-width:0;max-width:100%;border-right:1px solid var(--rule)}
-.dbg-draw{flex:1000 1 28rem;min-width:0;position:relative;align-self:center}
+.doc-host{container:doc / inline-size}
+article figure.sim.dbg{--dbg-w:min(calc(100cqw - 48px),1560px);width:var(--dbg-w);max-width:none;margin-left:calc((100% - var(--dbg-w)) / 2);margin-right:0}
+.fig-root figure.sim.dbg{width:auto;margin-left:0}
+figure.sim.dbg{container:dbg / inline-size}
+figure.sim.dbg>.sim-head>span:not(.eyebrow){max-width:110ch}
+.dbg-row{display:flex;align-items:stretch;border-bottom:1px solid var(--rule)}
+.dbg-row>.cp{flex:0 1 var(--cp-w,34rem);min-width:0;max-width:46%;border-right:1px solid var(--rule)}
+.dbg-draw{flex:1 1 0;min-width:0;position:relative;align-self:center;display:flex;justify-content:center}
+.sim.dbg .dbg-draw canvas{width:min(100%,740px,calc((100vh - 270px) * 1400 / var(--ch,700)));min-width:min(100%,360px)}
+.sim.dbg .cp-body{max-height:calc(100vh - 360px);overflow:auto}
+@container dbg (max-width:760px){
+  .dbg-row{flex-direction:column}
+  .dbg-row>.cp{flex:none;max-width:none;border-right:0;border-bottom:1px solid var(--rule)}
+  .sim.dbg .cp-body{max-height:38vh}
+  .dbg-draw{align-self:stretch}
+}
 .cp{display:flex;flex-direction:column;font-family:var(--mono);font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;font-size:0.8rem;background:var(--panel);color:var(--ink)}
-.cp-body{flex:1;overflow-x:auto}
+.cp-body{flex:1;overflow-x:auto;position:relative}
 .cp-src{--cp-pad:10px;position:relative;margin:0;padding:var(--cp-pad) 0;font:inherit;line-height:var(--cp-lh,1.5em);background:transparent;border:0;overflow:visible}
 .cp-line{display:block;position:relative;padding-right:14px;white-space:pre}
 .cp-no{display:inline-block;width:3.4em;padding-right:1.2em;text-align:right;color:var(--muted);opacity:.55;user-select:none}
@@ -523,7 +538,34 @@ a.dv-drv:hover{color:var(--accent)}
 .cp-band{position:absolute;left:0;right:0;top:0;height:0;background:var(--soft2);border-left:3px solid var(--ink);opacity:0;pointer-events:none;transition:top .35s cubic-bezier(0.45,0,0.55,1),height .35s cubic-bezier(0.45,0,0.55,1),opacity .2s}
 .cp-band.on{opacity:1}
 .cp-var{font-weight:600}
-.cp-var.touched,.dbg-var.touched .dbg-name{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+/* an argument written as its value: the name's colour, a dotted line under it, the name on hover */
+.cp-sub{font-weight:600;text-decoration:underline dotted;text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:help}
+/* inline values, at the end of the line they belong to: quieter than the code, the name in its colour */
+.cp-inlay{margin-left:2ch;font-style:italic;color:var(--muted);user-select:none}
+.cp-inlay:empty{display:none}
+.cp-inlay-one+.cp-inlay-one{margin-left:1.5ch}
+.cp-inlay-name{font-weight:600;font-style:normal}
+/* the call row: what the code runs on, a choice of named cases, straight above the code */
+.cp-call{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:6px 10px;border-bottom:1px solid var(--rule);font-family:var(--sans);font-size:0.8rem;color:var(--muted)}
+.cp-call:not(:has(.cp-inputs>*,.cp-args>*)){display:none}
+.cp-inputs{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.cp-inputs>label{flex:1 1 auto}
+.cp-inputs>label.ctl-seg,.cp-inputs>label.ctl-pick{flex:0 1 auto}
+.cp-inputs input[type=range]{flex:1 1 120px;min-width:120px}
+.cp-inputs:empty,.cp-args:empty{display:none}
+.cp-args{display:flex;flex-wrap:wrap;gap:2px 14px;font-family:var(--mono);color:var(--ink)}
+.cp-call label{display:flex;align-items:center;gap:10px;min-width:0}
+.cp-call .ctlseg{flex:0 1 auto;min-width:0}
+.cp-call .segbtn{flex:0 1 auto}
+.cp-call .segbtn{padding:2px 8px;font-size:0.75rem}
+.cp-call .ctl-select{flex:1 1 auto;min-width:0}
+.cp-values{margin-left:auto;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--muted);font:inherit;font-family:var(--mono);padding:2px 8px;line-height:1.5;cursor:pointer}
+.cp-values.on{background:var(--soft);color:var(--ink);font-weight:600}
+.cp-values:hover{color:var(--ink)}
+.cp-values:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.cp-values[hidden]{display:none}
+.cp-head:not(:has(.cp-langs,.cp-ai:not([hidden]),.cp-values:not([hidden]))){display:none}
+.cp-var.touched{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .cp-note{min-height:2.4em;padding:6px 14px 8px;border-top:1px solid var(--rule);font-family:var(--figure);font-size:0.95rem;line-height:1.4;color:var(--ink)}
 .cp-note[data-lines]::before{content:attr(data-lines);margin-right:.7em;font-family:var(--sans);font-size:0.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 /* the languages a listing is offered in (code/langs.ts): one button group, the same on a figure's code panel
@@ -542,8 +584,6 @@ a.dv-drv:hover{color:var(--accent)}
 .code-set>pre{margin:0;padding:10px 14px;overflow-x:auto;font-family:var(--mono);font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;font-size:0.8rem;line-height:1.5;color:var(--ink);background:transparent}
 .code-set>pre[hidden]{display:none}
 .code-set>pre code{font:inherit;padding:0;background:transparent;border-radius:0}
-.dbg-watch{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 20px;font-family:var(--mono);font-size:0.85rem}
-.dbg-name{font-weight:600}
 @media (prefers-reduced-motion: reduce){.cp-band{transition:none}}
 html.anim-off .cp-band{transition:none}
 /* stepping is not motion: the step buttons stay live when the reader turns animation off */
