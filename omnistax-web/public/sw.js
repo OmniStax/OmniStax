@@ -215,5 +215,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.startsWith(PYODIDE)) { event.respondWith(pyodide(event)); return; }
   const url = new URL(event.request.url); if (url.origin !== location.origin) return;
   if (url.pathname === '/offline-catalog.json') { event.respondWith(fetch(event.request, { cache: 'no-store' })); return; }
+  /* A download's files are the site's own, read from the network and checked
+     against the release's manifest by the page (src/lib/offline/service.ts).
+     The download in hand must not answer for them: it is the release being replaced. */
+  if (event.request.headers.has('X-OmniStax-Network')) return;
   event.respondWith(event.request.mode === 'navigate' ? navigation(event, url) : resource(event, url));
 });

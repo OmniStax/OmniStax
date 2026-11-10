@@ -51,7 +51,7 @@ with sync_playwright() as playwright:
       globalThis.__omnistaxFetch = globalThis.fetch.bind(globalThis);
       globalThis.fetch = (input, init = {}) => {
         const url = typeof input === 'string' ? input : input.url;
-        if (!url.includes('/offline/releases/') || url.endsWith('/manifest.json')) return globalThis.__omnistaxFetch(input, init);
+        if (!init.headers?.['X-OmniStax-Network']) return globalThis.__omnistaxFetch(input, init);   // a download's files carry it
         return new Promise((resolve, reject) => {
           const timer = setTimeout(() => globalThis.__omnistaxFetch(input, init).then(resolve, reject), 750);
           init.signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
