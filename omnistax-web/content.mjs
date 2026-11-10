@@ -121,8 +121,9 @@ export default function content(root, plan, mediaRoots, cacheDir) {
         const rows = await buildOfflineArtifacts(out, books, process.env.OMNISTAX_RELEASE_ARCHIVE_DIR, { figureCache: path.join(cacheDir, 'omnistax-figures') });
         for (const b of made.filter((m) => m.key !== null)) {
           const row = rows.get(b.id);
-          const release = path.dirname(row.manifestUrl.slice(1));
-          const offline = (await filesUnder(path.join(out, release))).map((f) => path.join(release, f));
+          /* The release is its manifest and the re-encoded figures it names; its other files are the book's own. */
+          const manifest = JSON.parse(await fs.readFile(path.join(out, row.manifestUrl.slice(1)), 'utf8'));
+          const offline = [row.manifestUrl.slice(1), ...new Set(manifest.resources.map((r) => r.downloadUrl).filter((url) => url.startsWith('/offline/media/')).map((url) => url.slice(1)))];
           await storeBook(path.join(plan.store, b.key), out, [...await bookFiles(out, b.id, shells.get(b.id)), ...offline], shells.get(b.id), row);
         }
         await pruneStore(plan);

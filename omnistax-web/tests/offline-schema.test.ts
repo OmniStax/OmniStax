@@ -16,6 +16,14 @@ test('resource paths reject traversal before URL normalization and URL aliases',
   assert.equal(OfflineResourceSchema.safeParse({ ...resource, logicalUrl: '/media/a%20b.png' }).success, true);
 });
 
+test('a file is downloaded from its release, from the site\u2019s own copy, or from the shared figures under its hash', () => {
+  const at = (downloadUrl: string) => BookReleaseManifestSchema.safeParse({ ...manifest, resources: [{ ...resource, downloadUrl }] }).success;
+  assert.equal(at(resource.logicalUrl), true);
+  assert.equal(at(`/offline/media/${hash}.jpg`), true);
+  assert.equal(at(`${prefix}book/index.html`), true);
+  for (const url of ['/book/other.html', '/media/x.jpg', `/offline/media/${'b'.repeat(64)}.jpg`, `/offline/media/${hash}`, `/offline/media/${hash}.jpg/x`, `/offline/media/${hash}.JPG`, `/offline/releases/other/${hash}/${hash}/book/index.html`]) assert.equal(at(url), false, url);
+});
+
 test('manifests reject duplicate resolved URLs and section IDs', () => {
   assert.equal(BookReleaseManifestSchema.safeParse(manifest).success, true);
   assert.equal(BookReleaseManifestSchema.safeParse({ ...manifest, resources: [{ ...resource, logicalUrl: '/media/a b.png' }, { ...resource, logicalUrl: '/media/a%20b.png' }], totalBytes: 2 }).success, false);

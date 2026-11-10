@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -8,12 +9,12 @@ import { buildOfflineArtifacts } from '../scripts/build-offline.mjs';
 import { BookReleaseManifestSchema } from '../src/lib/offline/schema';
 import { beginInstall, bookMarks, commitInstall, failInstall, readableLines, releaseChanges, releaseForBook, savedSessionReleaseReferences, sectionChanges, sharedAutoUpdate } from '../src/lib/offline/model';
 
-const put = async (root: string, rel: string, body: string) => { const file = path.join(root, rel); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, body); };
-const fixture = async (root: string, changed = false, runtime = 'body{}', archive?: string) => {
+const put = async (root: string, rel: string, body: string | Buffer) => { const file = path.join(root, rel); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, body); };
+const fixture = async (root: string, changed = false, runtime = 'body{}', archive?: string, photo: string | Buffer = 'image-b') => {
   const out = path.join(root, 'dist'); const sources = path.join(root, 'content');
   for (const rel of ['index.html', 'about.html']) await put(out, rel, '<html><link href="/assets/app.css"></html>');
   await put(out, 'library.json', '[]'); await put(out, 'manifest.webmanifest', '{}'); await put(out, 'assets/app.css', runtime);
-  await put(out, 'media/a(x).jpg', 'image-a'); await put(out, 'media/b.jpg', 'image-b');
+  await put(out, 'media/a(x).jpg', 'image-a'); await put(out, 'media/b.jpg', photo);
   for (const id of ['a', 'b']) {
     const dir = path.join(sources, id); const value = id === 'a' && changed ? 'changed' : 'same';
     const manifest = { id, title: `Book ${id}`, chapters: [{ dir: 'ch01', sections: [{ id: '1.1', built: true, url: `/${id}/ch01/1.1/` }] }] };
@@ -35,7 +36,26 @@ test('release ids are deterministic per book and section changes are explicit', 
   assert.notEqual(one.a.releaseId, changed.a.releaseId);
   assert.deepEqual(releaseChanges(one.a, changed.a).sections.changed, ['1.1']);
   assert.equal(BookReleaseManifestSchema.safeParse(one.a).success, true);
-  for (const resource of one.a.resources) assert.match(resource.downloadUrl, new RegExp(`/offline/releases/a/${one.a.releaseId}/${one.a.runtime.artifactId}/`));
+  for (const resource of one.a.resources) assert.equal(resource.downloadUrl, resource.logicalUrl, 'a file the site serves is downloaded from the site');
+});
+
+test('a release keeps its manifest and no copy of the site; a re-encoded figure is kept once for every book that shows it', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'omnistax-shared-'));
+  const noise = crypto.randomBytes(1600 * 1000 * 3);
+  const photo = await sharp(noise, { raw: { width: 1600, height: 1000, channels: 3 } }).jpeg({ quality: 100 }).toBuffer();
+  const books = await fixture(root, false, 'body{}', undefined, photo);
+  const out = path.join(root, 'dist');
+  const kept = (await readdir(path.join(out, 'offline', 'releases'), { recursive: true, withFileTypes: true })).filter((e) => e.isFile()).map((e) => e.name);
+  assert.deepEqual([...new Set(kept)], ['manifest.json']);
+  const [a, b] = [books.a, books.b].map((m) => m.resources.find((r) => r.logicalUrl === '/media/b.jpg')!);
+  assert.match(a.downloadUrl, /^\/offline\/media\/[a-f0-9]{64}\.jpg$/);
+  assert.equal(a.downloadUrl, `/offline/media/${a.sha256}.jpg`);
+  assert.equal(a.downloadUrl, b.downloadUrl, 'two books that show one figure share its download');
+  assert.ok(a.bytes < photo.byteLength);
+  assert.equal(crypto.createHash('sha256').update(await readFile(path.join(out, a.downloadUrl.slice(1)))).digest('hex'), a.sha256);
+  assert.deepEqual(await readdir(path.join(out, 'offline', 'media')), [`${a.sha256}.jpg`]);
+  assert.equal(BookReleaseManifestSchema.safeParse(books.a).success, true);
+  assert.match(await readFile(path.join(out, '_headers'), 'utf8'), /\/offline\/media\/\*\n  Cache-Control: public, max-age=31536000, immutable/);
 });
 
 test('an app change leaves every book download where it was', async () => {

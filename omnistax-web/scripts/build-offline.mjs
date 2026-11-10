@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises';
-import { constants } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -29,10 +28,12 @@ const archivedPublishedAt = async (archive, id, releaseId) => {
 
 const mergeArchive = async (archive, out) => {
   if (!archive) return;
-  const source = path.resolve(archive, 'offline', 'releases');
-  for (const rel of await walk(source)) {
-    const dest = path.join(out, 'offline', 'releases', rel); await fs.mkdir(path.dirname(dest), { recursive: true });
-    await fs.copyFile(path.join(source, rel), dest);
+  for (const kept of ['releases', 'media']) {
+    const source = path.resolve(archive, 'offline', kept);
+    for (const rel of await walk(source)) {
+      const dest = path.join(out, 'offline', kept, rel); await fs.mkdir(path.dirname(dest), { recursive: true });
+      await fs.copyFile(path.join(source, rel), dest);
+    }
   }
 };
 
@@ -45,7 +46,15 @@ const mergeArchive = async (archive, out) => {
    read by the new app. Its hash stands where the app's artifact stood in a
    release's path, so downloads move only when the text or the format does. */
 const CONTENT_FORMAT = 2;   /* 2: a translation under /<language>/<source>/ */
-const BOOK_ARTIFACT = sha(Buffer.from(`content-format:${CONTENT_FORMAT}`));
+/* Where a download's files are fetched from. A release keeps no copy of a file
+   the site already serves: its manifest names the live file, and the hash it
+   carries says whether the site has moved on since. Only a figure re-encoded
+   for the download is kept apart, once, under /offline/media/ by its hash, so a
+   book, its translations and its later releases share it. The delivery is in
+   the artifact because a manifest's address is immutable: the same address
+   never names two manifests. */
+const DELIVERY = 2;   /* 1: every file copied into its release; 2: live files and the shared figures */
+const BOOK_ARTIFACT = sha(Buffer.from(`content-format:${CONTENT_FORMAT}:delivery:${DELIVERY}`));
 const FIGURE_EDGE = 1200, FIGURE_QUALITY = 80;
 const FIGURE_ENCODING = `jpeg:q${FIGURE_QUALITY}:${FIGURE_EDGE}`;
 /* Re-encoding is the slow part of the step, so a figure once shrunk is kept
@@ -68,18 +77,6 @@ const shellPageOf = (book) => { const page = pagesOf(book).find((p) => p.built);
 const dirOf = (id) => bookBase(id).slice(1, -1);
 const readBook = async (out, id) => JSON.parse(await fs.readFile(path.join(out, dirOf(id), 'book.json'), 'utf8'));
 
-const materialize = async (source, dest) => {
-  await fs.mkdir(path.dirname(dest), { recursive: true });
-  try { await fs.link(source, dest); }
-  catch (error) {
-    if (error?.code === 'EEXIST') {
-      const [before, after] = await Promise.all([fs.readFile(dest), fs.readFile(source)]);
-      if (sha(before) !== sha(after)) throw new Error(`Immutable release collision at ${dest}`);
-      return;
-    }
-    await fs.copyFile(source, dest, constants.COPYFILE_EXCL);
-  }
-};
 const writeImmutable = async (dest, body) => {
   await fs.mkdir(path.dirname(dest), { recursive: true });
   const previous = await fs.readFile(dest).catch((error) => error?.code === 'ENOENT' ? null : Promise.reject(error));
@@ -154,11 +151,10 @@ export async function buildOfflineArtifacts(out, bookIds, archive, { figureCache
     const resources = [];
     for (const rel of allRels) {
       const source = path.join(out, rel); const logicalUrl = logicalOf(rel);
-      const downloadUrl = `/offline/releases/${encodeURIComponent(id)}/${releaseId}/${BOOK_ARTIFACT}/${rel.split(path.sep).join('/')}`;
       const original = await fs.readFile(source);
       const body = media.has(rel) ? await shrinkFigure(rel, original, figureCache) : original;
-      if (body === original) await materialize(source, path.join(out, downloadUrl.slice(1)));
-      else await writeImmutable(path.join(out, downloadUrl.slice(1)), body);
+      const downloadUrl = body === original ? logicalUrl : `/offline/media/${sha(body)}${path.extname(rel).toLowerCase()}`;
+      if (body !== original) await writeImmutable(path.join(out, downloadUrl.slice(1)), body);
       resources.push({ logicalUrl, downloadUrl, sha256: sha(body), bytes: body.byteLength, mime: mime(rel), role: role(logicalUrl) });
     }
     resources.sort((a, b) => a.logicalUrl.localeCompare(b.logicalUrl));
@@ -181,6 +177,6 @@ export async function buildOfflineArtifacts(out, bookIds, archive, { figureCache
   /* A book whose address is not /<id>/ (a translation) answers its old address with its new one. */
   const moved = bookIds.map(({ id }) => [id, bookBase(id)]).filter(([id, base]) => base !== `/${id}/`);
   await fs.writeFile(path.join(out, '_redirects'), moved.map(([id, base]) => `/${id}/* ${base}:splat 301\n/${id} ${base} 301\n`).join(''));
-  await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
+  await fs.writeFile(path.join(out, '_headers'), `/offline/releases/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline/media/*\n  Cache-Control: public, max-age=31536000, immutable\n/offline-catalog.json\n  Cache-Control: no-cache\n/offline-shell.json\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n/*.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/:book/:page/\n  Cache-Control: no-cache\n/:book/:chapter/:section/\n  Cache-Control: no-cache\n`);
   return made;
 }

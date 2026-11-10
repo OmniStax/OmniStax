@@ -40,8 +40,13 @@ export const BookReleaseManifestSchema = z.object({
     try { pathname = new URL(resource.logicalUrl, 'https://omnistax.invalid').pathname; } catch { /* safeUrl reports invalid input */ }
     if (logical.has(pathname)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['resources', index, 'logicalUrl'], message: 'conflicting logical URL' });
     logical.add(pathname);
+    /* A file is fetched from the site's own copy of it, from the figures the
+       downloads share, named by the hash the manifest gives, or, in a release
+       made before those, from the release's own folder. Nowhere else. */
     const prefix = `/offline/releases/${encodeURIComponent(manifest.book.id)}/${manifest.releaseId}/${manifest.runtime.artifactId}/`;
-    if (!resource.downloadUrl.startsWith(prefix)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['resources', index, 'downloadUrl'], message: 'resource is outside its immutable release' });
+    const live = resource.downloadUrl === resource.logicalUrl;
+    const shared = resource.downloadUrl.startsWith(`/offline/media/${resource.sha256}.`) && /^\.[a-z0-9]+$/.test(resource.downloadUrl.slice(`/offline/media/${resource.sha256}`.length));
+    if (!live && !shared && !resource.downloadUrl.startsWith(prefix)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['resources', index, 'downloadUrl'], message: 'resource is outside its release, the live site and the shared figures' });
   });
   const sections = new Set<string>();
   manifest.sections.forEach((section, index) => {

@@ -16,10 +16,18 @@ const lock = async <T>(bookId: string, operation: () => Promise<T>): Promise<T> 
   try { return await running; } finally { if (localLocks.get(bookId) === running) localLocks.delete(bookId); }
 };
 const digest = async (body: ArrayBuffer): Promise<string> => [...new Uint8Array(await crypto.subtle.digest('SHA-256', body))].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+/* A file that is not the one its manifest names. A release's files are the
+   site's own, so this is also what a deploy made since the manifest was read
+   looks like: the catalog is read again and the newer release installed. */
+class IntegrityError extends Error {}
+/* A release's file is asked of the network itself. The worker would answer for
+   a downloaded book from the download, which is the release being replaced; a
+   request that carries this header it leaves alone (public/sw.js). */
+const FROM_NETWORK = { 'X-OmniStax-Network': '1' };
 const verified = async (resource: OfflineResource, response: Response): Promise<Response> => {
   if (!response.ok) throw new Error(`${resource.logicalUrl} returned ${response.status}.`);
   const body = await response.arrayBuffer();
-  if (body.byteLength !== resource.bytes || await digest(body) !== resource.sha256) throw new Error(t('offline.error.integrity', { url: resource.logicalUrl }));
+  if (body.byteLength !== resource.bytes || await digest(body) !== resource.sha256) throw new IntegrityError(t('offline.error.integrity', { url: resource.logicalUrl }));
   return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 };
 export const fetchManifest = async (url: string, signal?: AbortSignal): Promise<BookReleaseManifest> => {
@@ -77,6 +85,9 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
     if (changingActive && existing.previousRelease) throw new Error(t('offline.error.releaseInUse'));
   }
   const completed = existing?.stagingRelease === manifest.releaseId && existing.stagingArtifact === manifest.runtime.artifactId ? new Set(existing.completed ?? []) : new Set<string>();
+  /* A download begun for a release the site has since replaced is let go; the installed and the previous snapshots stay. */
+  if (existing?.stagingRelease && existing.stagingArtifact && (existing.stagingRelease !== manifest.releaseId || existing.stagingArtifact !== manifest.runtime.artifactId)
+    && existing.stagingRelease !== existing.installedRelease && existing.stagingRelease !== existing.previousRelease) await caches.delete(cacheName(manifest.book.id, existing.stagingRelease, existing.stagingArtifact));
   const cache = await caches.open(cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId));
   for (const resource of manifest.resources.filter((item) => completed.has(item.logicalUrl))) {
     const saved = await cache.match(new URL(resource.logicalUrl, location.origin));
@@ -100,7 +111,7 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
       const resource = pending[cursor++];
       try {
         options.signal?.throwIfAborted();
-        const response = await reuse(resource) ?? await verified(resource, await fetch(resource.downloadUrl, { cache: 'no-store', signal: options.signal }));
+        const response = await reuse(resource) ?? await verified(resource, await fetch(resource.downloadUrl, { cache: 'no-store', signal: options.signal, headers: FROM_NETWORK }));
         await cache.put(new Request(new URL(resource.logicalUrl, location.origin)), response);
         completed.add(resource.logicalUrl); bytes += resource.bytes;
         await putInstallation({ ...base, completed: [...completed], updatedAt: Date.now() });
@@ -112,7 +123,7 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
   if (failure) {
     const message = failure instanceof DOMException && failure.name === 'AbortError' ? t('offline.error.cancelled') : failure instanceof Error ? failure.message : t('offline.error.downloadFailed');
     const failed: InstallationRecord = { ...base, status: existing?.installedRelease ? 'ready' : 'failed', completed: [...completed], error: message, updatedAt: Date.now() };
-    await putInstallation(failed); throw new Error(message);
+    await putInstallation(failed); throw failure instanceof IntegrityError ? new IntegrityError(message) : new Error(message);
   }
   const replaced = !!existing?.installedRelease && (existing.installedRelease !== manifest.releaseId || existing.installedArtifact !== manifest.runtime.artifactId);
   const ready: InstallationRecord = {
@@ -126,13 +137,18 @@ export const installRelease = async (manifest: BookReleaseManifest, options: Ins
   await putInstallation(ready); return ready;
 });
 
-export const installFromCatalog = async (bookId: string, options?: InstallOptions): Promise<InstallationRecord> => {
+const installCurrent = async (bookId: string, options?: InstallOptions): Promise<InstallationRecord> => {
   const catalog = await fetchCatalog(options?.signal); const entry = catalog.books.find((book) => book.id === bookId);
   if (!entry) throw new Error(t('offline.error.notInOfflineCatalog'));
   const manifest = await fetchManifest(entry.manifestUrl, options?.signal);
   if (manifest.book.id !== entry.id || manifest.releaseId !== entry.releaseId || manifest.runtime.artifactId !== entry.artifactId || manifest.totalBytes !== entry.totalBytes) throw new Error(t('offline.error.manifestMismatch'));
   return installRelease(manifest, options);
 };
+/* The site may be deployed while a book downloads: its files are then a newer
+   release's, and the catalog names it. One more reading of the catalog takes
+   that release; what was already saved and has not changed is kept. */
+export const installFromCatalog = async (bookId: string, options?: InstallOptions): Promise<InstallationRecord> =>
+  installCurrent(bookId, options).catch((error) => error instanceof IntegrityError ? installCurrent(bookId, options) : Promise.reject(error));
 
 export const inspectInstallation = async (bookId: string): Promise<InstallationRecord | undefined> => lock(bookId, async () => {
   const record = await getInstallation(bookId); if (!record?.manifest || !record.installedRelease) return record;
@@ -203,8 +219,8 @@ export const sectionLines = async (manifest: BookReleaseManifest | undefined, se
   const doc = manifest?.resources.find((resource) => resource.logicalUrl.startsWith(bookBase(manifest.book.id)) && resource.logicalUrl.endsWith(`/${section}/doc.html`));
   if (!manifest || !doc) return [];
   const saved = 'caches' in globalThis ? await caches.match(doc.logicalUrl, { cacheName: cacheName(manifest.book.id, manifest.releaseId, manifest.runtime.artifactId) }) : undefined;
-  const response = saved ?? await fetch(doc.downloadUrl);
-  if (!response.ok) throw new Error(`${doc.logicalUrl} returned ${response.status}.`);
+  /* The site keeps only the current release's text: an earlier one is read where it is still that text, and is otherwise gone. */
+  const response = saved ?? await fetch(doc.downloadUrl, { cache: 'no-store', headers: FROM_NETWORK }).then((live) => verified(doc, live)).catch(() => { throw new Error(t('offline.updates.noEarlier')); });
   return readableLines(await response.text());
 };
 

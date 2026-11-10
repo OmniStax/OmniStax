@@ -15,31 +15,44 @@ book id in `omnistax-auto-update`, on unless an edition was turned off).
 ## Publication
 
 `npm run build` generates `/offline-catalog.json`, one immutable manifest per
-book release, immutable copies of every inventoried resource, and a
-Cloudflare-compatible `_headers` file. A download holds the book and never the
+book release, and a Cloudflare-compatible `_headers` file. A release keeps no
+copy of a file the site already serves: the manifest's `downloadUrl` is the
+live file, and the size and SHA-256 beside it say whether the site has moved
+on. Only a figure re-encoded for the download is kept apart, once, at
+`/offline/media/<sha256>.<ext>`, shared by a book, its translations and its
+later releases. (Each release once held a copy of every file, which doubled the
+files of a deploy; Cloudflare's free plan allows 20,000.) A download holds the book and never the
 app: its section fragments (`doc.html`), figure scripts, data, `colours.css`
 and media, no full page and no app file (`docs/release-plan.md`, decisions 19
 to 22). A semantic book release ID hashes that book's canonical content inputs.
 The second segment of a release's path, still called the artifact ID, hashes
 the content format (`contentFormat` in the manifest), so an app deploy leaves
-every download where it was. The catalog's own `artifactId` hashes the app
+every download where it was; it also hashes the delivery above, so the
+address of a manifest never names two manifests. The catalog's own `artifactId` hashes the app
 build and drives the update notice. A download below `MIN_CONTENT_FORMAT`
 (`src/lib/offline/schema.ts`, mirrored in `public/sw.js`) is not served and is
 offered again as a repair. Format 2 put a translation's files under
 `/<language>/<source>/`.
 
-Fresh static output cannot preserve prior deployments by itself. For a release
-build, point `OMNISTAX_RELEASE_ARCHIVE_DIR` at the prior deployed output. The
-builder merges its `offline/releases/` tree before publishing the current
-catalog. Hosting must retain every release named by the current catalog and at
-least the previous release readers may still have pinned or referenced from a
-saved session. Publish the generated `_headers`; versioned release paths are
-long-lived and immutable, while `/offline-catalog.json`, stable HTML, and
+The site holds the current release of each book and no earlier one: an earlier
+release's manifest may remain, but its text is the site's, which has changed. A
+reader's own download is what keeps an earlier release, for the windows that
+pin it and the saved sessions that name it. A download interrupted by a deploy,
+and a repair, take the current release; a file that no longer matches its
+manifest fails verification, the catalog is read once more, and the release it
+names is installed, keeping what was already saved and has not changed. For a
+build that should carry earlier manifests and shared figures forward, point
+`OMNISTAX_RELEASE_ARCHIVE_DIR` at the prior deployed output; the builder merges
+its `offline/releases/` and `offline/media/` trees before publishing the
+current catalog. Publish the generated `_headers`; manifests and shared figures
+are long-lived and immutable, while `/offline-catalog.json`, stable HTML, and
 `/sw.js` must revalidate.
 
 ## Browser behavior
 
-Downloads use at most four concurrent requests, verify byte size and SHA-256,
+Downloads use at most four concurrent requests, each carrying
+`X-OmniStax-Network` so the worker leaves it to the network (a downloaded book
+would otherwise answer with the release being replaced), verify byte size and SHA-256,
 and only move the active IndexedDB pointer after the complete manifest is in
 Cache Storage. Interrupted and quota-failed downloads keep completed-resource
 bookkeeping for retry. A denied persistent-storage request is nonfatal. Missing
@@ -67,9 +80,9 @@ fingerprints last seen; a book first seen records them silently. Clicking the
 mark records the current release as seen and opens the changes: sections
 added, changed and removed by fingerprint, each added or changed one opening
 to a line diff of its readable text (one block per line, maths as TeX, read
-from the local snapshot when held, else the release's download URLs), and the
-changed data files by name. When the earlier release is no longer on the
-server, the section list still comes from the kept fingerprints and the
+from the local snapshot when held, else the site where it still serves that
+text), and the changed data files by name. When the earlier release is no
+longer held, the section list still comes from the kept fingerprints and the
 earlier text is said to be unavailable.
 
 The production service worker is registered only on HTTPS or localhost. A
