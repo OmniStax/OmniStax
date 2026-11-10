@@ -279,10 +279,10 @@ These are pure functions.
     the scrubber, and step, step into and step out buttons.
   - **What `draw` gets:** `{frame, prev, k, block, level, touched, executed}`.
     `k` eases pointer motion.
-- **Inputs** (hit, miss, duplicates, adversarial) are an `F.choice` that
-  swaps the trace.
-- **Behaviour:** reduced motion jumps from stop to stop. The watch panel is
-  the readout.
+- **Inputs** (hit, miss, duplicates, adversarial) are an `F.choice` in the
+  code panel's call row that swaps the trace.
+- **Behaviour:** reduced motion jumps from stop to stop. The watch is inline
+  in the code (§2.7).
 - **Later:** predict pauses (figure controls only), *run to*, code over 25
   lines folding to its block outline, and a narrow-pane layout.
 - **Doc changes:** manim-style's transport item and `interactive-figures.md`
@@ -320,6 +320,35 @@ These are pure functions.
   only redraws the panel and keeps the stop.
 - **Exercise cards** open on the book's language where the card has it and can
   run it; what they run is unchanged.
+
+### 2.7 Seen together (2026-11-10)
+
+The owner's review of the CS book's chapters 1–3: at the text column's width a
+debugger figure was 870–1,410 px tall, so the code and the drawing were never on
+screen together. What changed (`codepanel.ts`, `debugFig`, `global.css` under
+`figure.sim.dbg`):
+
+- **Width.** A debugger figure leaves the text column and takes the pane's width
+  (`.doc-host` is a size container). The code keeps the width of the language
+  shown plus room for one inline value, at most 46% of the row; the drawing takes
+  the rest, capped at the text column's width (so figure text is never larger than
+  elsewhere) and at the window's height. Under 760 px of figure the code stacks
+  above the drawing.
+- **Pseudocode** is a listing language (`code/langs.ts`), first in the group and
+  the unchosen default; a listing without it shows Python. The trace stays in the
+  canonical language's lines; pseudocode gives a `lineMap` like any other.
+- **The call row** (`Code.call`) holds the debugger's input choice, and any
+  control the figure puts there. It replaces the input row under the transport.
+- **Written-in arguments.** `fixedArgs` finds the scalars the first line of the
+  canonical code names, the trace holds at one value and no line assigns to
+  (`assigns`); `args` on the figure or an input adds what the trace does not
+  record. The panel writes each as its value on every line after the one that
+  declares it, in the name's colour, and lists them in the call row. One button
+  on the head turns this off for the page.
+- **Inline values** replace the watch panel: each watched name, on the last line
+  the step ran that names it; values over 22 characters are left to the drawing.
+- **`F.rich` / `F.marked`**: a line in more than one colour, so a figure colours
+  a count and not its sentence.
 
 ## 3. Order of work
 

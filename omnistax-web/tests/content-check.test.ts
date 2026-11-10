@@ -566,9 +566,9 @@ test('checkCodeSets: one <pre data-lang> per language, Python or a reason, a tra
   assert.deepEqual(run(checkCodeSets), []);
   assert.deepEqual(run(checkCodeSets, set(py + java)), []);
   assert.deepEqual(run(checkCodeSets, set(java.replace(' data-ai="claude-opus-5-5 high"', ''), ' data-no-python="the source prints Java only"')), []);
-  assert.deepEqual(run(checkCodeSets, set(java)), [`${where}has no Python, the default; add it or say why in data-no-python`, `${where}has no variant the source prints: every <pre> carries data-ai`]);
+  assert.deepEqual(run(checkCodeSets, set(java)), [`${where}has no Python, which every set of code has; add it or say why in data-no-python`, `${where}has no variant the source prints: every <pre> carries data-ai`]);
   assert.deepEqual(run(checkCodeSets, set(py + py)), [`${where}has two <pre data-lang="python">`]);
-  assert.deepEqual(run(checkCodeSets, set(`${py}<pre data-lang="rust"><code>let x = 1;</code></pre>`)), [`${where}has a <pre data-lang="rust">, and the languages are python, java, cpp and javascript`]);
+  assert.deepEqual(run(checkCodeSets, set(`${py}<pre data-lang="rust"><code>let x = 1;</code></pre>`)), [`${where}has a <pre data-lang="rust">, and the languages are pseudocode, python, java, cpp and javascript`]);
   assert.deepEqual(run(checkCodeSets, set(`${py}<pre><code>x</code></pre>`)), [`${where}has a <pre> with no data-lang`]);
   assert.deepEqual(run(checkCodeSets, set(py + java.replace('claude-opus-5-5 high', 'claude-opus-5-5 huge'))), [`${where}<pre data-lang="java"> has data-ai="claude-opus-5-5 huge", which is not "<model id>" or "<model id> <low|medium|high|max>"`]);
   assert.deepEqual(run(checkCodeSets, set(py.replace('x = 1', 'x = $a$'))), [`${where}<pre data-lang="python"> holds math, which code never does: a dollar sign in code is &#36;`]);

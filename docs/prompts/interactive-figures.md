@@ -317,10 +317,16 @@ F.code(d, {src: {python, java, cpp, javascript}, canonical = 'python', lineMap: 
 const frames = F.trace((at) => { …; at(L, {i, j, s}, ['compare', i, j]); … })   the figure's own JS copy of the shown code, numbered as
                                           shown: a frame is "line L finished; these are the variables now", an optional event after;
                                           at.enter(fn) / at.leave() around a call; snapshots capped at 64 items, 3 levels, 5,000 frames
-const dbg = F.debug(d, {code, trace | inputs: [{value, label, trace}], level, beat = 1.4, watch, draw(g)})
+const dbg = F.debug(d, {code, trace | inputs: [{value, label, trace, args?}], level, beat = 1.4, watch, args?, draw(g)})
                                           the transport: play, the timeline over the stops of the level (a dot each), step, step into,
                                           step out, speed; ← on a step button goes back one stop; inputs are a choice that swaps the trace;
-                                          the readout is the watch (the frame's variables, or those `watch` names; `watch: false` for none)
+                                          the names in `watch` say their values inline in the code, on the last line run that names them (`watch: false` for none); there is no watch panel
+                                          the input choice stands in the code panel's call row (code.call; a slider for an argument goes
+                                          there too, ctl(code.call, …)); name each input for the case it is (hit, miss, adversarial), not its data;
+                                          an argument fixed for the run is written into the code as its value, so give it a colour in refs;
+                                          `args` names fixed arguments the trace does not record
+F.rich(ctx, ['checks ', [String(n), C('cost')], ' ≤ n − 1'], x, y, {size, align})   one line, the value coloured and the words in ink;
+                                          F.marked('checks [[3]] ≤ 7', colour) makes the parts from a string
 g = {ctx, frame, prev, k, block, level, levels, touched, executed, p, stop, stops, input, num(name)}   draw's argument: the frame
                                           shown and the one it came from, k 0 … 1 eased between them, num(name) a number eased by k
 dbg.step() .back() .into() .out() .go({p, level}) .set(frames)   dbg.cursor  dbg.laid (the trace over its blocks)

@@ -139,9 +139,12 @@ const TEXT_PARTS = `## \`text.html\`: code sets
 
 A code listing the book offers in several languages is one \`<div class="code-set">\`
 holding one \`<pre data-lang>\` per language. The reader sees one at a time, the
-book's code language (Python until they choose another, kept per book), and a
-button group on the set's head switches every listing of the book, the figures'
-code panels included. A lone \`<pre>\` outside a set stays as it is.
+book's code language (kept per book), and a button group on the set's head
+switches every listing of the book, the figures' code panels included. Pseudocode
+the source prints for the same code is the set's first variant,
+\`data-lang="pseudocode"\`, never a \`<pre>\` of its own above the set; a reader
+who has chosen no language sees it, and Python where a set has none. A lone
+\`<pre>\` outside a set stays as it is.
 
 \`\`\`html
 <div class="code-set">
@@ -153,8 +156,8 @@ code panels included. A lone \`<pre>\` outside a set stays as it is.
 | attribute | on | required | description |
 | --- | --- | --- | --- |
 | \`class="code-set"\` | \`<div>\` | yes | Marks the set. It holds nothing but its \`<pre>\` elements; the build adds the head. |
-| \`data-no-python\` | \`<div>\` | where Python is absent | Why the set has no Python, the default, in a few words. |
-| \`data-lang\` | \`<pre>\` | yes | One of \`python\`, \`java\`, \`cpp\`, \`javascript\`, each at most once in a set; the buttons stand in that order, labelled Python, Java, C++, JavaScript. |
+| \`data-no-python\` | \`<div>\` | where Python is absent | Why the set has no Python, which every set of code has, in a few words. |
+| \`data-lang\` | \`<pre>\` | yes | One of \`pseudocode\`, \`python\`, \`java\`, \`cpp\`, \`javascript\`, each at most once in a set; the buttons stand in that order, labelled Pseudocode, Python, Java, C++, JavaScript. |
 | \`data-ai\` | \`<pre>\` | on a translation | What translated a variant the source does not print: the model's API id and, after a space, the effort (\`low\`, \`medium\`, \`high\`, \`max\`). The variant wears the AI mark, whose hover names them. A variant the source prints carries none. |
 
 A variant holds its code escaped as HTML inside \`<code>\`, with no math: a dollar

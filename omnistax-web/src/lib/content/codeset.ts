@@ -5,16 +5,18 @@
          <pre data-lang="java" data-ai="claude-opus-5-5 high"><code>…</code></pre>
        </div>
 
-   One <pre data-lang> per language, of python, java, cpp and javascript, each at most once; Python is the
-   default and is present, or the set says why not in `data-no-python`. A variant the source prints carries
-   no data-ai; one the AI translated names what translated it in `data-ai` and wears the AI mark. No math:
-   a dollar sign is &#36;. A <pre> outside a set is left as it is.
+   One <pre data-lang> per language, of pseudocode, python, java, cpp and javascript, each at most once;
+   Python is present, or the set says why not in `data-no-python`. Pseudocode a source prints for code the
+   set gives is its `<pre data-lang="pseudocode">`, never a <pre> of its own above the set. A variant the
+   source prints carries no data-ai; one the AI translated names what translated it in `data-ai` and wears
+   the AI mark. No math: a dollar sign is &#36;. A <pre> outside a set is left as it is.
 
    The build (`codeSets`) gives each set a head with a button group, one button per language in the order
-   Python, Java, C++, JavaScript, and the AI mark of each translated variant, and shows Python (or the first
-   language the set has); the shell shows the reader's code language of the book on every set
+   Pseudocode, Python, Java, C++, JavaScript, and the AI mark of each translated variant, and shows the
+   pseudocode where the set has it, else Python (or the first language the set has); the shell shows the
+   reader's code language of the book on every set
    (sections/codesets.ts). Pure: strings in, strings out. */
-import { LISTING_LABELS, inOrder, isListingLang, parseMaker, type ListingLang } from '../code/langs';
+import { LISTING_LABELS, inOrder, isListingLang, parseMaker, pickLang, type ListingLang } from '../code/langs';
 import { aiMarkHtml } from '../../components/ui/aimark';
 import { aiByline } from './attribution';
 import { type Locale, tIn } from '../i18n/index';
@@ -56,7 +58,7 @@ export const codeSetIssues = (s: CodeSet): readonly string[] => {
   const seen = new Set<string>();
   s.variants.forEach((v) => {
     if (!v.lang) out.push('has a <pre> with no data-lang');
-    else if (!isListingLang(v.lang)) out.push(`has a <pre data-lang="${v.lang}">, and the languages are python, java, cpp and javascript`);
+    else if (!isListingLang(v.lang)) out.push(`has a <pre data-lang="${v.lang}">, and the languages are pseudocode, python, java, cpp and javascript`);
     else if (seen.has(v.lang)) out.push(`has two <pre data-lang="${v.lang}">`);
     seen.add(v.lang);
     if (v.ai !== undefined && parseMaker(v.ai) === null) out.push(`<pre data-lang="${v.lang}"> has data-ai="${v.ai}", which is not "<model id>" or "<model id> <low|medium|high|max>"`);
@@ -64,7 +66,7 @@ export const codeSetIssues = (s: CodeSet): readonly string[] => {
     if (/\$|class="katex/.test(v.body)) out.push(`<pre data-lang="${v.lang}"> holds math, which code never does: a dollar sign in code is &#36;`);
     if (/<(?!\/?(?:code|span|b|i|em|strong|mark)\b)[a-z]/i.test(v.body)) out.push(`<pre data-lang="${v.lang}"> holds markup other than <code> and inline spans`);
   });
-  if (!seen.has('python') && s.noPython === undefined) out.push('has no Python, the default; add it or say why in data-no-python');
+  if (!seen.has('python') && s.noPython === undefined) out.push('has no Python, which every set of code has; add it or say why in data-no-python');
   if (seen.has('python') && s.noPython !== undefined) out.push('has Python and says data-no-python');
   if (s.noPython !== undefined && !s.noPython.trim()) out.push('says data-no-python with no reason');
   return out;
@@ -80,7 +82,7 @@ const withoutHidden = (attrs: string): string => attrs.replace(/\s+hidden(?:="[^
 export const renderCodeSet = (s: CodeSet, locale: Locale): string => {
   const known = s.variants.filter((v) => isListingLang(v.lang));
   const langs = inOrder(known.map((v) => v.lang));
-  const shown: ListingLang = langs.includes('python') ? 'python' : langs[0] ?? 'python';
+  const shown: ListingLang = pickLang(langs, null);
   const variant = (l: ListingLang): CodeVariant => known.find((v) => v.lang === l)!;
   const byline = (v: CodeVariant): string | null => {
     if (v.ai === undefined) return null;
@@ -89,7 +91,7 @@ export const renderCodeSet = (s: CodeSet, locale: Locale): string => {
   };
   const buttons = langs.length > 1
     ? `<span class="cs-langs" role="group" aria-label="${esc(tIn(locale, 'content.code.language'))}">${langs.map((l) =>
-      `<button type="button" class="cs-lang${l === shown ? ' on' : ''}" data-lang="${l}" aria-pressed="${l === shown}">${esc(LISTING_LABELS[l])}</button>`).join('')}</span>`
+      `<button type="button" class="cs-lang${l === shown ? ' on' : ''}" data-lang="${l}" aria-pressed="${l === shown}">${esc(l === 'pseudocode' ? tIn(locale, 'content.code.pseudocode') : LISTING_LABELS[l])}</button>`).join('')}</span>`
     : '';
   const marks = langs.flatMap((l) => { const b = byline(variant(l)); return b === null ? [] : [`<span class="cs-ai" data-lang="${l}"${l === shown ? '' : ' hidden'}>${aiMarkHtml(b)}</span>`]; }).join('');
   const head = buttons || marks ? `<div class="cs-head">${buttons}${marks}</div>` : '';
