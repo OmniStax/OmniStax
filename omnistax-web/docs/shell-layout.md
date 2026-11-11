@@ -202,7 +202,9 @@ as the page goes, and the page that comes back measures the gap. Under screen
 lock a gap longer than the lock's grace loses the session, as leaving the
 window does. Without it, a gap longer than a minute (`RELOAD_GRACE`) lets the
 session go as Stop would. A session that comes back has counted the gap. One
-that has ended and is waiting for its summary always comes back.
+that is paused, or has ended and is waiting for its summary, always comes back.
+
+A chat is not put back where it was scrolled: it opens on its latest words.
 
 An undo history is only handed back to the text or the ink it was made on: a
 note or drawing changed elsewhere in the meantime opens with a clean one. An

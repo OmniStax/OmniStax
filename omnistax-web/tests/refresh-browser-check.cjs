@@ -71,8 +71,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.locator('.pom').getByRole('button', { name: 'Pause', exact: true }).waitFor();
   const clock = await page.locator('.pom .digits').innerText();
   assert.match(clock, /^24:5\d$/, `the clock went on counting through the reload: ${clock}`);
-  /* a reload that took two minutes lets it go */
-  await reload(120_000);
+  /* paused, it comes back however long the reload took */
+  await page.locator('.pom').getByRole('button', { name: 'Pause', exact: true }).click();
+  await reload(3_600_000);
+  await page.locator('.pom').getByRole('button', { name: 'Resume', exact: true }).click();
+  await sleep(1200);
+  /* a reload that took two minutes lets a running one go */
+  await reload(3_600_000 + 120_000);
   await page.locator('.pom').getByRole('button', { name: 'Start', exact: true }).waitFor();
   assert.equal(await phase(), 'idle');
   assert.equal(await page.locator('.pom .lost').count(), 0);
@@ -101,6 +106,35 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.locator('.pane:not([hidden]) textarea').first().waitFor();
   assert.equal(await page.locator('.pane:not([hidden]) textarea').first().inputValue(), 'why does the pendulum');
   console.log('chat draft: ok');
+
+  /* ── a chat opens on its latest words, and an answer the reload cut off reads as stopped ── */
+  await page.evaluate(() => new Promise((res) => {
+    const r = indexedDB.open('omnistax-chats');
+    r.onsuccess = () => {
+      const store = r.result.transaction('chats', 'readwrite').objectStore('chats');
+      const q = store.getAll();
+      q.onsuccess = () => {
+        const chat = q.result[q.result.length - 1];
+        let parent = chat.root;
+        for (let i = 0; i < 40; i += 1) {
+          const id = `m${String(i).padStart(7, '0')}`, user = i % 2 === 0;
+          chat.messages[id] = { id, parent, role: user ? 'user' : 'assistant', text: `${user ? 'Question' : 'Answer'} ${i}. `.repeat(user ? 1 : 40), chips: [], at: chat.created + i + 1, state: i === 39 ? 'streaming' : 'done', ...(user ? {} : { model: 'm' }) };
+          parent = id;
+        }
+        chat.leaf = parent;
+        store.put(chat).onsuccess = () => { r.result.close(); res(null); };
+      };
+    };
+  }));
+  await reload();
+  const said = page.locator('.pane:not([hidden]) .messages').first();
+  await said.locator('.bubble').first().waitFor();
+  await sleep(1500);
+  const end = await said.evaluate((m) => ({ gap: m.scrollHeight - m.clientHeight - m.scrollTop, tall: m.scrollHeight > m.clientHeight * 2 }));
+  assert.ok(end.tall && end.gap <= 2, `the transcript stands at its end: ${JSON.stringify(end)}`);
+  assert.equal(await said.locator('.waiting').count(), 0);
+  assert.equal(await said.locator('.bubble').last().innerText().then((t) => t.includes('Answer 39.')), true);
+  console.log('chat end: ok');
 
   /* ── a note's undo history ── */
   await palette('New note');

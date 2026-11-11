@@ -135,7 +135,9 @@ export const setLength = (s: Session, len: number): Session =>
    other, so a gap longer than the lock's grace loses the session; without it, a
    gap longer than RELOAD_GRACE is a reader who left rather than one who
    reloaded, and the session is let go as Stop would. A session that comes back
-   has counted the gap, since a running clock is reckoned from when it started. */
+   has counted the gap, since a running clock is reckoned from when it started.
+   A paused session counts nothing and is watched by nothing, so it comes back
+   however long the page was away. */
 export const RELOAD_GRACE = millis(60_000);
 export type Saved = { readonly session: Session; readonly seenAt: Instant };
 export type Revived = { readonly session: Session; readonly lost: boolean };
@@ -159,9 +161,9 @@ export const parseSaved = (raw: unknown): Saved | null => {
 export const revive = (saved: Saved, now: Instant, lock: Millis | null): Revived => {
   const s = saved.session;
   if (s.phase === 'lost') return { session: stop(s), lost: false };
-  if (!isLive(s)) return { session: s, lost: false };
+  if (s.phase !== 'running') return { session: s, lost: false };
   const gap = Math.max(0, now - saved.seenAt);
-  if (s.phase === 'running' && lock !== null) return gap > lock ? { session: stop(s), lost: true } : { session: s, lost: false };
+  if (lock !== null) return gap > lock ? { session: stop(s), lost: true } : { session: s, lost: false };
   return { session: gap > RELOAD_GRACE ? stop(s) : s, lost: false };
 };
 

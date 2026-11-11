@@ -172,7 +172,7 @@ class PomodoroStore {
     const wanted = this.session.phase === 'running';
     if (wanted && this.timer === null) this.timer = setInterval(() => this.beat(), TICK_MS);
     if (!wanted && this.timer !== null) { clearInterval(this.timer); this.timer = null; }
-    const live = isLive(this.session);
+    const live = this.session.phase === 'running';
     if (live && this.pulse === null) this.pulse = setInterval(() => this.seen(), SEEN_MS);
     if (!live && this.pulse !== null) { clearInterval(this.pulse); this.pulse = null; }
   }

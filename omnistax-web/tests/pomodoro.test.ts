@@ -293,8 +293,9 @@ test('a reload that took longer than a minute lets the session go, keeping its l
   assert.equal(back.session.mode, 'stopwatch');
   assert.equal(back.lost, false);
   const paused = pause(s, at(5_000));
-  assert.equal(revive({ session: paused, seenAt: at(5_000) }, at(5_000 + RELOAD_GRACE), null).session, paused, 'a minute to the millisecond is still a reload');
-  assert.equal(revive({ session: paused, seenAt: at(5_000) }, at(6_000 + RELOAD_GRACE), millis(10_000)).session.phase, 'idle', 'the lock does not watch a paused session');
+  assert.equal(revive({ session: s, seenAt: at(0) }, at(RELOAD_GRACE), null).session, s, 'a minute to the millisecond is still a reload');
+  assert.equal(revive({ session: paused, seenAt: at(5_000) }, at(99 * MIN), null).session, paused, 'a paused session comes back however long the page was away');
+  assert.deepEqual(revive({ session: paused, seenAt: at(5_000) }, at(99 * MIN), millis(10_000)), { session: paused, lost: false }, 'and the lock does not watch it');
 });
 
 test('under screen lock a reload longer than the grace loses the session', () => {
