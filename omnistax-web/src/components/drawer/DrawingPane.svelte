@@ -58,11 +58,15 @@
 
 <style>
   .drawing-pane{position:absolute;inset:0;display:flex;flex-direction:column;font-family:var(--sans)}
-  .head{flex:none;display:flex;align-items:center;gap:8px;padding:8px 16px 6px;border-bottom:1px solid var(--rule);background:var(--bg)}
+  /* The name is a button and not prose: a stroke that runs off the top of the
+     page, or a drag of the grip beside it, must not select it. The box it is
+     renamed in is text again. */
+  .head{flex:none;display:flex;align-items:center;gap:8px;padding:8px 16px 6px;border-bottom:1px solid var(--rule);background:var(--bg);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .body{flex:1;min-height:0;position:relative}
   .name{flex:1;min-width:0;font:inherit;font-size:1.02rem;font-weight:600;color:var(--ink);text-align:left;background:none;border:0;padding:3px 6px;margin-left:-6px;border-radius:5px;cursor:text;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .name:hover{background:var(--soft)}
   .name-input{flex:1;min-width:0;font:inherit;font-size:1.02rem;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--accent);border-radius:5px;padding:2px 5px;margin-left:-6px}
+  .name-input{-webkit-user-select:text;user-select:text}
   .name-input:focus{outline:none}
   .waiting{flex:1;display:grid;place-items:center;color:var(--muted);font-size:0.9rem}
 </style>

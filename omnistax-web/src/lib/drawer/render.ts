@@ -25,7 +25,12 @@ const styled = (ctx: CanvasRenderingContext2D, f: () => void): void => { ctx.sav
 /* A pen stroke is drawn as a run of segments rather than one path, because the
    nib changes width along it with the pressure; a highlighter is one path at
    one width, which is what stops a translucent stroke from darkening at every
-   join where two segments overlap. */
+   join where two segments overlap. Either way the ink is a curve and not a
+   chain of straight lines: each point is the control of a curve that runs
+   from the middle of the segment before it to the middle of the one after,
+   so the line turns through a point instead of cornering at it. */
+const mid = (a: Point, b: Point): readonly [number, number] => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+
 const strokeInk = (ctx: CanvasRenderingContext2D, tool: InkTool, color: string, size: number, points: readonly Point[]): void => {
   styled(ctx, () => {
     ctx.strokeStyle = color;
@@ -41,21 +46,27 @@ const strokeInk = (ctx: CanvasRenderingContext2D, tool: InkTool, color: string, 
       ctx.fill();
       return;
     }
+    const n = points.length;
+    /* Where the curve through point i ends: half way to the next point, and
+       at the last point itself. */
+    const endOf = (i: number): readonly [number, number] => (i === n - 1 ? [points[i][0], points[i][1]] : mid(points[i], points[i + 1]));
     if (tool === 'highlighter') {
       ctx.lineWidth = base;
       ctx.beginPath();
       ctx.moveTo(points[0][0], points[0][1]);
-      points.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
+      for (let i = 1; i < n; i++) { const to = endOf(i); ctx.quadraticCurveTo(points[i][0], points[i][1], to[0], to[1]); }
       ctx.stroke();
       return;
     }
-    for (let i = 1; i < points.length; i++) {
-      const a = points[i - 1], b = points[i];
-      ctx.lineWidth = Math.max(0.4, nib(base, (a[2] + b[2]) / 2));
+    let from: readonly [number, number] = [points[0][0], points[0][1]];
+    for (let i = 1; i < n; i++) {
+      const p = points[i], to = endOf(i);
+      ctx.lineWidth = Math.max(0.4, nib(base, i === 1 ? (points[0][2] + p[2]) / 2 : p[2]));
       ctx.beginPath();
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
+      ctx.moveTo(from[0], from[1]);
+      ctx.quadraticCurveTo(p[0], p[1], to[0], to[1]);
       ctx.stroke();
+      from = to;
     }
   });
 };

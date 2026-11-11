@@ -11,7 +11,7 @@ import {
 } from '../src/lib/drawer/model';
 import {
   bounds, boundsOf, distanceToSegment, erasedAt, fitView, handleUnder, inPolygon, lassoed, meets,
-  nib, resized, simplify, snapped, viewBox, type Vec,
+  nib, resized, simplify, snapped, steadied, viewBox, type Vec,
 } from '../src/lib/drawer/geometry';
 import { toolForKey, isInk, TOOL_KEY, TOOLS } from '../src/lib/drawer/tools';
 import { assetEmbed, assetOfEmbed } from '../src/lib/drawer/snapshot';
@@ -345,4 +345,19 @@ test('the rows the explorer reads carry a name and no ink, and a name is matched
   assert.equal(rowByName(rows, '  free BODY ')?.id, d.id);
   assert.equal(rowByName(rows, 'nothing'), undefined);
   assert.deepEqual(parseRows('not a list'), []);
+});
+
+test('the ink is steadied: it follows the pointer, shakes less than it, and skips what is too near', () => {
+  const start = at(0, 0);
+  assert.equal(steadied(start, at(0.2, 0), 0.5), null, 'a point too near the last adds nothing');
+  const next = steadied(start, at(10, 0), 0.5);
+  assert.ok(next && next[0] > 0 && next[0] < 10, 'a point is laid part of the way to the pointer');
+  /* A hand moving right with a pixel of tremor up and down. */
+  const raw: Point[] = Array.from({ length: 80 }, (_, i) => [i * 2, i % 2 ? 1 : -1, i % 2 ? 0.9 : 0.1]);
+  const laid: Point[] = [raw[0]];
+  raw.slice(1).forEach((p) => { const q = steadied(laid[laid.length - 1], p, 0.5); if (q) laid.push(q); });
+  const swing = (ps: readonly Point[], k: 1 | 2): number => Math.max(...ps.slice(10).map((p) => p[k])) - Math.min(...ps.slice(10).map((p) => p[k]));
+  assert.ok(swing(laid, 1) < swing(raw, 1) / 2, 'the tremor is more than halved');
+  assert.ok(swing(laid, 2) < swing(raw, 2) / 2, 'and the pressure does not flicker');
+  assert.ok(raw[79][0] - laid[laid.length - 1][0] < 4, 'the line trails the pen by less than two samples');
 });
