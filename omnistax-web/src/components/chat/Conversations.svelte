@@ -136,7 +136,7 @@
 {#if shown}
   <section class="conversations reading" aria-label={i18n.t('chat.conversations.label')}>
     <div class="back-row"><BackLink label={i18n.t('chat.conversations.label')} onclick={() => chatPages.back(item)} /></div>
-    {#key shown}<ChatTab chatId={shown} inline />{/key}
+    {#key shown}<ChatTab chatId={shown} inline page={item} />{/key}
   </section>
 {:else}
 <section class="conversations" aria-label={i18n.t('chat.conversations.label')}>

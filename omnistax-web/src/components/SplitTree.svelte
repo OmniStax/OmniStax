@@ -1,16 +1,17 @@
 <script lang="ts">
-  /* The arrangement of the document groups. A leaf draws one group; a split
+  /* The arrangement of the document groups. A leaf keeps the place of one
+     group, which the shell draws over it (layout/slots.svelte.ts), so a change
+     of the tree's shape never draws a group again; a split
      draws its children in a row or a column, each taking the share the layout
      gives it, with a grip between neighbours that carries share from one to the
      other. The component names itself, so a tree of any depth draws itself. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { groupIndex, resizeSplit, type SplitNode, type SplitPath } from '../lib/layout/model';
+  import { resizeSplit, type SplitNode, type SplitPath } from '../lib/layout/model';
+  import { slot } from '../lib/layout/slots.svelte';
   import { FIG } from '../lib/fig/figlib';
   import { i18n } from '../lib/i18n/store.svelte';
-  import DocGroup from './DocGroup.svelte';
   import SplitTree from './SplitTree.svelte';
-  let { node, path = [], onPick }: { node: SplitNode; path?: SplitPath; onPick: (index: number, anchor: HTMLElement) => void } = $props();
-  const l = $derived(layoutStore.layout);
+  let { node, path = [] }: { node: SplitNode; path?: SplitPath } = $props();
   const MIN = 120;                             /* no group is dragged narrower or shorter than this many pixels */
   /* A subtree is known by its first group, which no other subtree can hold. */
   const nodeKey = (n: SplitNode): string => (n.type === 'leaf' ? n.group : nodeKey(n.children[0]));
@@ -61,8 +62,7 @@
 </script>
 
 {#if node.type === 'leaf'}
-  {@const i = groupIndex(l, node.group)}
-  {#if i >= 0}<DocGroup index={i} group={l.groups[i]} {onPick} />{/if}
+  <div class="slot" data-slot={node.group} use:slot={node.group}></div>
 {:else}
   <div class="split {node.dir}" style:--cell-min="{MIN}px">
     {#each node.children as child, i (nodeKey(child))}
@@ -71,13 +71,14 @@
           onpointerdown={(e) => drag(e, i - 1)} ondblclick={() => evenPair(i - 1)}></div>
       {/if}
       <div class="cell" style:flex="{weights[i]} 1 0px">
-        <SplitTree node={child} path={[...path, i]} {onPick} />
+        <SplitTree node={child} path={[...path, i]} />
       </div>
     {/each}
   </div>
 {/if}
 
 <style>
+  .slot{flex:1;min-width:0;min-height:0}
   .split{display:flex;flex:1;min-width:0;min-height:0}
   .split.row{flex-direction:row}
   .split.column{flex-direction:column}

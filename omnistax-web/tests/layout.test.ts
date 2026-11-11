@@ -31,9 +31,17 @@ test('split right duplicates the active document and focuses the new group', () 
   assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[0].tabs, [text]); assert.deepEqual(l.groups[1].tabs, [text]); assert.equal(l.focus, 1);
   assert.deepEqual(groupsWith(l, text), [0, 1]);
 });
-test('split right moves a view instead of copying it', () => {
+test('split right keeps a view where it is and opens another page of it beside', () => {
   const a = openTab(defaultLayout(), map, 0);
   const l = splitRight(a, 0);
+  assert.deepEqual(groupsWith(l, map), [0], 'the page split stays in its group');
+  assert.equal(l.groups.length, 2); assert.equal(l.focus, 1);
+  const [page] = l.groups[1].tabs;
+  assert.equal(l.groups[1].tabs.length, 1); assert.notEqual(page, map); assert.equal(viewKindOf(page), viewKindOf(map), 'the new group holds a page of the same view');
+  assert.equal(splitRight(closeItem(a, text), 0).groups.length, 2, 'a group holding only a view still splits in two');
+});
+test('a view named to a split still moves there', () => {
+  const l = split(openTab(defaultLayout(), map, 0), 0, 'right', map);
   assert.deepEqual(groupsWith(l, map), [1]); assert.equal(where(l, map)?.type, 'group');
 });
 test('closing one copy leaves the other', () => {

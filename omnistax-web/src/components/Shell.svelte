@@ -37,6 +37,8 @@
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
+  import DocGroup from './DocGroup.svelte';
+  import { slots, slotHost } from '../lib/layout/slots.svelte';
   import Settings from './Settings.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
@@ -367,6 +369,8 @@
     return ref && e ? { key: secKey(ref), book: ref.book, url: e.url, label: pageLabel(e) } : null;
   };
   const reading = $derived.by(() => { const a = focusedGroup(layoutStore.layout).active; return addressOf(a ? parseItemKey(a) : null); });
+  /* The tree's shape → where each group stands, read once the tree is drawn; figures are drawn again in the room they now have. */
+  $effect(() => { void layoutStore.layout.tree; if (slots.measure()) void tick().then(() => FIG.redrawAll()); });
   /* layout → address bar, title, released copies, spy, redraw */
   let urlKey: SecKey | string | null = null;
   /* A link followed in the text adds a step the browser's Back returns to; a
@@ -397,8 +401,15 @@
   <div class="shell" lang={i18n.locale} role="application" aria-label="OmniStax" onpointerdown={() => { if (layoutStore.overlay && !narrow) layoutStore.overlay = null; }}>
     <Rail {narrow} />
     <Sidebar {narrow} />
-    <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>
-      <SplitTree node={layoutStore.layout.tree} {onPick} />
+    <main class="docs" use:slotHost onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>
+      <SplitTree node={layoutStore.layout.tree} />
+      <!-- every group once, over the slot the tree keeps for it: the tree may change shape and the groups stay as they are -->
+      {#each layoutStore.layout.groups as g, i (g.key)}
+        {@const box = slots.boxes[g.key]}
+        <div class="seat" class:unplaced={!box} style:left="{box?.left ?? 0}px" style:top="{box?.top ?? 0}px" style:width="{box?.width ?? 0}px" style:height="{box?.height ?? 0}px">
+          <DocGroup index={i} group={g} {onPick} />
+        </div>
+      {/each}
     </main>
   </div>
   {#if keys.pending}
@@ -427,5 +438,9 @@
   .chord-hint kbd{display:inline-block;font:inherit;border:1px solid var(--rule);border-radius:3px;padding:0 4px;color:var(--ink)}
   .shell{height:100vh;height:100dvh;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:44px auto minmax(0,1fr);grid-template-areas:"rl sl docs"}
   .docs{grid-area:docs;display:flex;min-width:0;min-height:0;background:var(--bg);position:relative}
+  .seat{position:absolute;display:flex;min-width:0;min-height:0}
+  .seat > :global(*){flex:1;min-width:0;min-height:0}
+  /* a group whose slot has not been read yet is drawn, to be measured, and not shown */
+  .seat.unplaced{visibility:hidden;inset:0}
   @media (max-width:900px){ .shell{grid-template-columns:44px 0 minmax(0,1fr)} .docs{flex-direction:column} }
 </style>

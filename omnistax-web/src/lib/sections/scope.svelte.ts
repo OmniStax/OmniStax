@@ -69,6 +69,12 @@ class Scope {
   pin(key: ItemKey, target: Target | null = this.targetFor(key)): void { if (target) this.set(key, { follow: false, target }); }
   unpin(key: ItemKey): void { this.set(key, { follow: true, level: this.levelFor(key) }); }
   togglePin(key: ItemKey): void { if (this.isPinned(key)) this.unpin(key); else this.pin(key); }
+  /* A page opened as the copy of another stands where that one does, pinned or held as it is. */
+  copy(from: ItemKey, to: ItemKey): void {
+    const s = this.scopes[from], h = this.held[from];
+    if (s) this.set(to, s);
+    if (h) this.hold(to, h);
+  }
   private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.scopes)); } catch { /* private mode */ } }
 }
 export const scope = new Scope();
