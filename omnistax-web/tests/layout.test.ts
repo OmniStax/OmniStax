@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openBeside, besideOf, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -407,4 +407,38 @@ test('a rail view opens as a tab of the focused group, or comes forward where th
   const back = activate(openTab(l, text, 0), 0, text);
   const again = showViewInFocus(back, 'concepts', newViewItem('concepts'));
   assert.deepEqual(again.groups[0].tabs, back.groups[0].tabs); assert.equal(again.groups[0].active, l.groups[0].active);
+});
+
+test('a companion opens in a new group to the right when the group stands alone', () => {
+  const l = openBeside(defaultLayout(), 0, second);
+  assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[0].tabs, [text], 'the source keeps what it showed');
+  assert.deepEqual(l.groups[1].tabs, [second]); assert.equal(l.focus, 1);
+});
+test('a companion opens as a tab of the group to the right, and of the one to the left when nothing is to the right', () => {
+  const two = splitRight(defaultLayout(), 0);
+  const right = openBeside(two, 0, second);
+  assert.equal(right.groups.length, 2); assert.deepEqual(right.groups[1].tabs, [text, second]); assert.equal(right.focus, 1);
+  assert.equal(right.groups[0].active, text);
+  const left = openBeside(two, 1, second);
+  assert.equal(left.groups.length, 2); assert.deepEqual(left.groups[0].tabs, [text, second]); assert.equal(left.focus, 0);
+});
+test('a companion already open comes forward where it is', () => {
+  const three = splitRight(openTab(splitRight(defaultLayout(), 0), second, 1), 1, 'note:a1b2c3d4');
+  const far = openBeside(activate(three, 0, text), 0, 'note:a1b2c3d4');
+  assert.equal(far.groups.length, 3); assert.equal(far.focus, 2); assert.deepEqual(far.groups[1].tabs, [text, second]);
+  const here = openBeside(openTab(defaultLayout(), second, 0), 0, text);
+  assert.equal(here.groups.length, 1, 'open only in the group asked from: shown there, not split'); assert.equal(here.groups[0].active, text);
+});
+test('a group above or below is no neighbour, and an outer row is', () => {
+  const stacked = splitDown(defaultLayout(), 0);
+  assert.equal(besideOf(stacked, 0), null); assert.equal(besideOf(stacked, 1), null);
+  const l = openBeside(stacked, 1, second);
+  assert.equal(l.groups.length, 3); assert.deepEqual(l.groups[2].tabs, [second], 'the lower group splits to its right');
+  /* row[ column[ a, row[b, c] ], d ] */
+  const d = splitRight(defaultLayout(), 0), nested = splitRight(splitDown(d, 0), 1);
+  assert.equal(nested.groups.length, 4);
+  assert.equal(besideOf(nested, 1), 2, 'b has c to its right');
+  assert.equal(besideOf(nested, 2), 3, 'c has d to its right before b to its left');
+  assert.equal(besideOf(nested, 0), 3, 'a has d to its right');
+  assert.equal(besideOf(nested, 3), 0, 'd has the column to its left, and takes the group at its top');
 });

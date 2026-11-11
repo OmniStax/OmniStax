@@ -5,8 +5,9 @@
    makes no link — and it is keyed by the book, the section and the exercise,
    which is the thing it belongs to.
 
-   Opening it opens a drawing pane as a tab of the group the reader asked
-   from, or with Ctrl in a group of its own to the right of it.
+   Opening it opens a drawing pane beside the group the reader asked from, so
+   the problem stays in view: as a tab of the neighbouring group, or in a new
+   group to the right when there is none. With Ctrl it always takes a new group.
 
    Work worth keeping stops being scratch: "Save as drawing" gives it a row
    under Your Files and the exercise remembers the drawing it became, and
@@ -14,7 +15,7 @@
    direction can be taken back whole. */
 import { bookId, drawingItem, itemKey, scratchOf, type SectionId } from '../types/ids';
 import { saveScratchAsDrawing } from '../drawer/edits';
-import { split, openTab } from '../layout/model';
+import { split, openBeside } from '../layout/model';
 import { layoutStore } from '../layout/store.svelte';
 import { drawings, scratchKey, type ScratchKey } from '../drawer/store.svelte';
 import type { Opening } from '../sections/nav.svelte';
@@ -30,8 +31,8 @@ export const hasScratch = (at: ScratchAt): boolean => drawings.hasScratch(keyOf(
 /* The drawing this exercise's work was saved as, if it has been. */
 export const linkedDrawing = (at: ScratchAt) => drawings.scratchNote(keyOf(at))?.linked;
 
-/* The page of scratch work for one exercise, as a tab of the group the reader
-   asked from or in a split to the right of it. The work is a drawing of the
+/* The page of scratch work for one exercise, beside the group the reader
+   asked from. The work is a drawing of the
    reader's own from the first opening, filed under _practice/scratch and named
    by the exercise, so there is nothing to save later and nothing to lose. */
 export const openScratch = async (at: ScratchAt, group: number, how: Opening = 'tab'): Promise<void> => {
@@ -42,7 +43,7 @@ export const openScratch = async (at: ScratchAt, group: number, how: Opening = '
     linked = saveScratchAsDrawing(at.book, at.section, at.ex)?.id;
   }
   const id = linked ? itemKey(drawingItem(linked)) : scratchOf(bookId(at.book), at.section, at.ex);
-  layoutStore.apply((l) => (how === 'new' ? split(l, group, 'right', id) : openTab(l, id, group)));
+  layoutStore.apply((l) => (how === 'new' ? split(l, group, 'right', id) : openBeside(l, group, id)));
 };
 
 /* What a saved page is called: the exercise it belongs to and the word for

@@ -263,6 +263,36 @@ export const reopenGroup = (l: Layout, tabs: readonly ItemKey[], active: ItemKey
 };
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
+/* The group a companion page opens in: the one standing beside this group in a
+   row, the right-hand neighbour before the left-hand one and the nearest row
+   before one further out. A group above or below is no neighbour, since it
+   leaves the reader no wider a view of both. Null when the group stands in no row. */
+export const besideOf = (l: Layout, index: number): number | null => {
+  const key = l.groups[index]?.key; if (!key) return null;
+  const trail = (n: SplitNode): readonly { readonly split: Split; readonly at: number }[] | null => {
+    if (n.type === 'leaf') return n.group === key ? [] : null;
+    for (const [at, c] of n.children.entries()) { const rest = trail(c); if (rest) return [...rest, { split: n, at }]; }
+    return null;
+  };
+  /* innermost first */
+  const rows = (trail(l.tree) ?? []).filter((s) => s.split.dir === 'row');
+  /* The leaf of a neighbouring subtree that touches this group: its near edge in a row, its top in a column. */
+  const edge = (n: SplitNode, last: boolean): GroupKey => (n.type === 'leaf' ? n.group : edge(n.children[last && n.dir === 'row' ? n.children.length - 1 : 0], last));
+  const right = rows.find((s) => s.at < s.split.children.length - 1), left = rows.find((s) => s.at > 0);
+  const found = right ? edge(right.split.children[right.at + 1], false) : left ? edge(left.split.children[left.at - 1], true) : null;
+  return found ? groupIndex(l, found) : null;
+};
+/* Open a page next to the group it was asked from, so what the reader was
+   looking at stays in view: it comes forward where it is already open (in
+   another group before this one), or opens as a tab of the neighbouring group,
+   or with no neighbour in a new group to the right. */
+export const openBeside = (l: Layout, index: number, id: ItemId | ItemKey): Layout => {
+  const k = keyOf(id); if (!l.groups[index]) return l;
+  const open = groupsWith(l, k); const there = open.find((i) => i !== index) ?? open[0];
+  if (there !== undefined) return activate(l, there, k);
+  const beside = besideOf(l, index);
+  return beside === null ? split(l, index, 'right', k) : openTab(l, k, beside);
+};
 /* Step to a page that is named: it shows it where it already stands, and where it
    stands nowhere it opens as a tab of the focused group. */
 export const openInFocus = (l: Layout, id: ItemId | ItemKey): Layout => {
