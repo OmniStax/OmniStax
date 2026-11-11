@@ -18,12 +18,18 @@
   import { registerFigBlend } from '../../lib/fig/figlib';
   import { label as sectionLabel } from '../../lib/sections/grouping';
   import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
+  import { inherit, lends } from '../../lib/layout/handoff';
 
   /* `inline` is the chat standing inside the Conversations page rather than
      filling a tab of its own: it takes the room the page gives it, under the
      page's way back to the list. A chat in a tab of its own carries that way
-     back itself. */
-  let { chatId, inline = false }: { chatId: ChatId; inline?: boolean } = $props();
+     back itself. `page` is the Conversations page it stands in, which a split
+     copies: the chat lends that copy what only it holds — the words typed and
+     not sent, the chips above them, what is folded — and takes them when it is
+     the copy. */
+  let { chatId, inline = false, page = null }: { chatId: ChatId; inline?: boolean; page?: string | null } = $props();
+  type Lent = { readonly chat: ChatId; readonly chips: readonly Chip[]; readonly words: string; readonly collapsed: ReadonlySet<MessageId> };
+  const lent = untrack(() => { const l = page ? inherit<Lent>(page, 'chat') : undefined; return l && l.chat === chatId ? l : null; });
 
   const chat = $derived<Chat | null>(chats.get(chatId));
   const path = $derived(chat ? transcript(chat) : []);
@@ -42,8 +48,8 @@
      they come and stand in place of the pin; otherwise a chat that has said
      nothing yet pins the section focused when it opened. A chat reopened on
      a conversation already held is left as it was asked, with nothing pinned. */
-  let chips = $state.raw<readonly Chip[]>([]);
-  let handed = false;
+  let chips = $state.raw<readonly Chip[]>(lent?.chips ?? []);
+  let handed = lent !== null;
   $effect(() => {
     if (!pending.chips[chatId]) return;
     const given = takeChips(chatId) ?? [];
@@ -78,13 +84,21 @@
     if (mathBooks.length <= 1) return mathBooks[0] ?? null;
     const name = `blend:${chatId}`; registerFigBlend(name, mathBooks); return name;
   });
-  let composer = $state<{ focus(): void; insert(words: string): void; over(e: DragEvent, wide?: boolean): void; leave(e: DragEvent): void; drop(e: DragEvent, wide?: boolean): void } | null>(null);
+  let composer = $state<{ focus(): void; insert(words: string): void; draft(): string; over(e: DragEvent, wide?: boolean): void; leave(e: DragEvent): void; drop(e: DragEvent, wide?: boolean): void } | null>(null);
   $effect(() => {
     const words = pending.words[chatId];
     if (!words || !composer) return;
     const c = composer;
     void tick().then(() => c.insert(pending.take(chatId)));
   });
+
+  let owed = lent?.words ?? '';
+  $effect(() => {
+    const c = composer; if (!owed || !c) return;
+    const words = owed; owed = '';
+    void tick().then(() => c.insert(words));
+  });
+  $effect(() => (page ? lends(page, 'chat', (): Lent => ({ chat: chatId, chips, words: composer?.draft() ?? '', collapsed })) : undefined));
 
   let renaming = $state(false);
   let draft = $state('');
@@ -114,7 +128,7 @@
     void tick().then(() => list?.scrollTo(id));
   };
 
-  let collapsed = $state.raw<ReadonlySet<MessageId>>(new Set());
+  let collapsed = $state.raw<ReadonlySet<MessageId>>(lent?.collapsed ?? new Set());
   const anyOpen = $derived(path.some((m) => !collapsed.has(m.id)));
   const foldAll = (): void => { collapsed = anyOpen ? new Set(path.map((m) => m.id)) : new Set(); };
 

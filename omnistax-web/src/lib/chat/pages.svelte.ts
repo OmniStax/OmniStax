@@ -36,6 +36,8 @@ class ChatPages {
 
   of(page: ItemKey): ChatId | null { return this.shown[page] ?? null; }
   show(page: ItemKey, id: ChatId): void { this.shown = { ...this.shown, [page]: id }; this.save(); }
+  /* A page opened as the copy of another stands on the chat that one does. */
+  copy(from: ItemKey, to: ItemKey): void { const id = this.shown[from]; if (id) this.show(to, id); }
   back(page: ItemKey): void { if (page in this.shown) { const { [page]: _gone, ...rest } = this.shown; this.shown = rest; this.save(); } }
   prune(open: readonly ItemKey[]): void {
     const keep = new Set(open), entries = Object.entries(this.shown).filter(([page]) => keep.has(page));

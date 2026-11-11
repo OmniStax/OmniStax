@@ -65,6 +65,8 @@
   });
 
   export function focus(): void { field?.focus(); }
+  /* The words typed and not yet sent. */
+  export function draft(): string { return text; }
   export function insert(words: string): void {
     const cut = field?.selectionStart ?? text.length;
     text = `${text.slice(0, cut)}${text.slice(0, cut) && !/\s$/.test(text.slice(0, cut)) ? '\n\n' : ''}${words}${text.slice(cut) ? '\n\n' : ''}${text.slice(cut)}`;

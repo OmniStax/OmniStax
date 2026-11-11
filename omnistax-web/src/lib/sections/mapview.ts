@@ -79,6 +79,11 @@ export const mapViews = {
   /* nothing picked is no entry, so a level let go and a level never touched read alike */
   pick: (k: ViewKey, p: Picked): void => { if (p.selected.length || p.focus) picked.set(k, { selected: [...p.selected], focus: p.focus && [...p.focus] }); else picked.delete(k); },
   forget: (k: ViewKey): void => { held.delete(k); picked.delete(k); },
+  /* Every level one map tab walked, for a tab opened as its copy. */
+  copy: (from: string, to: string): void => {
+    const under = <V>(m: Map<ViewKey, V>): void => { [...m].forEach(([k, v]) => { if (k.startsWith(`${from}|`)) m.set(to + k.slice(from.length), v); }); };
+    under(held); under(picked);
+  },
 };
 
 /* The layout each map tab was showing, so a map put away and drawn again comes back in it. */
@@ -86,4 +91,5 @@ const kinds = new Map<string, MapKind>();
 export const mapKinds = {
   get: (item: string): MapKind | undefined => kinds.get(item),
   set: (item: string, k: MapKind): void => { kinds.set(item, k); },
+  copy: (from: string, to: string): void => { const k = kinds.get(from); if (k) kinds.set(to, k); },
 };

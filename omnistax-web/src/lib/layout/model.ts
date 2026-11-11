@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newViewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -228,16 +228,23 @@ const seat = (l: Layout, target: GroupKey, fresh: Group, side: SplitSide): Layou
   const at = groupIndex(l, target);
   return { ...l, groups: [...l.groups.slice(0, at + 1), fresh, ...l.groups.slice(at + 1)], tree: insertLeaf(l.tree, target, fresh.key, side) };
 };
+/* Another page of the view a key names, and nothing for a key that names
+   something else: one page of a view lives in only one place, so a view is
+   had twice as two pages of it. */
+export const anotherPageOf = (k: ItemKey): ItemKey | null => { const kind = viewKindOf(k); return kind ? keyOf(newViewItem(kind)) : null; };
 /* Split a group (as in VS Code): the item opens again in a new group on the
-   side asked for. A document stays where it was and is copied; a view moves,
-   because one page of a view lives in only one place — which is why the rail
-   hands this a page of its own each time. A group with nothing to split simply
-   gains an empty neighbour, which stays until the reader closes it. */
+   side asked for. A document stays where it was and is copied. A view named
+   by the caller moves, because one page of a view lives in only one place —
+   which is why the rail hands this a page of its own each time — and a group
+   split on a view keeps it and gains another page of the same view beside it,
+   which layout/split.svelte.ts opens on what the first was showing. A group
+   with nothing to split simply gains an empty neighbour, which stays until
+   the reader closes it. */
 export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
   const g = l.groups[index]; if (!g) return l;
-  const k = id ? keyOf(id) : g.active;
+  const k = id ? keyOf(id) : g.active ? anotherPageOf(g.active) ?? g.active : null;
   if (!k) { const fresh = emptyGroup(); return focusOn(settle(seat(l, g.key, fresh, side)), fresh.key); }
-  const source = id ? from ?? null : viewKey(k) ? g.key : null;
+  const source = id ? from ?? null : null;
   const base = viewKey(k) ? detach(l, k) : source ? withGroups(l, l.groups.map((x) => (x.key === source ? removeFromGroup(x, k) : x))) : l;
   const fresh: Group = { key: newGroupKey(), tabs: [k], active: k };
   return focusOn(dropEmptied(l, seat(base, g.key, fresh, side)), fresh.key);
