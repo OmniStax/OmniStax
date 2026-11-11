@@ -293,11 +293,12 @@
       if (dl) { e.preventDefault(); void openItem(itemKey(downloadItem()), groupOf(dl), openingOf(e)); return; }
       const sb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-split-key]');
       if (sb?.dataset.splitKey) { e.preventDefault(); void openItem(sb.dataset.splitKey, groupOf(sb), openingOf(e)); return; }
-      /* "Practice this section" at the end of a section: a practice view opens as a
-         tab of the group the section is reading in, with that one section picked. */
+      /* "Practice this section" at the end of a section: a practice view opens
+         beside the group the section is reading in, with that one section picked,
+         or with Ctrl as a tab of that group. */
       const pb = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-practise-section]');
       const pbook = pb && bookOfEl(pb);
-      if (pb?.dataset.practiseSection && pbook) { openPractice([{ book: pbook, section: sectionId(pb.dataset.practiseSection) }], groupOf(pb)); return; }
+      if (pb?.dataset.practiseSection && pbook) { openPractice([{ book: pbook, section: sectionId(pb.dataset.practiseSection) }], groupOf(pb), openingOf(e) !== 'new'); return; }
       /* A link a pane has already answered — a wiki link in a note or a text
          box, which opens a note, a file or a section of its own accord — is
          not the shell's to follow as well: it says so by preventing the
