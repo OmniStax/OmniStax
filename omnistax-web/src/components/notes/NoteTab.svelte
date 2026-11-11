@@ -147,7 +147,7 @@
     <div class="note-body" class:writing={mode === 'edit'}>
       {#if mode === 'edit' && Editor}
         {@const Ed = Editor}
-        <Ed bind:this={editor} value={doc.body} onchange={onbody} complete={candidates} {onimage} />
+        <Ed bind:this={editor} value={doc.body} onchange={onbody} complete={candidates} {onimage} undoKey={noteId} />
       {:else if mode !== 'edit'}
         <NoteView {noteId} body={doc.body} />
       {/if}

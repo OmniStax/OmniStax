@@ -59,6 +59,7 @@
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { paramsQuery, parseLink } from '../../lib/notes/md/links';
   import { dragging } from '../../lib/layout/drag.svelte';
+  import { keepTimeline, readTimeline } from '../../lib/drawer/undo';
   import {
     chatId, chatItem, docItem, drawingId, drawingItem, exItem, fileId, fileItem, figItem,
     itemKey, noteId, noteItem, parseSecKey, secKey, type GroupKey, type NoteId,
@@ -114,6 +115,24 @@
      remembers its own way back through it. */
   let history = $state.raw(timeline(drawing));
   $effect(() => { if (history.now !== drawing) history = timeline(drawing); });
+  /* The steps this tab had taken before the page was reloaded come back around
+     the drawing, when it is still the drawing they led to and nothing has been
+     drawn while they were being read. From the first step on, the stack is
+     written down as it changes. */
+  let stepped = false;
+  onMount(() => {
+    const first = drawing;
+    void readTimeline(first).then((kept) => {
+      if (!kept || history.now !== first || history.past.length || history.future.length) return;
+      history = { past: kept.past, now: first, future: kept.future };
+    });
+  });
+  $effect(() => {
+    const h = history;
+    if (!stepped && !h.past.length && !h.future.length) return;
+    stepped = true;
+    keepTimeline(h);
+  });
 
   /* A step: what the reader would take back in one Ctrl+Z. */
   const commit = (next: Drawing): void => { if (next === history.now) return; history = step(history, next); onchange(next); };

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
+  import { chatDrafts } from '../../lib/chat/drafts';
   import { i18n } from '../../lib/i18n/store.svelte';
   import Composer from './Composer.svelte';
   import Crumbs from './Crumbs.svelte';
@@ -42,8 +43,12 @@
      they come and stand in place of the pin; otherwise a chat that has said
      nothing yet pins the section focused when it opened. A chat reopened on
      a conversation already held is left as it was asked, with nothing pinned. */
-  let chips = $state.raw<readonly Chip[]>([]);
-  let handed = false;
+  /* A draft the page went away under comes back as it stood, chips and all,
+     and stands in place of the pin as chips handed from outside do. */
+  const drafted = untrack(() => chatDrafts.get(chatId));
+  let chips = $state.raw<readonly Chip[]>(drafted?.chips ?? []);
+  let handed = drafted !== null;
+  $effect(() => { chatDrafts.set(chatId, { chips }); });
   $effect(() => {
     if (!pending.chips[chatId]) return;
     const given = takeChips(chatId) ?? [];

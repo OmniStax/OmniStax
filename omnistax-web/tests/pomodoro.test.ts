@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   type DayKey, type Instant, type Pomodoro, type Session, CATEGORY_COLORS, LENGTH, addCategory, amended, blankDraft, draftOf, entryOf, newestFirst, pageCount, pageOf, axisStep, clampLength, clampSeed, clockText, colorOf, dayKey, dropped, faceMs, finish, idle, instant, isOver, logged, lose, millis, monthBefore, nameOf, nextColor, parseClock, parseLog, pause, ranMs, rangeBars, recolourCategory, record, remaining, removeCategory, renameCategory, resume, seedOf, setLength, setMode, setSeed, spanText, start, stop, tick, unfiled, unitFor,
 } from '../src/lib/pomodoro/model';
+import { RELOAD_GRACE, minutes, parseSaved, revive } from '../src/lib/pomodoro/model';
 
 /* A clock the test winds by hand: every function takes the instant it reckons
    from, so nothing here waits on a real second. */
@@ -276,4 +277,46 @@ test('the list is newest first, cut into pages that clamp at both ends', () => {
   assert.deepEqual(pageOf(rows, 2), rows.slice(50));
   assert.deepEqual(pageOf(rows, 9), rows.slice(50));
   assert.deepEqual(pageOf(rows, -1), rows.slice(0, 25));
+});
+
+test('a running session comes back from a short reload having counted the gap', () => {
+  const s = start(idle(minutes(25)), at(0));
+  const back = revive({ session: s, seenAt: at(10_000) }, at(40_000), null);
+  assert.deepEqual(back, { session: s, lost: false });
+  assert.equal(remaining(back.session, at(40_000)), 25 * MIN - 40_000);
+});
+
+test('a reload that took longer than a minute lets the session go, keeping its length and mode', () => {
+  const s = start(idle(minutes(25), 'stopwatch'), at(0));
+  const back = revive({ session: s, seenAt: at(0) }, at(RELOAD_GRACE + 1), null);
+  assert.equal(back.session.phase, 'idle');
+  assert.equal(back.session.mode, 'stopwatch');
+  assert.equal(back.lost, false);
+  const paused = pause(s, at(5_000));
+  assert.equal(revive({ session: paused, seenAt: at(5_000) }, at(5_000 + RELOAD_GRACE), null).session, paused, 'a minute to the millisecond is still a reload');
+  assert.equal(revive({ session: paused, seenAt: at(5_000) }, at(6_000 + RELOAD_GRACE), millis(10_000)).session.phase, 'idle', 'the lock does not watch a paused session');
+});
+
+test('under screen lock a reload longer than the grace loses the session', () => {
+  const s = start(idle(minutes(25)), at(0));
+  assert.deepEqual(revive({ session: s, seenAt: at(1_000) }, at(11_000), millis(10_000)), { session: s, lost: false });
+  const gone = revive({ session: s, seenAt: at(1_000) }, at(11_001), millis(10_000));
+  assert.equal(gone.lost, true);
+  assert.equal(gone.session.phase, 'idle');
+});
+
+test('a session between sittings or waiting for its summary comes back however long the page was away', () => {
+  const done = run(start(idle(minutes(1)), at(0)), MIN);
+  assert.equal(done.phase, 'done');
+  assert.equal(revive({ session: done, seenAt: at(MIN) }, at(99 * MIN), millis(10_000)).session, done);
+  const waiting = idle(minutes(30), 'stopwatch');
+  assert.equal(revive({ session: waiting, seenAt: at(0) }, at(99 * MIN), null).session, waiting);
+});
+
+test('a saved session is read back whole or not at all', () => {
+  const s = start(idle(minutes(25)), at(0));
+  assert.deepEqual(parseSaved(JSON.parse(JSON.stringify({ session: s, seenAt: at(5) }))), { session: s, seenAt: at(5) });
+  assert.equal(parseSaved(null), null);
+  assert.equal(parseSaved({ session: { ...s, since: null }, seenAt: 1 }), null, 'running with nothing to reckon from');
+  assert.equal(parseSaved({ session: { ...s, phase: 'napping' }, seenAt: 1 }), null);
 });

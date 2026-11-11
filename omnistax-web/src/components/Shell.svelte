@@ -17,6 +17,9 @@
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
   import { findEl, jump, activePane, openDoc, openItem, bookOfEl, openingOf } from '../lib/sections/nav.svelte';
   import { layoutStore } from '../lib/layout/store.svelte';
+  import { keepPlaces, placeKey } from '../lib/layout/places';
+  import { mapViews } from '../lib/sections/mapview';
+  import { scope } from '../lib/sections/scope.svelte';
   import { focusedGroup, instancesOf } from '../lib/layout/model';
   import { settings, zoomPx } from '../lib/settings/store.svelte';
   import { applyFonts } from '../lib/settings/fonts';
@@ -175,6 +178,9 @@
     const restored = layoutStore.init(page, known, reload);
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     chatPages.prune(instancesOf(layoutStore.layout, 'chats'));
+    const standing = new Set<string>([...layoutStore.layout.sides.left.items, ...layoutStore.layout.sides.right.items, ...layoutStore.layout.groups.flatMap((g) => g.tabs)]);
+    mapViews.keepItems(standing); scope.keepHeld(standing);
+    keepPlaces(new Set(layoutStore.layout.groups.flatMap((g) => g.tabs.map((k) => placeKey(g.key, k)))));
     registry.adopt(document.getElementById('pool') ?? document);
     if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');
     void openAtStart(addressed && page !== carried ? docItem(addressed, 'text') : page, (k) => openItem(k));

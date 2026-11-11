@@ -181,3 +181,36 @@ figures instead (`fig/figlib.ts`), and the one animation loop draws the ones
 that are on screen together in the next frame and leaves the rest until they
 scroll into view. The scroll spy stops at the first span below the reading line
 rather than measuring them all. The same click costs about 100ms now.
+
+## What a reload gives back
+
+The layout comes back from `omnistax-layout`, and so does the working state
+around it. None of these are the reader's records: no backup or sync carries
+them, and each goes with the tab, chat or drawing it belongs to.
+
+| What | Where it is kept | Code |
+| --- | --- | --- |
+| The place each pane was scrolled to: the element at the top of the pane and its offset, so a page whose figures are still taking their height lands on the same paragraph | `omnistax-scroll` (localStorage), per group and tab | `lib/layout/places.ts`, `Pane.svelte` |
+| The pomodoro under way, with its mode and the stopwatch's seed | `omnistax-pomodoro-session` (sessionStorage: a second tab has a clock of its own) | `lib/pomodoro/model.ts` (`revive`), `store.svelte.ts` |
+| A chat's unsent words and chips | `omnistax-chat-drafts` (localStorage) | `lib/chat/drafts.ts` |
+| A concept map's pan and zoom, selection, focus, layout and legend switches, and the place a focus holds it on | `omnistax-map-views`, `omnistax-scopes-held` (localStorage) | `lib/sections/mapview.ts`, `scope.svelte.ts` |
+| A note editor's undo history and cursor | `omnistax-note-undo:<note>` (sessionStorage) | `lib/notes/undo.ts` |
+| A drawing's undo history | the `omnistax-drawing-undo` IndexedDB, per tab session | `lib/drawer/undo.ts` |
+
+A live pomodoro writes the instant the page was last alive once a second and
+as the page goes, and the page that comes back measures the gap. Under screen
+lock a gap longer than the lock's grace loses the session, as leaving the
+window does. Without it, a gap longer than a minute (`RELOAD_GRACE`) lets the
+session go as Stop would. A session that comes back has counted the gap. One
+that has ended and is waiting for its summary always comes back.
+
+An undo history is only handed back to the text or the ink it was made on: a
+note or drawing changed elsewhere in the meantime opens with a clean one. An
+answer a chat was still receiving when the page went is read back as stopped,
+with what had come, so it can be copied or asked for again.
+
+A figure's sliders and playback, the shell's own undo stack and the stack of
+closed tabs start fresh on purpose. A map in the disk layout comes back in
+that layout but not at the point it was steered to.
+
+`node tests/refresh-browser-check.cjs` walks all of this against a served `dist/`.
