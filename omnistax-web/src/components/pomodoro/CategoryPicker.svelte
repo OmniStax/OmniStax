@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { CATEGORY_COLORS, type Category } from '../../lib/pomodoro/model';
+  /* The categories of a session, as a field that opens in place: the list and
+     the new-category form take their room from the page under the field, so no
+     scrolling pane they sit in can cut them off. Only the rows scroll, and the
+     form stays whole beneath them. */
+  import { CATEGORY_COLORS, nextColor, type Category } from '../../lib/pomodoro/model';
   import { pomodoro } from '../../lib/pomodoro/store.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
   let { picked, onpick, label: given }: { picked: readonly string[]; onpick: (ids: readonly string[]) => void; label?: string } = $props();
@@ -13,10 +17,13 @@
   let root = $state<HTMLDivElement | null>(null);
 
   const toggle = (c: Category): void => onpick(picked.includes(c.id) ? picked.filter((id) => id !== c.id) : [...picked, c.id]);
+  const begin = (): void => { colour = nextColor(cats); adding = true; };
+  /* the form opens whole in view, whatever pane it sits in has scrolled to */
+  const reveal = (node: HTMLElement): void => { node.scrollIntoView({ block: 'nearest' }); };
   const make = (): void => {
     const id = pomodoro.addCategory(name, colour);
     if (id) onpick([...picked, id]);
-    name = ''; adding = false; open = false; colour = CATEGORY_COLORS[0];
+    name = ''; adding = false; open = false;
   };
   $effect(() => {
     if (!open) return;
@@ -39,6 +46,7 @@
   </button>
   {#if open}
     <div class="list" role="group" aria-label={label}>
+      {#if cats.length}<div class="rows">
       {#each cats as c (c.id)}
         <label class="row" style="--hue:{c.color}" class:on={picked.includes(c.id)}>
           <input type="checkbox" checked={picked.includes(c.id)} onchange={() => toggle(c)} />
@@ -46,9 +54,10 @@
           <span class="name">{c.name}</span>
         </label>
       {/each}
+      </div>{/if}
       {#if !cats.length && !adding}<p class="empty">{i18n.t('pomodoro.category.empty')}</p>{/if}
       {#if adding}
-        <form class="new" onsubmit={(e) => { e.preventDefault(); make(); }}>
+        <form class="new" class:first={!cats.length} use:reveal onsubmit={(e) => { e.preventDefault(); make(); }}>
           <!-- svelte-ignore a11y_autofocus -->
           <input class="input name-field" bind:value={name} type="text" autocomplete="off" placeholder={i18n.t('pomodoro.category.placeholder')} autofocus />
           <div class="grid">
@@ -62,7 +71,7 @@
           </div>
         </form>
       {:else}
-        <button type="button" class="add" onclick={() => (adding = true)}>{i18n.t('pomodoro.category.new')}</button>
+        <button type="button" class="add" class:first={!cats.length} onclick={begin}>{i18n.t('pomodoro.category.new')}</button>
       {/if}
     </div>
   {/if}
@@ -76,7 +85,8 @@
   .tag{font-size:0.72rem;padding:1px 6px;border-radius:999px;border:1px solid var(--hue);color:var(--hue);background:color-mix(in srgb,var(--hue) 14%,transparent)}
   .none{flex:1;color:var(--muted)}
   .caret{color:var(--muted);font-size:0.7rem}
-  .list{position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:100%;max-width:min(260px,80vw);max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--rule);border-radius:8px;background:var(--panel);box-shadow:0 6px 20px rgba(0,0,0,.18)}
+  .list{margin-top:4px;display:flex;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--rule);border-radius:8px;background:var(--panel)}
+  .rows{display:flex;flex-direction:column;gap:2px;max-height:168px;overflow:auto}
   .row{display:flex;align-items:center;gap:7px;font-size:0.8rem;padding:3px 5px;border-radius:5px;cursor:pointer;color:var(--ink)}
   .row:hover{background:var(--soft)}
   .row.on{background:color-mix(in srgb,var(--hue) 13%,transparent);color:var(--hue)}
@@ -84,11 +94,12 @@
   .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .empty{margin:2px 5px;font-size:0.78rem;color:var(--muted)}
   .add{font:inherit;font-size:0.78rem;text-align:left;padding:4px 5px;margin-top:2px;border:0;border-top:1px solid var(--rule);border-radius:0;background:none;color:var(--muted);cursor:pointer}
+  .add.first,.new.first{border-top:0;margin-top:0;padding-top:2px}
   .add:hover{color:var(--accent)}
-  .new{display:flex;flex-direction:column;gap:6px;padding:6px 5px 2px;border-top:1px solid var(--rule);margin-top:2px}
+  .new{scroll-margin-bottom:56px;display:flex;flex-direction:column;gap:8px;padding:8px 5px 4px;border-top:1px solid var(--rule);margin-top:2px}
   .name-field{height:28px;font-size:0.8rem}
-  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
-  .swatch{width:100%;aspect-ratio:1;border-radius:5px;border:2px solid transparent;background:var(--hue);cursor:pointer;padding:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,24px);gap:6px}
+  .swatch{width:24px;height:24px;border-radius:5px;border:2px solid transparent;background:var(--hue);cursor:pointer;padding:0}
   .swatch.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--panel) inset}
   .acts{display:flex;gap:6px}
   .head:focus-visible,.add:focus-visible{outline:2px solid var(--accent)}
