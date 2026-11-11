@@ -9,6 +9,7 @@ import { isOldKey, migration } from '../backup/migrate';
 import { manifestOf, originsAfter, rebase, type Base, type Change, type Merged, type Plan, type Status } from './plan';
 import { duplicateKey, mergeTexts } from './conflict';
 import { holdOf, type Found } from './held';
+import { comparable, learn, type Canon } from './same';
 import type { ParsedBackup } from '../backup/schema';
 import { t } from '../i18n';
 
@@ -46,9 +47,10 @@ export const newerRelease = (bytes: Uint8Array): string | null => {
 export type Report = (path: RepoPath, status: Status) => void;
 export type HashedFile = RepoFile & { readonly sha: GitSha };
 /* What a plan left behind: the branch's commit, the profile to import when
-   anything came down, the base to remember once that import has landed, and
+   anything came down, the base to remember once that import has landed, what
+   the blobs it moved hold whatever order their fields stand in (same.ts), and
    the files that came down but could not be taken, for the queue. */
-export type Outcome = { readonly commit: GitSha | null; readonly backup: ParsedBackup | null; readonly base: Base; readonly held: readonly Found[] };
+export type Outcome = { readonly commit: GitSha | null; readonly backup: ParsedBackup | null; readonly base: Base; readonly canon: Canon; readonly held: readonly Found[] };
 
 const AT_ONCE = 3;
 const failure = (e: unknown): string => e instanceof Error ? e.message : t('files.sync.error.failed');
@@ -201,7 +203,14 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
   }
 
   const localAfter = new Map([...mine].map(([p, x]) => [p, x.sha] as const));
-  if (!down.length) return { commit, backup: null, base: rebase(base, localAfter, remoteAfter), held };
+  /* Each JSON blob this sync moved, by what it holds: the import that follows
+     a pull may write a file's fields back in another order. */
+  const moved = (c: Change, sha: GitSha | null, bytes: Uint8Array | undefined): [GitSha, Uint8Array][] => (sha && bytes && comparable(c.path) ? [[sha, bytes]] : []);
+  const canon = await learn([
+    ...down.flatMap((c) => moved(c, c.remote, fetched.get(c.path))),
+    ...plan.up.flatMap((c) => moved(c, c.local, plan.held?.get(c.path) ?? mine.get(c.path)?.bytes)),
+  ]);
+  if (!down.length) return { commit, backup: null, base: rebase(base, localAfter, remoteAfter), canon, held };
   const origins = originsAfter(mine.keys(), 'local', down, 'remote');
   const profile = new Map([...origins].flatMap(([p, o]): [RepoPath, Uint8Array][] => {
     const bytes = o === 'local' ? mine.get(p)?.bytes : fetched.get(p);
@@ -209,7 +218,25 @@ export const carry = async (remote: Remote, f: Fetch, seen: Survey, local: reado
   }));
   profile.set(MANIFEST, jsonBytes(manifestOf(origins, ownManifest, seen.manifest, now)));
   down.forEach((c) => (c.remote ? localAfter.set(c.path, c.remote) : localAfter.delete(c.path)));
-  return { commit, backup: fromRepo(profile), base: rebase(base, localAfter, remoteAfter), held };
+  return { commit, backup: fromRepo(profile), base: rebase(base, localAfter, remoteAfter), canon, held };
+};
+
+/* What the agreed blobs hold, for those not yet known (same.ts): a file this
+   device holds as the base or the repo has it is read where it is, and the
+   base of one it holds differently is fetched, once, since the base never
+   changes under its sha. A blob that cannot be fetched is left unknown, and
+   its file is compared by its bytes as before. */
+export const sameAs = async (local: readonly HashedFile[], remote: readonly RemoteEntry[], base: Base, canon: Canon, blob: (sha: GitSha) => Promise<Uint8Array>): Promise<Canon> => {
+  const there = new Map(remote.map((e) => [e.path, e.sha] as const));
+  const json = local.filter((f) => comparable(f.path) && f.path !== MANIFEST);
+  const here = await learn(json.filter((f) => f.sha === base[f.path] || f.sha === there.get(f.path)).map((f) => [f.sha, f.bytes] as const), canon);
+  const known = { ...canon, ...here };
+  const fetched: [GitSha, Uint8Array][] = [];
+  await pool(json.filter((f) => base[f.path] && base[f.path] !== f.sha && !(base[f.path] in known)), AT_ONCE, async (f) => {
+    const bytes = await blob(base[f.path]).catch(() => null);
+    if (bytes) fetched.push([base[f.path], bytes]);
+  });
+  return { ...known, ...await learn(fetched, known) };
 };
 
 /* Each file only the repo changed, checked before it comes down (held.ts):
