@@ -52,7 +52,10 @@ The chrome:
   edge grip resizes (200 to 520px). A sidebar with no boxes disappears.
 - **Document area** holds one or two groups side by side. Each group has a
   tab strip and one scroll pane per tab, so scroll positions survive tab
-  switches. The strip ends with a "+" that lists the book's sections and
+  switches. The panes are drawn once, in one list of the shell's, and put
+  into the group that shows them (`src/lib/layout/panes.ts`), so a tab moved
+  to another group, or a group that is split, keeps its pane and whatever it
+  holds: words not yet sent, its scroll place, a running figure. The strip ends with a "+" that lists the book's sections and
   opens the chosen text as a tab in that group. The focused group has the underlined tab, and the companion
   views follow its scroll position.
 - **Settings** is a popover from the gear, not a view: colour coding, dark

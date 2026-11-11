@@ -34,6 +34,8 @@
   import Rail from './Rail.svelte';
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
+  import Pane from './Pane.svelte';
+  import { settlePanes, type PaneSlot } from '../lib/layout/panes';
   import Settings from './Settings.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
@@ -383,6 +385,11 @@
      is up and again on every change of language, which replaces each by its id.
      Untracked, so the registry the registering reads is no dependency. */
   $effect(() => { if (!ready) return; void i18n.locale; untrack(installCommands); });
+  /* Every pane of every group, in one list that is never reordered: each is
+     put into the body of the group showing it, and goes with its tab when the
+     tab moves, so nothing is drawn again for a move or a split. */
+  let paneIds = 0, panesHad: readonly PaneSlot[] = [];
+  const panes = $derived.by(() => (panesHad = settlePanes(panesHad, layoutStore.layout.groups, () => (paneIds += 1))));
   /* The "+" on a tab strip: the browser, opening whatever is picked into that group. */
   const onPick = (group: number) => { ui.openBrowser({ group }); };
 </script>
@@ -394,6 +401,13 @@
     <main class="docs" onpointerdown={() => { if (layoutStore.overlay) layoutStore.overlay = null; }}>
       <SplitTree node={layoutStore.layout.tree} {onPick} />
     </main>
+  </div>
+  <!-- the panes are drawn here and stand in their groups; one is only ever seen here before its group has a body -->
+  <div class="pane-pool" hidden>
+    {#each panes as p (p.id)}
+      {@const at = layoutStore.layout.groups.findIndex((g) => g.key === p.group)}
+      <Pane groupKey={p.group} groupIndex={at} itemKey={p.tab} active={layoutStore.layout.groups[at]?.active === p.tab} />
+    {/each}
   </div>
   {#if keys.pending}
     <div class="chord-hint" role="status">{#each chordKeys(keys.pending) as k, i}{i ? ' ' : ''}<kbd>{k}</kbd>{/each}{' …'}</div>

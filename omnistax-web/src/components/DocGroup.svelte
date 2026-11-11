@@ -1,12 +1,14 @@
 <script lang="ts">
-  /* A document group: a tab strip and one pane per tab, so scroll positions
-     survive tab switches. Dropping in the middle opens the item here; dropping
+  /* A document group: a tab strip and, under it, the body its panes stand in,
+     one per tab, so scroll positions survive tab switches. The panes are the
+     shell's, drawn once and put here (lib/layout/panes.ts), so a tab that
+     moves to another group keeps its pane. Dropping in the middle opens the item here; dropping
      on any of the four edges splits the group that way. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { openTab, split, setFocus, type Group, type SplitSide } from '../lib/layout/model';
   import { dropzone } from '../lib/layout/drag.svelte';
   import TabStrip from './TabStrip.svelte';
-  import Pane from './Pane.svelte';
+  import { hostsPanes } from '../lib/layout/panehosts.svelte';
   import { i18n } from '../lib/i18n/store.svelte';
   let { index, group, onPick }: { index: number; group: Group; onPick: (index: number, anchor: HTMLElement) => void } = $props();
   const l = $derived(layoutStore.layout);
@@ -31,14 +33,11 @@
 
 <div class="group {drop}" class:focus={focused} data-index={index} role="group" onpointerdown={focus}>
   <TabStrip {index} {group} {onPick} />
-  <div class="body" use:dropzone={{
+  <div class="body" use:hostsPanes={group.key} use:dropzone={{
     over: (e, _d) => { drop = zoneAt(e, e.currentTarget as HTMLElement); },
     leave: () => (drop = ''),
     drop: (d, e) => { const side = SIDE_OF[zoneAt(e, e.currentTarget as HTMLElement)]; layoutStore.apply((x) => (side ? split(x, index, side, d.key, d.from) : openTab(x, d.key, index, { from: d.from }))); },
   }}>
-    {#each group.tabs as tab (group.key + '|' + tab)}
-      <Pane groupKey={group.key} groupIndex={index} itemKey={tab} active={tab === group.active} />
-    {/each}
     {#if !group.tabs.length}<div class="empty">{i18n.t('shell.docGroup.empty')}</div>{/if}
   </div>
 </div>

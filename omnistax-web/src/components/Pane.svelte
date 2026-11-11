@@ -3,12 +3,15 @@
      figure tab adopts a root holding that one figure; a standing page adopts
      the article the registry keeps for it; a view tab renders the view and a
      note tab renders the note, each with the room a tab gives it. The focused
-     group's active pane feeds the scroll spy. */
+     group's active pane feeds the scroll spy. The pane is drawn in the shell's
+     one list of panes and stands in the body of the group that shows it; when
+     its tab goes to another group it is moved there as it is. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { registry } from '../lib/sections/registry.svelte';
   import { spy } from '../lib/sections/spy.svelte';
   import { parseItemKey, sectionOfItem, type GroupKey } from '../lib/types/ids';
   import { adopt } from './actions/adopt';
+  import { lodge, paneHosts } from '../lib/layout/panehosts.svelte';
   import View from './views/View.svelte';
   import NoteTab from './notes/NoteTab.svelte';
   import Sheet from './sheets/Sheet.svelte';
@@ -34,7 +37,7 @@
   const onscroll = (e: Event) => { if (active && layoutStore.layout.focus === groupIndex) spy.read(e.currentTarget as HTMLElement); };
 </script>
 
-<div class="pane" data-tab={itemKey} data-key={groupKey} data-group={groupIndex} hidden={!active} {onscroll}>
+<div class="pane" data-tab={itemKey} data-key={groupKey} data-group={groupIndex} hidden={!active} {onscroll} use:lodge={paneHosts.of(groupKey)}>
   {#if id && id.kind === 'view'}
     <div class="view-pane" data-view={id.view} data-item={itemKey}><View item={itemKey} /></div>
   {:else if id && id.kind === 'note'}
