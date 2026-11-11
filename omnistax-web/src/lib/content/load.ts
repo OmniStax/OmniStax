@@ -64,8 +64,18 @@ export type SheetSource = { readonly row: SheetDTO; readonly file: string; reado
 /* `dto` is what the app reads, every type inherited; `stored` is the tables as written, which the validator reads. */
 export type BookTree = { readonly dto: BookDTO; readonly stored: BookDTO; readonly sheets: readonly SheetSource[]; readonly intro?: SectionSource; readonly chapters: readonly ChapterTree[]; readonly summary?: SectionSource; readonly manifest: BookManifest };
 
-const readJson = async <T>(file: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> => schema.parse(JSON.parse(await fs.readFile(file, 'utf8')));
-const readText = (file: string): Promise<string> => fs.readFile(file, 'utf8');
+/* Every book, chapter and section is loaded at once, so a catalogue of a few
+   books asks for thousands of files together, which is more than a build
+   machine lets one process hold open (EMFILE). Reads wait their turn here. */
+const MAX_OPEN = 64;
+let open = 0;
+const waiting: (() => void)[] = [];
+const readText = async (file: string): Promise<string> => {
+  if (open >= MAX_OPEN) await new Promise<void>((go) => waiting.push(go)); else open++;
+  try { return await fs.readFile(file, 'utf8'); }
+  finally { const next = waiting.shift(); if (next) next(); else open--; }
+};
+const readJson = async <T>(file: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> => schema.parse(JSON.parse(await readText(file)));
 const exists = (file: string): Promise<boolean> => fs.access(file).then(() => true, () => false);
 
 /* URL conventions, under the book's base (bookBase: /<book>/, a translation /<language>/<source>/):
@@ -412,7 +422,7 @@ const unbuiltEntry = (book: BookDTO, ch: ChapterDTO, s: SectionRefDTO): SectionE
 export const loadSheets = async (root: BookDir, book: BookDTO): Promise<readonly SheetSource[]> =>
   Promise.all(book.sheets.map(async (row): Promise<SheetSource> => {
     const file = path.join(root, row.file);
-    try { return { row, file, data: SheetDataSchema.parse(JSON.parse(await fs.readFile(file, 'utf8'))) }; }
+    try { return { row, file, data: SheetDataSchema.parse(JSON.parse(await readText(file))) }; }
     catch (e) { return { row, file, data: null, error: e instanceof Error ? e.message : String(e) }; }
   }));
 
