@@ -5,7 +5,7 @@
    tab takes the words when it is there. */
 import { layoutStore } from '../layout/store.svelte';
 import { openInFocus, openTab } from '../layout/model';
-import { chatItem, itemKey, viewItem, type ChatId } from '../types/ids';
+import { chatItem, itemKey, newViewItem, viewKindOf, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
 import { chatPages } from './pages.svelte';
 import type { MessageId } from './model';
@@ -26,12 +26,15 @@ export const showChat = (id: ChatId): void => {
 };
 
 /* The way back from a chat in a tab of its own (one a discussion of an exercise
-   opened, or "Ask AI"): the Conversations page comes forward where it stands,
-   or opens in the focused group, on its list. The chat's tab stays. */
+   opened, or "Ask AI"): a Conversations page comes forward on its list, the
+   focused group's own before another group's, and where none is open one
+   opens in the focused group. The chat's tab stays. */
 export const showConversations = (): void => {
-  const page = viewItem('chats');
-  chatPages.back(itemKey(page));
-  layoutStore.apply((l) => openInFocus(l, page));
+  const l = layoutStore.layout;
+  const isPage = (t: string): boolean => viewKindOf(t) === 'chats';
+  const page = l.groups[l.focus]?.tabs.find(isPage) ?? l.groups.flatMap((g) => g.tabs).find(isPage) ?? itemKey(newViewItem('chats'));
+  chatPages.back(page);
+  layoutStore.apply((x) => openInFocus(x, page));
 };
 
 /* The chats that stand open as tabs, in the order the groups hold them. */

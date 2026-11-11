@@ -31,7 +31,7 @@
   const GROUPS: readonly (readonly ViewKind[])[] = [['explorer', 'search', 'sync'], ['annotations', 'concepts', 'reference'], ['exercises', 'pomodoro', 'chats']];
   const keyOf = (kind: ViewKind): string => `view:${kind}`;
   const lit = (kind: ViewKind): boolean => kind === 'chats' ? chatsOpen : isSidebarKind(kind) ? !!where(l, keyOf(kind)) : instancesOf(l, kind).length > 0;
-  const press = (kind: ViewKind, e: MouseEvent): void => { if (kind === 'chats') openChats(e); else if (isSidebarKind(kind)) toggleSide(keyOf(kind)); else openPage(kind, e); };
+  const press = (kind: ViewKind, e: MouseEvent): void => { if (isSidebarKind(kind)) toggleSide(keyOf(kind)); else openPage(kind, e); };
   const toggleSide = (k: string) => {
     const loc = where(l, k);
     if (!loc || (loc.type === 'side' && loc.side !== 'left')) { layoutStore.apply((x) => openSide(x, k, 'left')); layoutStore.overlay = 'left'; return; }
@@ -44,11 +44,6 @@
   const openPage = (kind: ViewKind, e: MouseEvent) => {
     const fresh = newViewItem(kind);
     layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, fresh) : showViewInFocus(x, kind, fresh)));
-  };
-  /* The conversations are one page: wherever it stands it comes forward. */
-  const openChats = (e: MouseEvent) => {
-    const k = viewItem('chats');
-    layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, k) : openInFocus(x, k)));
   };
   const voiceTitle = $derived(i18n.t(reader.speaking ? 'commands.stopReading' : 'commands.readAloud'));
   /* The chat button lights while any chat stands open, as a view's button

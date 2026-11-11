@@ -7,6 +7,7 @@
    One request may be in flight per chat, and its abort controller is kept here
    rather than on the chat, because a chat that is saved and read back has no
    request to stop. */
+import { chatDrafts } from './drafts.svelte';
 import { newChatId, type ChatId } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
 import { getAsset } from '../notes/assets';
@@ -110,6 +111,7 @@ class Chats {
     this.abort(id);
     this.index = this.index.filter((e) => e.id !== id);
     chatSeen.forget(id);
+    chatDrafts.drop(id);
     const { [id]: _gone, ...rest } = this.open;
     this.open = rest;
     this.saveIndex();

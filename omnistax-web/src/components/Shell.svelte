@@ -26,7 +26,7 @@
   import { BUILTIN } from '../lib/commands/builtin';
   import { chordKeys, chordOf, type Chord } from '../lib/commands/chord';
   import { reader } from '../lib/voice.svelte';
-  import { aboutItem, downloadItem, bookId, bookOfItem, docItem, itemKey, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, sheetId, sheetItem, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
+  import { aboutItem, downloadItem, bookId, groupKey, bookOfItem, docItem, itemKey, parseItemKey, sameSection, secKey, sectionId, sectionOfItem, sectionRef, sheetId, sheetItem, viewKindOf, type BookId, type ItemId, type SecKey, type SectionRef } from '../lib/types/ids';
   import { refOfPath, resolvePath, sectionOfUrl } from '../lib/content/urls';
   import { bookPagesOf, pageLabel } from '../lib/content/roles';
   import { lastPage, rememberPage, setBookWalk } from '../lib/sections/books';
@@ -35,7 +35,7 @@
   import Sidebar from './Sidebar.svelte';
   import SplitTree from './SplitTree.svelte';
   import Pane from './Pane.svelte';
-  import { settlePanes, type PaneSlot } from '../lib/layout/panes';
+  import { settlePanes, SIDE_PLACE, type PaneSlot } from '../lib/layout/panes';
   import Settings from './Settings.svelte';
   import Hover from './Hover.svelte';
   import Palette from './Palette.svelte';
@@ -389,7 +389,8 @@
      put into the body of the group showing it, and goes with its tab when the
      tab moves, so nothing is drawn again for a move or a split. */
   let paneIds = 0, panesHad: readonly PaneSlot[] = [];
-  const panes = $derived.by(() => (panesHad = settlePanes(panesHad, layoutStore.layout.groups, () => (paneIds += 1))));
+  const panes = $derived.by(() => (panesHad = settlePanes(panesHad,
+    [...layoutStore.layout.groups, { key: SIDE_PLACE, tabs: layoutStore.layout.sides.left.items }], () => (paneIds += 1))));
   /* The "+" on a tab strip: the browser, opening whatever is picked into that group. */
   const onPick = (group: number) => { ui.openBrowser({ group }); };
 </script>
@@ -405,8 +406,11 @@
   <!-- the panes are drawn here and stand in their groups; one is only ever seen here before its group has a body -->
   <div class="pane-pool" hidden>
     {#each panes as p (p.id)}
-      {@const at = layoutStore.layout.groups.findIndex((g) => g.key === p.group)}
-      <Pane groupKey={p.group} groupIndex={at} itemKey={p.tab} active={layoutStore.layout.groups[at]?.active === p.tab} />
+      <!-- one Pane either way, so a view that goes between the sidebar and a group is not drawn again -->
+      {@const side = p.group === SIDE_PLACE}
+      {@const at = side ? -1 : layoutStore.layout.groups.findIndex((g) => g.key === p.group)}
+      <Pane groupKey={groupKey(p.group)} groupIndex={at} itemKey={p.tab} {side} order={side ? layoutStore.layout.sides.left.items.indexOf(p.tab) : 0}
+        active={side || layoutStore.layout.groups[at]?.active === p.tab} />
     {/each}
   </div>
   {#if keys.pending}

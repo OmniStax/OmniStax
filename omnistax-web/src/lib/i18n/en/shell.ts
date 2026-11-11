@@ -1,4 +1,4 @@
-/* English UI text for src/components/{Shell,Rail,Sidebar,ViewBox,DocGroup,TabStrip,Pane,Palette,Browser,HighlightBar,Hover,Tooltip,SplitTree,SpotCurve,ShellLoader}.svelte, src/components/ui/, src/lib/layout/, src/lib/icons.ts, src/lib/history/, src/lib/voice*.ts, src/lib/storage/, src/lib/backup/.
+/* English UI text for src/components/{Shell,Rail,Sidebar,DocGroup,TabStrip,Pane,Palette,Browser,HighlightBar,Hover,Tooltip,SplitTree,SpotCurve,ShellLoader}.svelte, src/components/ui/, src/lib/layout/, src/lib/icons.ts, src/lib/history/, src/lib/voice*.ts, src/lib/storage/, src/lib/backup/.
 
    Keys are dotted, area.component.thing ('shell.…'), sorted inside the file;
    the value is the English the reader sees, a template of index.ts (format):

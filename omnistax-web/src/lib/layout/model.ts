@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isSidebarKind, isPaletteOnlyKind, viewKindOf, viewItem, newViewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -229,14 +229,24 @@ const seat = (l: Layout, target: GroupKey, fresh: Group, side: SplitSide): Layou
   return { ...l, groups: [...l.groups.slice(0, at + 1), fresh, ...l.groups.slice(at + 1)], tree: insertLeaf(l.tree, target, fresh.key, side) };
 };
 /* Split a group (as in VS Code): the item opens again in a new group on the
-   side asked for. A document stays where it was and is copied; a view moves,
-   because one page of a view lives in only one place — which is why the rail
-   hands this a page of its own each time. A group with nothing to split simply
-   gains an empty neighbour, which stays until the reader closes it. */
+   side asked for. A document stays where it was and is copied. One page of a
+   view lives in only one place, so a page the reader may have several of
+   (the practice page, the concept map, the conversations) stays where it was
+   and another page of its kind opens beside it; a view there is only one of
+   (the explorer, the search), and any view named to be put there (a drag, the
+   rail handing over a page of its own), moves. A group with nothing to split
+   simply gains an empty neighbour, which stays until the reader closes it. */
 export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
   const g = l.groups[index]; if (!g) return l;
-  const k = id ? keyOf(id) : g.active;
-  if (!k) { const fresh = emptyGroup(); return focusOn(settle(seat(l, g.key, fresh, side)), fresh.key); }
+  const shown = id ? keyOf(id) : g.active;
+  if (!shown) { const fresh = emptyGroup(); return focusOn(settle(seat(l, g.key, fresh, side)), fresh.key); }
+  const page = id ? null : parseItemKey(shown);
+  if (page && isView(page) && !isSidebarKind(page.view)) {
+    const again = keyOf(newViewItem(page.view));
+    const beside: Group = { key: newGroupKey(), tabs: [again], active: again };
+    return focusOn(seat(l, g.key, beside, side), beside.key);
+  }
+  const k = shown;
   const source = id ? from ?? null : viewKey(k) ? g.key : null;
   const base = viewKey(k) ? detach(l, k) : source ? withGroups(l, l.groups.map((x) => (x.key === source ? removeFromGroup(x, k) : x))) : l;
   const fresh: Group = { key: newGroupKey(), tabs: [k], active: k };

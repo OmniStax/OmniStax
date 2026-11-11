@@ -31,10 +31,16 @@ test('split right duplicates the active document and focuses the new group', () 
   assert.equal(l.groups.length, 2); assert.deepEqual(l.groups[0].tabs, [text]); assert.deepEqual(l.groups[1].tabs, [text]); assert.equal(l.focus, 1);
   assert.deepEqual(groupsWith(l, text), [0, 1]);
 });
-test('split right moves a view instead of copying it', () => {
+test('split right leaves a page of a view where it was and opens another of its kind beside it', () => {
   const a = openTab(defaultLayout(), map, 0);
   const l = splitRight(a, 0);
-  assert.deepEqual(groupsWith(l, map), [1]); assert.equal(where(l, map)?.type, 'group');
+  assert.deepEqual(groupsWith(l, map), [0]); assert.equal(l.groups.length, 2); assert.equal(l.focus, 1);
+  const again = l.groups[1].tabs[0];
+  assert.notEqual(again, map); assert.equal(viewKindOf(again), viewKindOf(map)); assert.deepEqual(l.groups[1].tabs, [again]);
+  /* a view there is only one of moves, and so does a view named to be put beside */
+  const one = itemKey(viewItem('explorer'));
+  assert.deepEqual(groupsWith(splitRight(openTab(defaultLayout(), one, 0), 0), one), [1]);
+  assert.deepEqual(groupsWith(splitRight(a, 0, map), map), [1]);
 });
 test('closing one copy leaves the other', () => {
   const l = closeItem(splitRight(defaultLayout(), 0), text, 0);

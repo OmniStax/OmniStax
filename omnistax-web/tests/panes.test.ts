@@ -38,3 +38,13 @@ test('one item in two groups is two panes, and only the one that lost its group 
   /* a group closing into its neighbour, which already shows the item, leaves one */
   assert.deepEqual(show(settlePanes(b, [g('A', 'doc')], id)), ['1:A|doc']);
 });
+
+test('a view dragged between the sidebar and a group is the same pane', () => {
+  const id = ids();
+  const side = (...tabs: string[]) => ({ key: 'side:left', tabs });
+  const a = settlePanes([], [g('A', 'doc'), side('view:explorer')], id);
+  assert.deepEqual(show(a), ['1:A|doc', '2:side:left|view:explorer']);
+  const b = settlePanes(a, [g('A', 'doc', 'view:explorer'), side()], id);
+  assert.deepEqual(show(b), ['1:A|doc', '2:A|view:explorer']);
+  assert.deepEqual(show(settlePanes(b, [g('A', 'doc'), side('view:explorer')], id)), ['1:A|doc', '2:side:left|view:explorer']);
+});

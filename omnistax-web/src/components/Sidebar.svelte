@@ -2,7 +2,8 @@
   import { layoutStore } from '../lib/layout/store.svelte';
   import { openSide, openTab, setWidth } from '../lib/layout/model';
   import { dropzone } from '../lib/layout/drag.svelte';
-  import ViewBox from './ViewBox.svelte';
+  import { hostsPanes } from '../lib/layout/panehosts.svelte';
+  import { SIDE_PLACE } from '../lib/layout/panes';
   import { FIG } from '../lib/fig/figlib';
   import { i18n } from '../lib/i18n/store.svelte';
   let { narrow }: { narrow: boolean } = $props();
@@ -21,9 +22,8 @@
 
 <aside class="sidebar" class:drop bind:this={aside} {hidden} style:width="{l.sides.left.width}px"
   use:dropzone={{ over: () => (drop = true), leave: () => (drop = false), drop: (d) => layoutStore.apply((x) => (d.key.startsWith('view:') ? openSide(x, d.key, 'left') : openTab(x, d.key, x.focus, { from: d.from }))) }}>
-  <div class="stack">
-    {#each items as k (k)}<ViewBox itemKey={k} />{/each}
-  </div>
+  <!-- the boxes are panes of the shell's one list, put here (lib/layout/panes.ts) -->
+  <div class="stack" use:hostsPanes={SIDE_PLACE}></div>
   <div class="grip" role="separator" aria-orientation="vertical" aria-label={i18n.t('shell.sidebar.resize')} onpointerdown={resize}></div>
 </aside>
 

@@ -1,24 +1,22 @@
-/* Where each group takes its panes in: the body under its tab strip, by the
-   group's key. The panes are drawn once, in one list of the shell's, and each
+/* Where each place takes its panes in: a group's body under its tab strip, by
+   the group's key, and the sidebar's stack. The panes are drawn once, in one list of the shell's, and each
    is put into the body of the group that shows it; a group that is drawn
    again (it became one side of a split) hands over a new body and its panes
    follow. */
-import type { GroupKey } from '../types/ids';
-
 class PaneHosts {
   hosts = $state.raw<Readonly<Record<string, HTMLElement>>>({});
-  of(group: GroupKey): HTMLElement | null { return this.hosts[group] ?? null; }
-  set(group: GroupKey, el: HTMLElement): void { if (this.hosts[group] !== el) this.hosts = { ...this.hosts, [group]: el }; }
-  drop(group: GroupKey, el: HTMLElement): void { if (this.hosts[group] === el) { const { [group]: _gone, ...rest } = this.hosts; this.hosts = rest; } }
+  of(group: string): HTMLElement | null { return this.hosts[group] ?? null; }
+  set(group: string, el: HTMLElement): void { if (this.hosts[group] !== el) this.hosts = { ...this.hosts, [group]: el }; }
+  drop(group: string, el: HTMLElement): void { if (this.hosts[group] === el) { const { [group]: _gone, ...rest } = this.hosts; this.hosts = rest; } }
 }
 export const paneHosts = new PaneHosts();
 
 /* A group's body, offered to the panes for as long as it stands. */
-export function hostsPanes(node: HTMLElement, group: GroupKey) {
+export function hostsPanes(node: HTMLElement, group: string) {
   let key = group;
   paneHosts.set(key, node);
   return {
-    update(next: GroupKey) { if (next === key) return; paneHosts.drop(key, node); key = next; paneHosts.set(key, node); },
+    update(next: string) { if (next === key) return; paneHosts.drop(key, node); key = next; paneHosts.set(key, node); },
     destroy() { paneHosts.drop(key, node); },
   };
 }

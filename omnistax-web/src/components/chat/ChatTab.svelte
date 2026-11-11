@@ -7,6 +7,7 @@
   import Transcript from './Transcript.svelte';
   import TreeView from './TreeView.svelte';
   import { chats } from '../../lib/chat/store.svelte';
+  import { chatDrafts } from '../../lib/chat/drafts.svelte';
   import BackLink from '../ui/BackLink.svelte';
   import { pending, showConversations, takeChips } from '../../lib/chat/open.svelte';
   import { spokenIn, transcript, type Chat, type MessageId } from '../../lib/chat/model';
@@ -42,8 +43,12 @@
      they come and stand in place of the pin; otherwise a chat that has said
      nothing yet pins the section focused when it opened. A chat reopened on
      a conversation already held is left as it was asked, with nothing pinned. */
-  let chips = $state.raw<readonly Chip[]>([]);
-  let handed = false;
+  /* What the reader left above the composer unsent is put back as it was, and
+     counts as handed: nothing is pinned over it. */
+  const left = untrack(() => chatDrafts.of(chatId));
+  let chips = $state.raw<readonly Chip[]>(left?.chips ?? []);
+  let handed = left !== null;
+  $effect(() => { chatDrafts.setChips(chatId, chips); });
   $effect(() => {
     if (!pending.chips[chatId]) return;
     const given = takeChips(chatId) ?? [];

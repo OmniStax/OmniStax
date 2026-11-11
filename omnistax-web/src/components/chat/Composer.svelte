@@ -8,6 +8,8 @@
   import { chipOfLink, linkOfDrop } from '../../lib/chat/drop';
   import { chip, sameChip, withChip, withoutChip, type Chip } from '../../lib/chat/context';
   import { chats } from '../../lib/chat/store.svelte';
+  import { chatDrafts } from '../../lib/chat/drafts.svelte';
+  import { untrack } from 'svelte';
   import { ai } from '../../lib/chat/settings.svelte';
   import { assetEmbed, assetOfEmbed, snapshotImage } from '../../lib/drawer/snapshot';
   import { getAsset } from '../../lib/notes/assets';
@@ -30,7 +32,9 @@
     blocked?: string;
   } = $props();
 
-  let text = $state('');
+  /* the words open on what the reader left unsent in this chat, and are kept as they change */
+  let text = $state(untrack(() => chatDrafts.of(chatId)?.text ?? ''));
+  $effect(() => { chatDrafts.setText(chatId, text); });
   let field = $state<HTMLTextAreaElement | null>(null);
   let picker = $state<{ handleKey(e: KeyboardEvent): boolean; complete(): void } | null>(null);
   let at = $state<number | null>(null);
