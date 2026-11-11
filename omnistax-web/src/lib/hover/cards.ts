@@ -5,11 +5,12 @@
 import { registry } from '../sections/registry.svelte';
 import { cart } from '../practice/cart.svelte';
 import { focus } from '../sections/focus.svelte';
-import { goSpan, findEl, openDoc, reveal, bookOfEl, openItem } from '../sections/nav.svelte';
-import { spansOf } from '../sections/concepts.svelte';
+import { goSpan, findEl, openDoc, bookOfEl, openItem } from '../sections/nav.svelte';
+import { asking, spansOf } from '../sections/concepts.svelte';
+import { scope } from '../sections/scope.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { openTab } from '../layout/model';
-import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, sectionRef, spanId, spanRef, conceptId, sheetId, sectionOfSpan, newViewItem, sheetItem, itemKey } from '../types/ids';
+import type { ItemKey } from '../layout/model';
+import { type BookId, type SectionId, type SectionRef, type SpanId, sectionId, sectionRef, spanId, spanRef, conceptId, sheetId, sectionOfSpan, newViewItem, sheetItem, itemKey, viewKindOf } from '../types/ids';
 import { sheets } from '../sheets/store.svelte';
 import { componentsOf } from '../sheets/elements';
 import { molarMass, parseComposition } from '../sheets/formula';
@@ -62,14 +63,23 @@ const places = (book: BookId, ids: readonly SpanId[]): { id: SpanId; title: stri
   return [...named, ...secs.map((sec) => ({ id: rest.find((id) => sectionOfSpan(id) === sec)!, title: `${sec} · ${registry.entry(sectionRef(book, sec))?.title ?? 'section'}` }))];
 };
 
-/* A card sends the reader to a view of that kind: the page of it already open,
-   wherever it stands, since a second one would only say the same thing; and where
-   none is open, a page of its own as a tab of the focused group. */
-const showView = (view: 'reference' | 'concepts', split = false): void => {
-  if (split) { void openItem(itemKey(newViewItem(view)), 'new'); return; }
-  const host = document.querySelector<HTMLElement>(`.view[data-view="${view}"]`);
-  if (host) { reveal(host); return; }
-  layoutStore.apply((x) => openTab(x, newViewItem(view), x.focus));
+/* The page of a view a card shows a concept in: the one the reader last touched,
+   else one in sight, else any that is open as a tab; nothing when none is. */
+const openPageOf = (view: 'reference' | 'concepts'): ItemKey | null => {
+  const groups = layoutStore.layout.groups, is = (k: ItemKey | null | undefined): k is ItemKey => !!k && viewKindOf(k) === view;
+  const tabs = groups.flatMap((g) => g.tabs);
+  return (is(focus.view) && tabs.includes(focus.view) ? focus.view : null) ?? groups.map((g) => g.active).find(is) ?? tabs.find(is) ?? null;
+};
+/* A card shows a concept in a view of that kind: the page of it already open, or
+   where none is, a page of its own as a tab of the focused group; a split always
+   opens another. The view is sent to where the concept is introduced, at the level
+   it stands at, unless it stands there already, and is asked to bring the concept
+   into sight. */
+const showConcept = (book: BookId, view: 'reference' | 'concepts', concept: string, split = false): void => {
+  const key = (split ? null : openPageOf(view)) ?? itemKey(newViewItem(view));
+  const c = registry.concept(book, conceptId(concept));
+  if (c) { scope.show(key, sectionRef(book, sectionId(c.section))); asking.ask(key, conceptId(concept)); }
+  void openItem(key, split ? 'new' : undefined);
 };
 /* What a card of one book can do, every place it names being in that book. */
 export const navFor = (book: BookId): Nav => {
@@ -89,7 +99,7 @@ export const navFor = (book: BookId): Nav => {
     sheets.ask(book, entry.id, [expr]);
     void openItem(itemKey(sheetItem(book, sheetId(entry.id))), split ? 'new' : undefined);
   };
-  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView, openExternal, showElement, showGraph, addToSession };
+  return { goSpan: go, openSection: (sec, split) => { openDoc(sectionRef(book, sec), 'text', split ? 'new' : undefined); }, showView: (view, concept, split) => showConcept(book, view, concept, split), openExternal, showElement, showGraph, addToSession };
 };
 
 /* ---------- the definition card's facts ----------

@@ -71,19 +71,19 @@ const groupCommands = (): readonly Command[] =>
 
 /* The page of a view a scope command acts on, and nothing to do when the reader has touched none. */
 const onView = (f: (key: ItemKey) => void): void => { const key = focus.activeView; if (key) f(key); };
-/* Picking a place in the book pins the view there; the book is no pin, so it only sets the level. */
-const pinTo = (key: ItemKey) => (target: Target): void => { if (target.level === 'book') scope.atLevel(key, 'book'); else scope.pin(key, target); };
+/* Picking a place in the book sends the view there. */
+const sendTo = (key: ItemKey) => (target: Target): void => scope.put(key, target);
 const scopeDeps = {
   activeView: (): ItemKey | null => focus.activeView,
   level: (): Level | null => { const key = focus.activeView; return key ? scope.levelFor(key) : null; },
-  pinned: (): boolean => { const key = focus.activeView; return key !== null && scope.isPinned(key); },
+  away: (): boolean => { const key = focus.activeView; return key !== null && scope.away(key); },
   widen: (): void => onView((k) => scope.widen(k)),
   narrow: (): void => onView((k) => scope.narrow(k)),
   atLevel: (l: Level): void => onView((k) => scope.atLevel(k, l)),
   previous: (): void => onView((k) => scope.previous(k)),
   next: (): void => onView((k) => scope.next(k)),
-  togglePin: (): void => onView((k) => scope.togglePin(k)),
-  pickTarget: (): void => onView((k) => ui.openBrowser({ pick: pinTo(k) })),
+  here: (): void => onView((k) => scope.here(k)),
+  pickTarget: (): void => onView((k) => ui.openBrowser({ pick: sendTo(k) })),
 };
 /* A view opens as a tab of the group in hand or in the sidebar it calls home —
    both of them the singleton a rail button toggles — and in a split as a page of

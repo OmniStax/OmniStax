@@ -1,12 +1,14 @@
 <script lang="ts">
-  /* Dispatch a view by kind, under the bar that says where it stands. Choosing
-     the open page's place follows again; any other place pins the view there.
-     Above the section, the chapters in scope are fetched on the spot. */
+  /* Dispatch a view by kind, under the bar that says where it stands. A view
+     takes the place of the page it is first drawn beside and stays there until
+     the reader sends it elsewhere; while it stands away from the page being
+     read, the bar offers the way back. Above the section, the chapters in
+     scope are fetched on the spot. */
   import { setContext } from 'svelte';
   import { scope } from '../../lib/sections/scope.svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import { registry } from '../../lib/sections/registry.svelte';
-  import { atLevel, crumbsOf, resolve, sameTarget, siblingsOf, type Level, type Target } from '../../lib/sections/scope';
+  import { atLevel, crumbsOf, placeOf, resolve, sameTarget, siblingsOf, targetLabel, type Level, type Target } from '../../lib/sections/scope';
   import { bookId, sectionRef, viewKindOf } from '../../lib/types/ids';
   import { ICON } from '../../lib/icons';
   import { explorer } from '../../lib/explorer/store.svelte';
@@ -38,7 +40,10 @@
      rather than the book; and so does a book's theme, which is the whole book's. */
   const hasBar = $derived(kind !== 'explorer' && kind !== 'search' && kind !== 'sync' && kind !== 'sync-diff' && kind !== 'exercises' && kind !== 'pomodoro' && kind !== 'pomodoro-stats' && kind !== 'chats' && kind !== 'colours');
   const target = $derived(scope.targetFor(item));
-  const pinned = $derived(scope.isPinned(item));
+  /* A view with a bar is placed the first time it is drawn; a book's theme has none and goes on standing at the book being read. */
+  $effect(() => { if (hasBar) scope.settle(item); });
+  /* Where the view would stand beside the page being read, named for the button that sends it back. */
+  const beside = $derived.by(() => { void i18n.locale; const s = focus.section; if (!target || !s || !scope.away(item)) return null; return targetLabel(placeOf(target.level, s, registry.manifest(s.book)), registry.manifest(s.book)); });
   /* The trail is read from the narrowest place this view could stand at, so every crumb
      names where clicking it lands: a view following the book still says which chapter and
      which section it would come down to. */
@@ -58,13 +63,13 @@
   const closeMenu = (): void => { const chevron = menu ? chevrons[menu] : null; menu = null; chevron?.focus(); };
   /* A place chosen from a menu is a move elsewhere, not a step along the trail: the map lets go of where it stood. */
   const leave = (): void => { if (target) mapViews.forget(viewKeyOf(item, target)); };
-  const choose = (place: Target): void => { leave(); scope.choose(item, place); closeMenu(); };
+  const choose = (place: Target): void => { leave(); scope.put(item, place); closeMenu(); };
   /* The places the open menu offers: the crumb's own place is the one the view stands on. */
   const books = $derived(explorer.children(null).flatMap((e) => (e.kind === 'book' && e.bookId ? [{ id: e.bookId, name: e.name }] : [])));
   const bookEntries = $derived(books.map((b) => ({ target: b.id, label: b.name, enabled: true, here: b.id === target?.book })));
   const chooseBook = (id: string): void => {
     closeMenu(); const book = bookId(id);
-    void registry.ensureBook(book).then((m) => { if (m) { leave(); scope.choose(item, { level: 'book', book }); } });
+    void registry.ensureBook(book).then((m) => { if (m) { leave(); scope.put(item, { level: 'book', book }); } });
   };
   const entries = $derived.by(() => {
     const level = menu;
@@ -83,13 +88,13 @@
   $effect(() => { if (target && dirs.length) registry.loadChapters(target.book, dirs).catch(() => {}); });
   const loading = $derived(!!target && dirs.some((d) => registry.chapterStatusOf(target.book, d) === 'loading'));
   const failed = $derived(!!target && dirs.some((d) => registry.chapterStatusOf(target.book, d) === 'failed'));
-  /* Following with nothing read yet: the bar offers only a book to stand in. */
+  /* Nothing read yet, so nowhere to stand: the bar offers only a book to stand in. */
   const nowhere = $derived(hasBar && !target);
 </script>
 
 <div class="view" data-view={kind} data-item={item} onpointerdown={() => (focus.view = item)} onfocusincapture={() => (focus.view = item)}>
   {#if hasBar}
-  <div class="scope" class:pinned>
+  <div class="scope">
     <nav class="crumbs" aria-label={i18n.t('views.crumbs.label')}>
       {#if nowhere}
         <span class="crumb">{i18n.t('views.scope.book')}</span>
@@ -98,7 +103,7 @@
       {/if}
       {#each crumbs as c, i (c.level)}
         {#if i > 0}<span class="sep" aria-hidden="true">›</span>{/if}
-        <button type="button" class="crumb" class:on={i === at} class:ahead={i > at} class:pinned={pinned && i === at} aria-current={i === at ? 'true' : undefined} title={c.long} onclick={() => scope.atLevel(item, c.level)}>
+        <button type="button" class="crumb" class:on={i === at} class:ahead={i > at} aria-current={i === at ? 'true' : undefined} title={c.long} onclick={() => scope.atLevel(item, c.level)}>
           <span class="short">{c.short}</span><span class="long">{c.long}</span>
         </button>
         {#if c.level !== 'book' || books.length > 1}
@@ -108,8 +113,8 @@
         {/if}
       {/each}
     </nav>
-    {#if target && (target.level !== 'book' || pinned)}
-      <button type="button" class="pin" class:on={pinned} aria-pressed={pinned} title={pinned ? i18n.t('views.crumbs.unpin') : crumbs[at] ? i18n.t('views.crumbs.pinTo', { place: crumbs[at].short }) : i18n.t('views.crumbs.pinHere')} onclick={() => scope.togglePin(item)}>{@html ICON.pin}</button>
+    {#if beside}
+      <button type="button" class="here" title={i18n.t('views.crumbs.goTo', { place: beside })} aria-label={i18n.t('views.crumbs.goTo', { place: beside })} onclick={() => { leave(); scope.here(item); }}>{@html ICON.here}</button>
     {/if}
     {#if menu}
       <div class="menuhold" style="margin-left:min({menuLeft}px, max(0px, 100% - 220px))">
@@ -127,7 +132,7 @@
   {:else if kind === 'sync-diff'}<SyncDiff />
   {:else if kind === 'exercises'}<Exercises {item} />
   {:else if kind === 'concepts'}<ConceptMap {item} />
-  {:else if kind === 'reference'}<Reference />
+  {:else if kind === 'reference'}<Reference {item} />
   {:else if kind === 'colours'}<Colours />
   {:else if kind === 'pomodoro'}<Pomodoro />
   {:else if kind === 'pomodoro-stats'}<PomodoroStats />
@@ -143,7 +148,6 @@
   .crumb:hover{color:var(--ink);background:var(--soft2)}
   .crumb.on{color:var(--ink);font-weight:600}
   .crumb.ahead{opacity:.65}
-  .crumb.pinned{background:color-mix(in srgb,var(--accent) 12%,transparent)}
   .crumb:focus-visible{outline:2px solid var(--accent)}
   .chev{flex:none;margin-left:-3px;font:inherit;font-size:0.7rem;line-height:1;color:var(--muted);background:none;border:0;border-radius:4px;padding:2px 3px;cursor:pointer}
   .chev:hover{color:var(--ink);background:var(--soft2)}
@@ -154,11 +158,10 @@
   .short{display:none}
   /* the menu hangs under the crumb that opened it, and never past the edge of the bar */
   .menuhold{position:absolute;top:100%;left:0;right:0;z-index:20;display:flex}
-  .pin{width:22px;height:22px;flex:none;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
-  .pin:hover{background:var(--soft2);color:var(--ink)}
-  .pin.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
-  .pin :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-  .pin:focus-visible{outline:2px solid var(--accent)}
+  .here{width:22px;height:22px;flex:none;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
+  .here:hover{background:var(--soft2);color:var(--ink)}
+  .here :global(svg){width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .here:focus-visible{outline:2px solid var(--accent)}
   /* the notice stands in the middle of the view's body, where the data it waits on will be */
   .chapters{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:0.78rem;pointer-events:none;z-index:1}
   .chapters.bad{color:var(--bad)}

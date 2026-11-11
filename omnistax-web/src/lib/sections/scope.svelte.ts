@@ -1,80 +1,56 @@
-/* The scope each page of a companion view stands at, held for the whole shell. The
-   rules live beside this in scope.ts; this is where they meet the reader: the focused
-   section a following view reads against, the book the levels are walked in, and
-   the browser that remembers where each view was left. Every page is its own entry,
-   keyed by the item key of the tab it is — so a second concept map may stand on a
-   chapter of its own — and a page with nothing saved follows the section being read.
-   Pins written by the older shell, one per kind of view, are read once and carried
-   forward onto that kind's singleton.
-
-   A page may also be held where it stands for a while without being pinned: the
-   concept map holds itself on the place a focus was made, so reading another
-   page beside it does not walk the map away from what the reader is studying.
-   A hold reads as a pin to everyone, is never saved, and is let go by the view
-   that took it or by any move the reader makes, which is a choice of its own. */
+/* The place each page of a companion view stands on, held for the whole shell. The
+   rules live beside this in scope.ts; this is where they meet the reader: the section
+   being read, which a view is placed beside when it first opens, the book the levels
+   are walked in, and the browser that remembers where each view was left. Every page
+   is its own entry, keyed by the item key of the tab it is — so a second concept map
+   may stand on a chapter of its own. A view stays where it was put: it moves only
+   when the reader sends it, from its bar, a command, or a card that shows a concept
+   in it. Scopes written by the older shell, one per kind of view, are read once and
+   carried forward onto that kind's singleton. */
 import { focus } from './focus.svelte';
 import { registry } from './registry.svelte';
-import { atLevel, bookOfScope, choose, levelOf, narrow, parseScopes, resolve, scopeAt, stepSibling, widen, type Level, type Scopes, type Target, type ViewScope } from './scope';
+import { atLevel, bookOfScope, levelOf, narrow, parseScopes, placeOf, placed, resolve, sameTarget, scopeAt, settle, stepSibling, widen, type Level, type Scopes, type Target, type ViewScope } from './scope';
 import type { BookTree } from '../commands/browser';
 import type { ItemKey } from '../layout/model';
 import { readerWritesAllowed } from '../backup/guard';
-import { retiredViewKeys } from '../types/ids';
+import { retiredViewKeys, type SectionRef } from '../types/ids';
 
 const KEY = 'omnistax-scopes';
 
 const read = (key: string): unknown => { try { return JSON.parse(retiredViewKeys(localStorage.getItem(key) ?? 'null')); } catch { return null; } };
+/* Where a focused map was held while views followed the page; nothing reads it now. */
+const RETIRED = 'omnistax-scopes-held';
 const load = (): Scopes => {
-  try { return parseScopes(read(KEY)); } catch { return {}; }   /* private mode, or no browser at all */
-};
-
-/* The places views are held on for a while, kept so a reload finds a focused
-   map where it stood. They are written as pinned scopes are, and read by the
-   same rule; no backup carries them. */
-const HELD_KEY = 'omnistax-scopes-held';
-const loadHeld = (): Readonly<Record<ItemKey, Target>> => {
-  try { return Object.fromEntries(Object.entries(parseScopes(read(HELD_KEY))).flatMap(([k, v]) => (v.follow ? [] : [[k, v.target]]))); } catch { return {}; }
+  try { localStorage.removeItem(RETIRED); return parseScopes(read(KEY)); } catch { return {}; }   /* private mode, or no browser at all */
 };
 
 class Scope {
   scopes = $state.raw<Scopes>(load());
-  held = $state.raw<Readonly<Record<ItemKey, Target>>>(loadHeld());
-  of(key: ItemKey): ViewScope { const h = this.held[key]; return h ? { follow: false, target: h } : scopeAt(this.scopes, key); }
-  hold(key: ItemKey, target: Target): void { this.held = { ...this.held, [key]: target }; this.saveHeld(); }
-  release(key: ItemKey): void { if (!(key in this.held)) return; const { [key]: _gone, ...rest } = this.held; this.held = rest; this.saveHeld(); }
-  /* Let go of the holds of views that no longer stand. */
-  keepHeld(items: ReadonlySet<string>): void {
-    const next = Object.fromEntries(Object.entries(this.held).filter(([k]) => items.has(k)));
-    if (Object.keys(next).length !== Object.keys(this.held).length) { this.held = next; this.saveHeld(); }
-  }
-  private saveHeld(): void {
-    if (!readerWritesAllowed()) return;
-    try { localStorage.setItem(HELD_KEY, JSON.stringify(Object.fromEntries(Object.entries(this.held).map(([k, target]) => [k, { follow: false, target }])))); } catch { /* private mode */ }
-  }
+  of(key: ItemKey): ViewScope { return scopeAt(this.scopes, key); }
   /* The tree of the book a view stands in. */
   treeOf(key: ItemKey): BookTree | null { const b = bookOfScope(this.of(key), focus.section); return b ? registry.manifest(b) : null; }
   targetFor(key: ItemKey): Target | null { return resolve(this.of(key), focus.section, this.treeOf(key)); }
   levelFor(key: ItemKey): Level { return levelOf(this.of(key)); }
-  isPinned(key: ItemKey): boolean { return !this.of(key).follow; }
-  set(key: ItemKey, scope: ViewScope): void { this.release(key); this.scopes = { ...this.scopes, [key]: scope }; this.save(); }
+  set(key: ItemKey, scope: ViewScope): void { this.scopes = { ...this.scopes, [key]: scope }; this.save(); }
+  /* A view drawn for the first time takes the place it was opened beside, and keeps it. */
+  settle(key: ItemKey): void { const now = this.of(key), next = settle(now, focus.section, this.treeOf(key)); if (next !== now) this.set(key, next); }
   widen(key: ItemKey): void { const t = this.treeOf(key); if (t) this.set(key, widen(this.of(key), t)); }
   narrow(key: ItemKey): void { const t = this.treeOf(key); if (t) this.set(key, narrow(this.of(key), focus.section, t)); }
   atLevel(key: ItemKey, level: Level): void { const t = this.treeOf(key); if (t) this.set(key, atLevel(this.of(key), level, focus.section, t)); }
-  /* Choosing a place from a crumb's menu: the view walks to that level, following again when
-     the place chosen is the one the open page is in and pinning to it when it is anywhere else. */
-  choose(key: ItemKey, target: Target): void { this.set(key, choose(target, focus.section, registry.manifest(target.book))); }
   previous(key: ItemKey): void { this.step(key, -1); }
   next(key: ItemKey): void { this.step(key, 1); }
   private step(key: ItemKey, dir: 1 | -1): void { const t = this.treeOf(key); if (t) this.set(key, stepSibling(this.of(key), dir, focus.section, t)); }
-  /* Pinning holds where the view stands now, unless a place is named. */
-  pin(key: ItemKey, target: Target | null = this.targetFor(key)): void { if (target) this.set(key, { follow: false, target }); }
-  unpin(key: ItemKey): void { this.set(key, { follow: true, level: this.levelFor(key) }); }
-  togglePin(key: ItemKey): void { if (this.isPinned(key)) this.unpin(key); else this.pin(key); }
-  /* A page opened as the copy of another stands where that one does, pinned or held as it is. */
-  copy(from: ItemKey, to: ItemKey): void {
-    const s = this.scopes[from], h = this.held[from];
-    if (s) this.set(to, s);
-    if (h) this.hold(to, h);
-  }
+  /* Sending a view to a place, which carries its own level. */
+  put(key: ItemKey, target: Target): void { this.set(key, placed(target)); }
+  /* The place around a section at the level a view stands at: where it goes to show something of that section. */
+  private around(key: ItemKey, section: SectionRef): Target { return placeOf(this.levelFor(key), section, registry.manifest(section.book)); }
+  /* Sending a view to where a section is, keeping its level. A view already there is left as it is. */
+  show(key: ItemKey, section: SectionRef): void { const to = this.around(key, section), now = this.targetFor(key); if (!now || !sameTarget(now, to) || this.of(key).follow) this.put(key, to); }
+  /* Whether a view stands away from the page being read, and sending it back there. */
+  away(key: ItemKey): boolean { const now = this.targetFor(key), s = focus.section; return !!now && !!s && !sameTarget(now, this.around(key, s)); }
+  here(key: ItemKey): void { const s = focus.section; if (s) this.put(key, this.around(key, s)); }
+  /* A page opened as the copy of another stands where that one does. */
+  copy(from: ItemKey, to: ItemKey): void { const s = this.scopes[from]; if (s) this.set(to, s); }
   private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.scopes)); } catch { /* private mode */ } }
 }
 export const scope = new Scope();

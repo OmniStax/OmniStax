@@ -104,8 +104,8 @@ test('rank orders best-first and keeps ties in the given order', () => {
 
 /* builtins */
 /* The page of a view the scope commands act on — named by its item key, since a
-   view may be open in several — where it stands, and whether it is pinned. */
-type ViewState = { readonly view?: string | null; readonly level?: Level; readonly pinned?: boolean };
+   view may be open in several — where it stands, and whether that is away from the page being read. */
+type ViewState = { readonly view?: string | null; readonly level?: Level; readonly away?: boolean };
 /* The timeline the undo and redo commands read: what each way would take back,
    and nothing at all where the reader has done nothing. */
 type Timeline = { readonly undoLabel?: string; readonly redoLabel?: string };
@@ -129,9 +129,9 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
     ui: { openPalette: () => log.push('palette'), openSettings: () => log.push('settings'), openBrowser: (o) => log.push(`browser ${o?.group}`), openFindTextbook: () => log.push('find textbook'), palette: { open: false, group: 1 }, browser: { open: browserOpen } },
     reader: { supported: true, speaking: false, readFocused: () => log.push('read'), stop: () => log.push('stop') },
     scope: {
-      activeView: () => active, level: () => (active ? view.level ?? 'section' : null), pinned: () => view.pinned === true,
+      activeView: () => active, level: () => (active ? view.level ?? 'section' : null), away: () => view.away === true,
       widen: () => log.push('widen'), narrow: () => log.push('narrow'), atLevel: (l) => log.push(`at ${l}`),
-      previous: () => log.push('previous'), next: () => log.push('next'), togglePin: () => log.push('toggle pin'), pickTarget: () => log.push('pick'),
+      previous: () => log.push('previous'), next: () => log.push('next'), here: () => log.push('here'), pickTarget: () => log.push('pick'),
     },
     docs: { openView: (k, w) => log.push(`view ${k} ${w}`), openAbout: () => log.push('about') },
     notes: { newNote: () => log.push('new note'), toggleMode: () => log.push('toggle mode'), canToggle: () => noteOpen },
@@ -197,10 +197,10 @@ test('the scope commands act on the view the reader last touched, and none of th
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;
   by(BUILTIN.scopeWiden).run(); by(BUILTIN.scopeNarrow).run(); by(BUILTIN.scopeBook).run(); by(BUILTIN.scopePick).run();
   assert.deepEqual(d.log, ['widen', 'narrow', 'at book', 'pick']);
-  assert.equal(by(BUILTIN.scopeSection).detail?.(), 'current', 'a view following the page stands at its section');
+  assert.equal(by(BUILTIN.scopeSection).detail?.(), 'current', 'a new view stands at a section');
   assert.equal(by(BUILTIN.scopeChapter).detail?.(), '');
   const none = builtinCommands(deps(false, 2, { view: null }));
-  for (const id of [BUILTIN.scopeWiden, BUILTIN.scopeNarrow, BUILTIN.scopeBook, BUILTIN.scopeSection, BUILTIN.scopePin, BUILTIN.scopeUnpin, BUILTIN.scopePick, BUILTIN.scopePrevious, BUILTIN.scopeNext]) {
+  for (const id of [BUILTIN.scopeWiden, BUILTIN.scopeNarrow, BUILTIN.scopeBook, BUILTIN.scopeSection, BUILTIN.scopeHere, BUILTIN.scopePick, BUILTIN.scopePrevious, BUILTIN.scopeNext]) {
     assert.equal(available(none.find((c) => c.id === id)!), false, id);
   }
 });
@@ -219,14 +219,13 @@ test('widening stops at the book and narrowing at the section', () => {
   assert.equal(at('section', BUILTIN.scopeNarrow), false); assert.equal(at('section', BUILTIN.scopeWiden), true);
   assert.equal(at('chapter', BUILTIN.scopeWiden), true); assert.equal(at('chapter', BUILTIN.scopeNarrow), true);
 });
-test('a view is pinned or unpinned by one command or the other, never both', () => {
-  const shown = (view: ViewState) => [BUILTIN.scopePin, BUILTIN.scopeUnpin].map((id) => available(builtinCommands(deps(false, 2, view)).find((c) => c.id === id)!));
-  assert.deepEqual(shown({ level: 'section' }), [true, false]);
-  assert.deepEqual(shown({ level: 'section', pinned: true }), [false, true]);
-  assert.deepEqual(shown({ level: 'book' }), [false, false], 'at the book there is nothing to hold');
-  const d = deps(false, 2, { level: 'section', pinned: true }); const cmds = builtinCommands(d);
-  cmds.find((c) => c.id === BUILTIN.scopeUnpin)!.run();
-  assert.deepEqual(d.log, ['toggle pin']);
+test('a view standing away from the open page can be sent back to it, and one beside it has nowhere to go', () => {
+  const shown = (view: ViewState) => available(builtinCommands(deps(false, 2, view)).find((c) => c.id === BUILTIN.scopeHere)!);
+  assert.equal(shown({ level: 'section' }), false);
+  assert.equal(shown({ level: 'section', away: true }), true);
+  const d = deps(false, 2, { level: 'section', away: true }); const cmds = builtinCommands(d);
+  cmds.find((c) => c.id === BUILTIN.scopeHere)!.run();
+  assert.deepEqual(d.log, ['here']);
 });
 test('the sidebar views open in a group or in the sidebar, the rest only in a split', () => {
   const d = deps(); const cmds = builtinCommands(d); const by = (id: string) => cmds.find((c) => c.id === id)!;

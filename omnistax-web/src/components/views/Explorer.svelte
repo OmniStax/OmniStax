@@ -369,14 +369,14 @@
     if (r.open) explorer.collapse([r.key, ...under(r)]); else explorer.toggle(r.key);
   };
 
-  /* A book, chapter or section as a place a view can be pinned to. */
+  /* A book, chapter or section as a place a view can stand on. */
   const placeOf = (r: Row): Target | null => {
     if (r.kind === 'book' && r.entry?.bookId) return { level: 'book', book: bookId(r.entry.bookId) };
     if (r.kind === 'chapter' && r.book && r.chapter) return { level: 'chapter', book: bookId(r.book), chapter: chapterId(r.chapter) };
     if (r.kind === 'section' && r.book && r.section) return { level: 'section', book: bookId(r.book), section: r.section };
     return null;
   };
-  const openPinned = (kind: ViewKind, t: Target): void => { const k = itemKey(newViewItem(kind)); scope.pin(k, t); void openItem(k, undefined, 'tab'); };
+  const openPinned = (kind: ViewKind, t: Target): void => { const k = itemKey(newViewItem(kind)); scope.put(k, t); void openItem(k, undefined, 'tab'); };
   /* The place goes into the exercise session being gathered; the dashboard makes the session. */
   const practiseAt = (t: Target): void => {
     cart.add([t.level === 'book' ? { book: t.book } : t.level === 'chapter' ? { book: t.book, chapter: t.chapter } : { book: t.book, section: t.section }]);

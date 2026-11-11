@@ -94,7 +94,7 @@ export const files: Readonly<Record<keyof typeof source, string>> = {
   'files.sync.record.codeLang': '{book} 的代码语言',
   'files.sync.record.practicePages': '每个练习标签页显示的内容',
   'files.sync.record.practiceSessions': '练习记录',
-  'files.sync.record.scopes': '每个辅助视图固定的位置',
+  'files.sync.record.scopes': '每个辅助视图所在的位置',
   'files.sync.record.scratchIndex': '草稿页列表',
   'files.sync.record.seenNotes': '你读过的更新说明',
   'files.sync.record.seenReleases': '你看过的书的版本',

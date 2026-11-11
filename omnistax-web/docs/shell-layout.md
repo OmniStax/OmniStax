@@ -109,22 +109,32 @@ view's home side. It is
 validated against the registered items on load and falls back to the
 default: the text as a tab and the explorer on the left.
 
-## What a view describes: following and pinning
+## What a view describes: a place it stays on
 
-Every view opens with a scope line: the section it describes and a pin.
-Unpinned, the view follows the focused document, so switching tabs from
-2.1 to 2.5 switches the concept map, contents, formulas, definitions and
-notes to 2.5. Pinned, the view holds its section and shows a picker of
-the built sections, so 2.1's concept map can stay up while 2.5 is read.
-The pin is per view and remembered in this browser (`omnistax-scope`). The
-same header appears whether the view sits in a sidebar box or in a tab,
-with the full names in both, cut short with an ellipsis where the bar is
-narrow; the menu a crumb opens lists the places alone, and nothing marks the
-place the open page is in.
-The design chosen over the alternatives: a global freeze would hold every
-view at once, which is rarely wanted; turning following off altogether
-would make the companion views stale by default. A pin on the one view
-the reader wants held keeps the default useful.
+Every view opens with a scope line: the book, chapter and section it
+stands on. A view takes the place of the page it is first drawn beside,
+at section level, and stays there: switching tabs from 2.1 to 2.5 leaves
+the concept map, the reference and the annotations on 2.1. It moves when
+the reader sends it: a crumb or its menu, the scope commands, "Move view
+to…", or a card's "Show in Reference" and "Show in Concept map". Those
+two carry the concept: the view goes to where the concept is introduced,
+keeping the level it stands at (a view already there does not move), the
+Reference brings the row to the middle and marks it for a moment, and
+the map selects the node and walks to it. While a view stands away from
+the page being read, its bar shows a button that sends it back there
+("Go to 2.5"; the command is "View scope: the open page").
+Where each view stands is kept per view in this browser
+(`omnistax-scopes`). A view saved while views followed the page is placed
+the next time it is drawn, at the level it was left on. The same header
+appears whether the view sits in a sidebar box or in a tab, with the full
+names in both, cut short with an ellipsis where the bar is narrow; the
+menu a crumb opens lists the places alone, and nothing marks the place
+the open page is in. A book's theme has no bar and goes on standing at
+the book being read.
+Views used to follow the focused document unless pinned. That made
+"Show in Reference" show the wrong place whenever the concept was
+introduced elsewhere, and a pinned view ignore it altogether, so
+following was removed: a view shows what the reader last asked it to.
 
 ## Notes and highlights
 
@@ -208,7 +218,7 @@ them, and each goes with the tab, chat or drawing it belongs to.
 | The place each pane was scrolled to: the element at the top of the pane and its offset, so a page whose figures are still taking their height lands on the same paragraph | `omnistax-scroll` (localStorage), per group and tab | `lib/layout/places.ts`, `Pane.svelte` |
 | The pomodoro under way, with its mode and the stopwatch's seed | `omnistax-pomodoro-session` (sessionStorage: a second tab has a clock of its own) | `lib/pomodoro/model.ts` (`revive`), `store.svelte.ts` |
 | A chat's unsent words and chips | `omnistax-chat-drafts` (localStorage) | `lib/chat/drafts.ts` |
-| A concept map's pan and zoom, selection, focus, layout and legend switches, and the place a focus holds it on | `omnistax-map-views`, `omnistax-scopes-held` (localStorage) | `lib/sections/mapview.ts`, `scope.svelte.ts` |
+| A concept map's pan and zoom, selection, focus, layout and legend switches | `omnistax-map-views` (localStorage) | `lib/sections/mapview.ts` |
 | A note editor's undo history and cursor | `omnistax-note-undo:<note>` (sessionStorage) | `lib/notes/undo.ts` |
 | A drawing's undo history | the `omnistax-drawing-undo` IndexedDB, per tab session | `lib/drawer/undo.ts` |
 

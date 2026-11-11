@@ -48,11 +48,11 @@ Switching layouts under a focus lays out the focus again in the new kind.
   (`inPolygon` from the drawer); add Ctrl or Cmd to extend the selection. The lasso button makes a
   plain drag do the same. Escape turns lasso mode off and clears the selection.
 - The selection and the focus belong to the level they were made on (`mapViews` in `mapview.ts`,
-  kept for as long as the page is open, beside where the view was left): a map that follows the page
-  and is taken elsewhere finds them again when it comes back, and so does a map drawn again after its
-  tab was put away or its group moved. While a focus is on, a map that follows the page is held where
-  the focus was made (`scope.hold`, shown as a pin and never saved), so reading another page beside it
-  does not walk it away; Unfocus, the pin or a step along the trail lets it go.
+  kept for as long as the page is open, beside where the view was left): a map taken elsewhere finds
+  them again when it comes back, and so does a map drawn again after its tab was put away or its
+  group moved. The map stays on the place it stands on whatever is read beside it.
+- A card's "Show in Concept map" sends the open map to where the concept is introduced, at the level
+  the map stands at, selects the concept and walks to it (`asking` in `concepts.svelte.ts`).
 - The find box lists up to 60 matching concepts in a list that scrolls inside the map; the arrows walk
   it, Enter goes to the concept and Escape empties the box.
 - A double-click pins the concept and opens its card when cards open on click. A middle click goes

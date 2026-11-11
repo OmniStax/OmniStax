@@ -44,7 +44,7 @@ const deps = (): BuiltinDeps => ({
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
   ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, openFindTextbook: () => {}, palette: { open: false, group: null }, browser: { open: false } },
   reader: { supported: false, speaking: false, readFocused: () => {}, stop: () => {} },
-  scope: { activeView: () => 'view:concepts', level: () => 'section', pinned: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, togglePin: () => {}, pickTarget: () => {} },
+  scope: { activeView: () => 'view:concepts', level: () => 'section', away: () => false, widen: () => {}, narrow: () => {}, atLevel: () => {}, previous: () => {}, next: () => {}, here: () => {}, pickTarget: () => {} },
   docs: { openView: () => {}, openAbout: () => {} },
   notes: { newNote: () => {}, toggleMode: () => {}, canToggle: () => true },
   drawings: { newDrawing: () => {} },

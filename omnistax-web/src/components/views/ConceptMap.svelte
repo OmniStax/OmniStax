@@ -52,7 +52,7 @@
   import { flushSync, getContext as getCtx, onDestroy, tick, untrack } from 'svelte';
   import type { Target } from '../../lib/sections/scope';
   import { scope } from '../../lib/sections/scope.svelte';
-  import { pin, goConceptFromView } from '../../lib/sections/concepts.svelte';
+  import { asking, pin, goConceptFromView } from '../../lib/sections/concepts.svelte';
   import { spy } from '../../lib/sections/spy.svelte';
   import { openSectionFromView, openingInView } from '../../lib/sections/nav.svelte';
   import { scopedNodes, edgesOf, type DagNode } from '../../lib/sections/dag';
@@ -318,25 +318,13 @@
   });
   /* Arriving at a level: where the reader left it, else as it opens. The
      selection and any focus belong to the level they were made on, so each
-     level is handed back its own: a map that follows the page and is taken to
-     another chapter for a while finds its focus again when it comes back, and
-     so does a map drawn again after its tab was put away. */
+     level is handed back its own: a map taken to another chapter for a while
+     finds its focus again when it comes back, and so does a map drawn again
+     after its tab was put away. */
   let standing: ViewKey | null = null;
   $effect(() => {
     const s = selected, f = focusing ? focus?.ids : null;
     if (standing) mapViews.pick(standing, { selected: [...s], focus: f ? [...f] : null });
-  });
-  /* A focus holds a map that follows the page on the place it was made: the
-     reader opening another page beside it, or reading on in another tab, does
-     not take the map away from what they are studying. The bar shows the hold
-     as a pin, and Unfocus, the pin or any step along the trail lets it go. A
-     map drawn again starts with no focus until its level hands it back, so only
-     a focus that ends lets go, never one that has not yet arrived. */
-  let wasFocusing = false;
-  $effect(() => {
-    const on = focusing, at = scoped();
-    untrack(() => { if (on && at && !scope.isPinned(item)) scope.hold(item, at); else if (!on && wasFocusing) scope.release(item); });
-    wasFocusing = on;
   });
   $effect(() => {
     const k = viewKey; if (!svgEl || !zoomer) return;
@@ -527,6 +515,17 @@
   const close = () => { open = null; };
   const nodeOf = (t: EventTarget | null): SVGGElement | null => (t instanceof Element ? t.closest<SVGGElement>('.node') : null);
   const idOf = (t: EventTarget | null): string | null => nodeOf(t)?.dataset.id ?? null;
+  /* A concept a card asked this map to show: once the map is laid out for the
+     place it stands on, the concept is selected and the view walks to it. */
+  $effect(() => {
+    const id = asking.for(item); if (!id || !svgEl || !zoomer || home?.key !== keyOf(list, kind)) return;
+    untrack(() => {
+      asking.done(item);
+      if (!shown.some((c) => c.id === id) || !place(id)) return;
+      selected = new Set([id]); goTo(id);
+    });
+  });
+
   const tapped = (id: string, e: MouseEvent): boolean => {
     const p = press; press = null;
     return !p || p.id !== id || Math.hypot(e.clientX - p.x, e.clientY - p.y) <= SLOP;

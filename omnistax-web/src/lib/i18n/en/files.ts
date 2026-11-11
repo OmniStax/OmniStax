@@ -97,7 +97,7 @@ export const files = {
   'files.sync.record.codeLang': 'Code language for {book}',
   'files.sync.record.practicePages': 'What each practice tab shows',
   'files.sync.record.practiceSessions': 'Practice sessions',
-  'files.sync.record.scopes': 'Where each companion view is pinned',
+  'files.sync.record.scopes': 'Where each companion view stands',
   'files.sync.record.scratchIndex': 'The list of scratch pages',
   'files.sync.record.seenNotes': 'The release notes you have read',
   'files.sync.record.seenReleases': 'The book releases you have seen',

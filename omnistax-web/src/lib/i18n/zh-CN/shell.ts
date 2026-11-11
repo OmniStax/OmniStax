@@ -31,7 +31,7 @@ export const shell: Readonly<Record<keyof typeof source, string>> = {
   'shell.browser.none': '没有匹配项',
   'shell.browser.open': '打开',
   'shell.browser.openTitle': '打开文件',
-  'shell.browser.pickTitle': '将视图固定到书中的某处',
+  'shell.browser.pickTitle': '将视图移到书中的某处',
   'shell.close': '关闭',
   'shell.docGroup.empty': '未打开任何内容。按 + 打开一节。',
   'shell.dragToast.leftSelects': '放入笔记/手绘中。要选择文字，请改用左键 + 拖动',
