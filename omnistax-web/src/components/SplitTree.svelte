@@ -39,11 +39,19 @@
       share = [wa + d, wb - d];
       a.style.flex = `${share[0]} 1 0px`; b.style.flex = `${share[1]} 1 0px`;
     };
+    /* While the grip is held nothing on the page can be selected. A tablet
+       otherwise reads the drag as a sweep over whatever text lies beside the
+       grip and selects it, which is the reader's finger meaning something
+       else entirely. */
+    const root = document.documentElement;
+    root.classList.add('resizing-split');
+    window.getSelection()?.removeAllRanges();
     const up = () => {
-      grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up);
+      root.classList.remove('resizing-split');
+      grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
       layoutStore.apply((x) => resizeSplit(x, path, shared(i, share[0], share[1]))); FIG.redrawAll();
     };
-    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up);
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
   };
   /* A double click settles the argument: the two neighbours take equal shares. */
   const evenPair = (i: number) => {
@@ -79,7 +87,9 @@
   .split.column > .cell{min-height:var(--cell-min)}
   .cell > :global(*){flex:1;min-width:0;min-height:0}
   /* The grip is a broad target with the rule between the groups drawn down the middle of it. */
-  .grip{position:relative;flex:none;z-index:2}
+  /* The drag is the grip's own: the browser neither scrolls nor selects on it. */
+  .grip{position:relative;flex:none;z-index:2;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  :global(.resizing-split),:global(.resizing-split *){-webkit-user-select:none !important;user-select:none !important}
   .grip::before{content:"";position:absolute;background:var(--rule)}
   .grip:hover::before,.grip:active::before{background:var(--muted)}
   .split.row > .grip{width:7px;cursor:col-resize}

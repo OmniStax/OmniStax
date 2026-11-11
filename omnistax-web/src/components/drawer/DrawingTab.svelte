@@ -46,7 +46,7 @@
   } from '../../lib/drawer/model';
   import {
     boundsOf, connectableAt, erasedAt, fitView, handleUnder, inBox, lassoed, linkPath, linkUnder, meets, membersOf,
-    nearestSide, pathBetween, placedBounds, pointOn, resized, simplify, snapped, viewBox, type Handle, type Vec,
+    nearestSide, pathBetween, placedBounds, pointOn, resized, simplify, snapped, steadied, viewBox, type Handle, type Vec,
   } from '../../lib/drawer/geometry';
   import { drawItems, drawLasso, drawLive, drawPath, fitCanvas } from '../../lib/drawer/render';
   import { cssOf, paintFrom, type Colour } from '../../lib/drawer/colour';
@@ -195,7 +195,9 @@
      page being panned. Each is its own shape, so none of them can be half
      true at once. */
   type Gesture =
-    | { readonly kind: 'ink'; readonly points: Point[] }
+    /* `points` is the ink as it is kept, steadied; `tip` is where the pen says
+       it is this moment, which the line is drawn out to and ends on. */
+    | { readonly kind: 'ink'; readonly points: Point[]; tip: Point }
     | { readonly kind: 'shape'; readonly from: Vec; to: Vec }
     | { readonly kind: 'lasso'; readonly poly: Vec[] }
     | { readonly kind: 'move'; readonly from: Vec; last: Vec; readonly base: Drawing; readonly ids: readonly DrawItemId[] }
@@ -217,6 +219,11 @@
      glass is. */
   let drawingPointer = $state<number | null>(null);
   let penDown = $state(false);
+  /* When the pen last left the glass. The hand that held it is still coming
+     off the page for a moment afterwards, and a touch that lands in that
+     moment is the hand and not a finger meaning something. */
+  let penUpAt = -Infinity;
+  const PALM_GRACE = 200;
 
   /* Whether one finger draws or pans. A stylus always draws; this is the
      reader's to set per device, since a phone and a tablet with a pen want
@@ -226,6 +233,16 @@
   const setFingerDraws = (on: boolean): void => {
     fingerDraws = on;
     try { localStorage.setItem(FINGER_KEY, on ? '1' : '0'); } catch { /* private mode */ }
+  };
+  /* The first time a pen touches the page, a reader who has never said which
+     they want gets what a pen in the hand implies: the pen draws and a finger
+     moves the page, so the hand resting on the glass lays no ink. A reader who
+     has pressed the button either way keeps what they chose. */
+  let penNoted = false;
+  const notePen = (): void => {
+    if (penNoted) return;
+    penNoted = true;
+    try { if (localStorage.getItem(FINGER_KEY) === null) setFingerDraws(false); } catch { /* private mode */ }
   };
   /* The fingers on the glass, for the pinch. */
   const touches = new Map<number, Vec>();
@@ -282,7 +299,7 @@
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-view.x, -view.y);
     const ink = palette(color);
-    if (g.kind === 'ink') drawLive(ctx, tool === 'highlighter' ? 'highlighter' : 'pen', ink, size, g.points);
+    if (g.kind === 'ink') drawLive(ctx, tool === 'highlighter' ? 'highlighter' : 'pen', ink, size, inkOf(g));
     if (g.kind === 'shape' && shape === 'arrow') drawPath(ctx, pathBetween(g.from, g.to, 'straight'), ink, size, { start: false, end: true });
     else if (g.kind === 'shape') drawItems(ctx, [{ kind: 'shape', id: newDrawItemId(), shape, color, size, fill, from: g.from, to: g.to }], palette);
     if (g.kind === 'lasso' || g.kind === 'group') drawLasso(ctx, g.kind === 'lasso' ? g.poly : corners(g.from, g.to), palette('accent'), view.zoom);
@@ -315,7 +332,31 @@
 
   /* ── the press ─────────────────────────────────────────────────────────── */
 
-  const pointOf = (e: PointerEvent): Point => { const [x, y] = at(e.clientX, e.clientY); return [x, y, e.pressure || 0.5]; };
+  /* A pen says how hard it is pressed, and nothing at all is an answer: the
+     first touch of a pencil often reports none. Anything else that reports
+     none has no pressure to report, and draws at its size. */
+  const pointOf = (e: PointerEvent): Point => {
+    const [x, y] = at(e.clientX, e.clientY);
+    return [x, y, e.pointerType === 'pen' ? e.pressure : e.pressure || 0.5];
+  };
+
+  /* One more place the pointer has been, laid onto the stroke steadied. A pen
+     that reported no pressure as it touched down takes the first it does
+     report, so the stroke does not open on a blot or a hairline. */
+  const lay = (g: Extract<Gesture, { kind: 'ink' }>, raw: Point): void => {
+    const first = g.points[0];
+    if (g.points.length === 1 && first[2] === 0 && raw[2] > 0) g.points[0] = [first[0], first[1], raw[2]];
+    const next = steadied(g.points[g.points.length - 1], raw, 0.5 / view.zoom);
+    if (next) g.points.push(next);
+    g.tip = raw;
+  };
+  /* The stroke out to where the pen is: what is drawn while it moves and what
+     is kept when it lifts, so the line ends where the pen left off. */
+  const inkOf = (g: Extract<Gesture, { kind: 'ink' }>): Point[] => {
+    const last = g.points[g.points.length - 1];
+    if (last[0] === g.tip[0] && last[1] === g.tip[1]) return g.points;
+    return [...g.points, [g.tip[0], g.tip[1], last[2]]];
+  };
 
   /* A capture is only given back when it was taken: a pointer that never went
      down here — a palm whose press was ignored, or one the browser has already
@@ -324,9 +365,27 @@
     if (el.hasPointerCapture?.(id)) el.releasePointerCapture(id);
   };
 
-  /* A touch while a pen is on the glass is the reader's palm, and a touch with
-     another already down is a pinch and not a stroke. */
-  const isPalm = (e: PointerEvent): boolean => e.pointerType === 'touch' && (penDown || touches.size > 1);
+  /* A touch while a pen is on the glass, or just after it has left, is the
+     reader's hand. It is not counted among the fingers at all, so nothing it
+     does afterwards — moving, lifting, being taken back by the system — can
+     reach the stroke the pen is laying. */
+  const isPalm = (e: PointerEvent): boolean => e.pointerType === 'touch' && (penDown || e.timeStamp - penUpAt < PALM_GRACE);
+
+  /* The pen arriving takes the page from the hand: whatever the fingers
+     already down had begun is dropped, a pan put back where it started, and
+     those fingers count for nothing until they lift. The hand usually lands
+     a moment before the pen does. */
+  const takeFromHand = (): void => {
+    if (!touches.size) return;
+    const g = gesture;
+    if (g && drawingPointer !== null && touches.has(drawingPointer)) {
+      if (g.kind === 'pan') view = g.from;
+      gesture = null;
+      drawingPointer = null;
+    }
+    touches.clear();
+    pinch = null;
+  };
 
   const beginSelectionDrag = (p: Vec): boolean => {
     const box = selectionBox;
@@ -403,14 +462,17 @@
   };
   const onpointerdown = (e: PointerEvent): void => {
     host?.focus({ preventScroll: true });
-    if (e.pointerType === 'touch') touches.set(e.pointerId, [e.clientX, e.clientY]);
-    if (isPalm(e)) {
-      /* Two fingers on the glass: the second one turns the first one's pan
-         into a pinch rather than starting anything of its own. */
-      if (touches.size === 2) { gesture = null; pinch = { gap: touchGap(), scale }; }
-      return;
+    if (isPalm(e)) return;
+    if (e.pointerType === 'touch') {
+      touches.set(e.pointerId, [e.clientX, e.clientY]);
+      if (touches.size > 1) {
+        /* Two fingers on the glass: the second one turns the first one's pan
+           into a pinch rather than starting anything of its own. */
+        if (touches.size === 2) { gesture = null; drawingPointer = null; pinch = { gap: touchGap(), scale }; }
+        return;
+      }
     }
-    if (e.pointerType === 'pen') penDown = true;
+    if (e.pointerType === 'pen') { takeFromHand(); penDown = true; notePen(); }
     const side = (e.target as HTMLElement).closest<HTMLElement>('[data-side]');
     if (side && hovered && e.button === 0) {
       e.preventDefault();
@@ -443,7 +505,7 @@
     if (tool === 'text') { newTextBox(p); return; }
     if (tool === 'eraser') { gesture = { kind: 'erase' }; eraseAt(p); return; }
     if (tool === 'shape') { gesture = { kind: 'shape', from: p, to: p }; return; }
-    if (isInk(tool)) { selection = []; gesture = { kind: 'ink', points: [pointOf(e)] }; }
+    if (isInk(tool)) { selection = []; const first = pointOf(e); gesture = { kind: 'ink', points: [first], tip: first }; }
   };
 
   const touchGap = (): number => {
@@ -474,7 +536,8 @@
       const [x, y] = at(e.clientX, e.clientY);
       hovered = connectableAt(drawing.items, x, y, 16 / scale)?.id ?? null;
     }
-    if (!g || (drawingPointer !== null && e.pointerId !== drawingPointer && e.pointerType !== 'touch')) return;
+    /* Only the pointer that began what is being done carries it on. */
+    if (!g || e.pointerId !== drawingPointer) return;
     if (g.kind === 'pan') {
       view = { ...g.from, x: g.from.x - (e.clientX - g.x) / g.from.zoom, y: g.from.y - (e.clientY - g.y) / g.from.zoom };
       return;
@@ -484,8 +547,8 @@
       /* Every point the browser held back between frames, so the ink is as
          smooth as the hand that drew it rather than as the frame rate. */
       const all = e.getCoalescedEvents?.() ?? [];
-      (all.length ? all : [e]).forEach((ev) => g.points.push(pointOf(ev)));
-      gesture = { ...g, points: g.points };
+      (all.length ? all : [e]).forEach((ev) => lay(g, pointOf(ev)));
+      gesture = { ...g };
       return;
     }
     if (g.kind === 'shape') { gesture = { ...g, to: shiftHeld ? snapped(shape, g.from, p) : p }; return; }
@@ -503,17 +566,22 @@
     touches.delete(e.pointerId);
     /* A pinch ends when a finger leaves, and what it changed is the view. */
     if (touches.size < 2 && pinch) { pinch = null; rememberView(); }
-    if (e.pointerType === 'pen') penDown = false;
+    if (e.pointerType === 'pen') { penDown = false; penUpAt = e.timeStamp; }
+    release(e.currentTarget as HTMLElement, e.pointerId);
+    /* Only the pointer that began what is being done ends it: a hand lifting
+       off the glass while the pen is still down is not the pen lifting. */
+    if (e.pointerId !== drawingPointer) return;
     const g = gesture;
     gesture = null;
     drawingPointer = null;
-    release(e.currentTarget as HTMLElement, e.pointerId);
     if (!g) return;
     /* A pan is not a change to the drawing, only to where it is looked at
        from, so what it leaves behind is the view and nothing else. */
     if (g.kind === 'pan') { rememberView(); return; }
     if (g.kind === 'ink') {
-      const points = simplify(g.points, 0.8 / view.zoom);
+      const laid = inkOf(g);
+      /* A tap of a pen that never said how hard: a dot at the nib's size. */
+      const points = laid.length === 1 && laid[0][2] === 0 ? [[laid[0][0], laid[0][1], 0.5] as Point] : simplify(laid, 0.8 / view.zoom);
       if (!points.length) return;
       commit(addItem(drawing, { kind: 'stroke', id: newDrawItemId(), tool: tool === 'highlighter' ? 'highlighter' : 'pen', color, size, points }));
       return;
@@ -604,7 +672,36 @@
     if (!t.isContentEditable && !t.closest('input, textarea')) e.preventDefault();
   };
 
-  const oncancel = (e: PointerEvent): void => { touches.delete(e.pointerId); pinch = null; gesture = null; drawingPointer = null; if (e.pointerType === 'pen') penDown = false; };
+  /* A pointer the system takes back: a hand it has decided is a palm, most
+     often, and that is no reason to drop the stroke the pen is laying. What
+     is being done ends only when its own pointer is the one taken. */
+  const oncancel = (e: PointerEvent): void => {
+    if (touches.delete(e.pointerId)) pinch = null;
+    if (e.pointerType === 'pen') { penDown = false; penUpAt = e.timeStamp; }
+    if (e.pointerId !== drawingPointer) return;
+    const g = gesture;
+    gesture = null;
+    drawingPointer = null;
+    if (g?.kind === 'pan') view = g.from;
+  };
+
+  /* Safari on a tablet answers a touch on its own account before the page is
+     asked: it begins selecting whatever text is nearest, and it holds a
+     pencil's stroke back to see whether it is handwriting meant for a text
+     field, which loses the stroke. Refusing the touch where it starts is the
+     only thing that stops both, and it has to be a listener that is allowed to
+     refuse. A card, a frame, a group's name and the selection bar keep theirs, since
+     theirs are taps on things that answer taps. */
+  onMount(() => {
+    const el = host;
+    if (!el) return;
+    const refuse = (e: TouchEvent): void => {
+      if (e.cancelable && !(e.target as HTMLElement).closest?.(`${OWN_POINTER}, .group .label, input, textarea, button`)) e.preventDefault();
+    };
+    el.addEventListener('touchstart', refuse, { passive: false });
+    el.addEventListener('touchmove', refuse, { passive: false });
+    return () => { el.removeEventListener('touchstart', refuse); el.removeEventListener('touchmove', refuse); };
+  });
 
   /* Ctrl and the wheel zooms about the pointer, as it does in every canvas;
      the wheel alone walks the plane up and down, and with Shift held it walks

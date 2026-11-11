@@ -249,7 +249,8 @@ with sync_playwright() as playwright:
     tab.get_by_role("button", name="Fit", exact=True).click()
     page.wait_for_timeout(400)
     assert record(page)["view"]["zoom"] <= 1, "fitting a wide drawing zooms out rather than in"
-    tab.get_by_role("button", name="Reset view", exact=True).click()
+    focus_surface(page)
+    page.keyboard.press("Shift+0")
     page.wait_for_timeout(400)
     assert record(page)["view"] == {"x": 0, "y": 0, "zoom": 1}, "reset view goes back to the origin"
 
@@ -289,6 +290,76 @@ with sync_playwright() as playwright:
     )
     # The pen's own dot may land; the palm's sweep must not be a second stroke.
     assert after_palm - before <= 1, f"the palm laid ink of its own ({before} → {after_palm})"
+
+    # ── a hand on the glass never ends, bends or loses the pen's stroke ───
+    # The hand lands first, the pen draws a line, and while it does the hand
+    # shifts, is taken back by the system and a second part of it lands. What
+    # is left is one stroke, the pen's, running the whole way it was drawn.
+    def items_now():
+        return page.evaluate(
+            """async () => {
+                const db = await new Promise((res) => { const r = indexedDB.open('omnistax-drawings', 1); r.onsuccess = () => res(r.result); });
+                const all = await new Promise((res) => {
+                    const tx = db.transaction('drawings', 'readonly');
+                    const req = tx.objectStore('drawings').getAll();
+                    req.onsuccess = () => res(req.result);
+                });
+                db.close();
+                return all.flatMap((d) => d.items);
+            }"""
+        )
+
+    view_before = record(page)["view"]
+    ids_before = {i["id"] for i in items_now()}
+    page.evaluate(
+        """(selector) => {
+            const el = document.querySelector(selector);
+            const at = (type, pointerType, x, y, pointerId) => el.dispatchEvent(new PointerEvent(type, {
+                bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y,
+                pointerId, pointerType, pressure: 0.6, button: 0, buttons: 1, isPrimary: pointerId === 1,
+            }));
+            const r = el.getBoundingClientRect();
+            at('pointerdown', 'touch', r.left + 520, r.top + 420, 7);
+            at('pointermove', 'touch', r.left + 530, r.top + 430, 7);
+            at('pointerdown', 'pen', r.left + 200, r.top + 300, 1);
+            for (let i = 1; i <= 10; i++) at('pointermove', 'pen', r.left + 200 + i * 10, r.top + 300, 1);
+            at('pointermove', 'touch', r.left + 560, r.top + 470, 7);
+            at('pointerdown', 'touch', r.left + 600, r.top + 480, 8);
+            at('pointermove', 'touch', r.left + 620, r.top + 500, 8);
+            at('pointercancel', 'touch', r.left + 560, r.top + 470, 7);
+            for (let i = 11; i <= 20; i++) at('pointermove', 'pen', r.left + 200 + i * 10, r.top + 300, 1);
+            at('pointerup', 'touch', r.left + 620, r.top + 500, 8);
+            for (let i = 21; i <= 30; i++) at('pointermove', 'pen', r.left + 200 + i * 10, r.top + 300, 1);
+            at('pointerup', 'pen', r.left + 500, r.top + 300, 1);
+            /* The hand coming off the page just after the pen. */
+            at('pointerdown', 'touch', r.left + 540, r.top + 440, 9);
+            at('pointermove', 'touch', r.left + 580, r.top + 470, 9);
+            at('pointerup', 'touch', r.left + 580, r.top + 470, 9);
+        }""",
+        ".pane:not([hidden]) .drawing-tab .surface",
+    )
+    page.wait_for_timeout(500)
+    laid = [i for i in items_now() if i["id"] not in ids_before]
+    assert len(laid) == 1 and laid[0]["kind"] == "stroke", f"the pen's line is one stroke and the hand laid none ({laid})"
+    xs = [p[0] for p in laid[0]["points"]]
+    ys = [p[1] for p in laid[0]["points"]]
+    assert max(xs) - min(xs) > 295, f"the stroke runs the whole way the pen went ({max(xs) - min(xs)})"
+    assert max(ys) - min(ys) < 1, "and none of the hand's points are in it"
+    assert record(page)["view"] == view_before, "the hand did not move or zoom the page"
+    assert tab.locator('button.finger[aria-pressed="false"]').count() == 1, "a pen in the hand turns finger drawing off"
+
+    # The surface refuses the browser's own answer to a touch, which is what
+    # stops Safari selecting text or holding a pencil stroke back.
+    refused = page.evaluate(
+        """(selector) => {
+            const el = document.querySelector(selector);
+            const e = new Event('touchstart', { bubbles: true, cancelable: true });
+            el.querySelector('canvas.ink').dispatchEvent(e);
+            return e.defaultPrevented;
+        }""",
+        ".pane:not([hidden]) .drawing-tab .surface",
+    )
+    assert refused, "a touch on the canvas is refused before the browser acts on it"
 
     # ── the tool keys pick a tool ─────────────────────────────────────────
     focus_surface(page)
