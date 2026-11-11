@@ -11,7 +11,7 @@ A derivation is drawn once as a graph. Every fact and every result appears exact
 5. **A step closes** with its result as its last line, unlit; the box stays open at its full work when show-all-work is on, and shows only the result when it is off.
 6. **The end** glides back to the whole graph; with show-all-work on, every box folds back to its result.
 7. **Reveal** (eye half-open, the default): a fact or result appears when the derivation first reaches it; everything else is hidden ahead and dims behind. **Show all** (eye open): the whole graph stays, and what the current step does not touch is dimmed.
-8. **The view**: a bounded pane with the transport always beneath it. Drag pans, the wheel zooms about the pointer, double-click lets the camera frame again. The reader's pan and zoom ride on top of the camera and fade out over the next step's opening. The padlock holds the camera still. Within a step the scale never changes: the box is framed at its full worked-out size from the start, and only the centre follows.
+8. **The view**: a bounded pane with the transport always beneath it. Drag pans, the wheel or a pinch (two fingers on a trackpad or a touch screen) zooms about the pointer, double-click lets the camera frame again. The reader's pan and zoom ride on top of the camera and fade out over the next step's opening. The padlock holds the camera still. Within a step the scale never changes: the box is framed at its full worked-out size from the start, and only the centre follows.
 9. **Play enters the first step at once.** The step dots on the scrubber jump to each step; the first dot is the rest view. Right-click on the speed button lists every speed.
 
 ## 2. Timing

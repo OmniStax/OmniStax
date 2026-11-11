@@ -349,18 +349,41 @@ export function derivation(root: HTMLElement, F: Fig, D: DerivationDTO): void {
     cam = { s: want.s * u.z, x: (want.x - VW / 2) * u.z + VW / 2 + u.x, y: (want.y - VH / 2) * u.z + VH / 2 + u.y };
     world.style.transform = `translate(${cam.x.toFixed(2)}px,${cam.y.toFixed(2)}px) scale(${cam.s.toFixed(4)})`;
   }
-  let drag: { x: number; y: number } | null = null;
-  view.addEventListener('pointerdown', (e) => { if (e.button !== 0 || (e.target as Element).closest('a[href]')) return;   /* a fact's link to its derivation is followed, not panned */ drag = { x: e.clientX, y: e.clientY }; view.setPointerCapture(e.pointerId); view.classList.add('panning'); });
-  view.addEventListener('pointermove', (e) => { if (!drag) return; user.x += e.clientX - drag.x; user.y += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; poke(); });
-  const drop = (): void => { drag = null; view.classList.remove('panning'); };
+  /* the reader zooms by `f` about a point of the screen: the world point under it stays put */
+  const zoomAbout = (cx: number, cy: number, f: number): void => {
+    const r = view.getBoundingClientRect(), z = Math.min(4, Math.max(0.25, user.z * f)), g = z / user.z, qx = cx - r.left - r.width / 2, qy = cy - r.top - r.height / 2;
+    user.x = (user.x - qx) * g + qx; user.y = (user.y - qy) * g + qy; user.z = z;
+  };
+  /* the pointers down on the view: one pans; two pan by their midpoint and zoom by how far apart they stand (a pinch on a touch screen) */
+  const down = new Map<number, { x: number; y: number }>();
+  const span = (): { d: number; x: number; y: number } => { const [a, b = a] = [...down.values()] as [{ x: number; y: number }, { x: number; y: number }?]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+  view.addEventListener('pointerdown', (e) => { if (e.button !== 0 || down.size >= 2 || (e.target as Element).closest('a[href]')) return;   /* a fact's link to its derivation is followed, not panned */ down.set(e.pointerId, { x: e.clientX, y: e.clientY }); view.setPointerCapture(e.pointerId); view.classList.add('panning'); });
+  view.addEventListener('pointermove', (e) => {
+    if (!down.has(e.pointerId)) return;
+    const was = span();
+    down.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const now = span();
+    user.x += now.x - was.x; user.y += now.y - was.y;
+    if (was.d > 0 && now.d > 0) zoomAbout(now.x, now.y, now.d / was.d);
+    poke();
+  });
+  const drop = (e: PointerEvent): void => { down.delete(e.pointerId); if (!down.size) view.classList.remove('panning'); };
   view.addEventListener('pointerup', drop); view.addEventListener('pointercancel', drop);
+  /* The wheel zooms about the pointer. A trackpad pinch arrives as a wheel with Ctrl held and a few pixels a
+     frame, so it counts for more; a wheel that reports lines is turned into pixels first. */
   view.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const r = view.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, f = Math.exp(-e.deltaY * 0.0015);
-    const z = Math.min(4, Math.max(0.25, user.z * f)), g = z / user.z, qx = px - r.width / 2, qy = py - r.height / 2;
-    user.x = (user.x - qx) * g + qx; user.y = (user.y - qy) * g + qy; user.z = z;   /* about the pointer: the world point under it stays put */
+    zoomAbout(e.clientX, e.clientY, Math.exp(-e.deltaY * (e.deltaMode === 1 ? 16 : 1) * (e.ctrlKey ? 0.02 : 0.004)));
     poke();
   }, { passive: false });
+  /* Safari reports a trackpad pinch as gesture events with the scale so far, and no wheel; on a touch screen the pointers above already have it */
+  let pinched = 1;
+  view.addEventListener('gesturestart', (e) => { e.preventDefault(); pinched = 1; });
+  view.addEventListener('gesturechange', (e) => {
+    e.preventDefault(); if (down.size) return;
+    const g = e as Event & { scale: number; clientX: number; clientY: number };
+    if (g.scale > 0) { zoomAbout(g.clientX, g.clientY, g.scale / pinched); pinched = g.scale; poke(); }
+  });
   view.addEventListener('dblclick', () => { user.x = 0; user.y = 0; user.z = 1; poke(); });
 
   /* `dst`, filling the cell `at`, drawn as if it stood where `from` stands, k of the way home; screen lengths read back into world lengths */

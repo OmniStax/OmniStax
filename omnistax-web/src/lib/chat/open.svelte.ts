@@ -5,8 +5,9 @@
    tab takes the words when it is there. */
 import { layoutStore } from '../layout/store.svelte';
 import { openInFocus, openTab } from '../layout/model';
-import { chatItem, itemKey, type ChatId } from '../types/ids';
+import { chatItem, itemKey, viewItem, type ChatId } from '../types/ids';
 import { chats } from './store.svelte';
+import { chatPages } from './pages.svelte';
 import type { MessageId } from './model';
 import type { Chip } from './context';
 
@@ -22,6 +23,15 @@ export const newChatTab = (): ChatId => {
    focused group. */
 export const showChat = (id: ChatId): void => {
   layoutStore.apply((l) => openInFocus(l, chatItem(id)));
+};
+
+/* The way back from a chat in a tab of its own (one a discussion of an exercise
+   opened, or "Ask AI"): the Conversations page comes forward where it stands,
+   or opens in the focused group, on its list. The chat's tab stays. */
+export const showConversations = (): void => {
+  const page = viewItem('chats');
+  chatPages.back(itemKey(page));
+  layoutStore.apply((l) => openInFocus(l, page));
 };
 
 /* The chats that stand open as tabs, in the order the groups hold them. */

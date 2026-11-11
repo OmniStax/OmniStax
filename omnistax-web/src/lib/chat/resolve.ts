@@ -18,6 +18,7 @@ import { wrapExampleRefs, wrapFigureRefs, IN_BLOCK, type ExampleNumber } from '.
 import { bookId, sectionId, sectionRef, type BookId, type ChatId, type SectionId } from '../types/ids';
 import type { MathScope, Resolver } from '../notes/md/render';
 import type { Chip } from './context';
+import { blendMacros, booksAround } from './blend';
 import { chats } from './store.svelte';
 import { firstWords, messageOf, spokenIn, type Chat, type Message, type MessageId } from './model';
 import { t } from '../i18n';
@@ -85,9 +86,36 @@ const scopeOf = (book: BookId | null, section?: string): MathScope | null => {
   return { book, macros: registry.manifest(book).macros, ...(section ? { section } : {}), ...(chapter ? { chapter } : {}) };
 };
 
-export const chatResolver = (place: AnswerPlace = NOWHERE): Resolver => ({
+/* The books a message's maths may borrow macros from besides its own: every
+   book named on the way to it (blend.ts), its own left out. */
+const NO_BOOKS: readonly BookId[] = [];
+const othersIn = new WeakMap<Chat, Map<MessageId, { readonly at: Message; readonly books: readonly BookId[] }>>();
+export const otherBooksOf = (chat: Chat, id: MessageId): readonly BookId[] => {
+  const m = messageOf(chat, id); if (!m) return NO_BOOKS;
+  const known = othersIn.get(chat) ?? new Map<MessageId, { readonly at: Message; readonly books: readonly BookId[] }>();
+  othersIn.set(chat, known);
+  const had = known.get(id); if (had && had.at === m) return had.books;
+  const own = placeOf(chat, id).book;
+  const books = booksAround(chat, id).map(bookId).filter((b) => b !== own);
+  /* the same list as before is the same value, so an answer arriving does not look changed */
+  const kept = had && had.books.length === books.length && had.books.every((b, i) => b === books[i]) ? had.books : books.length ? books : NO_BOOKS;
+  known.set(id, { at: m, books: kept });
+  return kept;
+};
+/* What maths that links into no book is set under: the answer's own book, and
+   after it the others, so a macro only another book defines still reads. The
+   colours and the hover cards stay the answer's own book's. */
+const fallbackScope = (place: AnswerPlace, others: readonly BookId[]): MathScope | null => {
+  const own = scopeOf(place.book, place.section ?? undefined);
+  const more = others.filter((b) => b !== place.book && registry.hasBook(b));
+  if (!more.length) return own;
+  const macros = blendMacros([...(own ? [own.macros] : []), ...more.map((b) => registry.manifest(b).macros)]);
+  return own ? { ...own, macros } : { book: more[0]!, macros };
+};
+
+export const chatResolver = (place: AnswerPlace = NOWHERE, others: readonly BookId[] = NO_BOOKS): Resolver => ({
   ...(place.book ? new BookResolver(() => place.book) : chatBooks).lookups(),
-  scope: (book, section) => (book ? scopeOf(book, section) : scopeOf(place.book, place.section ?? undefined)),
+  scope: (book, section) => (book ? scopeOf(book, section) : fallbackScope(place, others)),
   note: (name) => noteDocs.byName(name)?.id ?? null,
   asset: () => null,
   /* A chat, and one message of it: what the card over a `[[chat:…]]` says.
@@ -160,7 +188,8 @@ const markProse = (el: HTMLElement, place: AnswerPlace): void => {
 };
 
 /* What an answer needs fetched before it can say all it has to: the book it
-   reads in and the chapter in context, the books its links and maths name,
+   reads in and the chapter in context, the books its links and maths name
+   and the others its maths may borrow macros from,
    and the chapter of every thing of a book that resolved to nothing. Each is
    asked for once a session, so a book that is not there is not asked again. */
 const asked = new Set<string>();
@@ -171,10 +200,10 @@ const once = (key: string, load: () => Promise<unknown>): Promise<unknown>[] => 
 };
 const placeDir = (book: BookId | null, section: string): string | undefined =>
   (book && registry.hasBook(book) ? registry.chapterOf(sectionRef(book, sectionId(section)))?.dir : undefined);
-const wanted = (el: HTMLElement, place: AnswerPlace): Promise<unknown>[] => {
+const wanted = (el: HTMLElement, place: AnswerPlace, others: readonly BookId[]): Promise<unknown>[] => {
   const gone = Array.from(el.querySelectorAll<HTMLElement>('.wiki.dead[data-embed]'), (d) => parseLink(d.dataset.embed ?? ''));
   const named = gone.flatMap((t) => ('book' in t && t.book ? [t.book] : []));
-  const books = new Set<BookId>([...(place.book ? [place.book] : []), ...named, ...Array.from(el.querySelectorAll<HTMLElement>('[data-book]'), (n) => bookId(n.dataset.book ?? ''))]);
+  const books = new Set<BookId>([...(place.book ? [place.book] : []), ...others, ...named, ...Array.from(el.querySelectorAll<HTMLElement>('[data-book]'), (n) => bookId(n.dataset.book ?? ''))]);
   const ensure = [...books].filter((b) => b !== '' && !registry.hasBook(b)).flatMap((b) => once(`book:${b}`, () => registry.ensureBook(b)));
   const dead = gone.filter(isBook);
   const homes = [...dead.map((t) => ({ book: t.book ?? place.book, dir: placeDir(t.book ?? place.book, t.section) })), { book: place.book, dir: chapterDir(place) }];
@@ -186,9 +215,9 @@ const wanted = (el: HTMLElement, place: AnswerPlace): Promise<unknown>[] => {
 /* An answer drawn: its maths and cards set in its book, its prose marked, and
    whatever it is still waiting on asked for, after which `again` draws the
    decorations once more over what the fetch has changed. */
-export const decorateAnswer = (el: HTMLElement, place: AnswerPlace, again: () => void): void => {
+export const decorateAnswer = (el: HTMLElement, place: AnswerPlace, again: () => void, others: readonly BookId[] = NO_BOOKS): void => {
   (place.book ? new BookResolver(() => place.book) : chatBooks).setMath(el);
   markProse(el, place);
-  const waits = wanted(el, place);
+  const waits = wanted(el, place, others);
   if (waits.length) void Promise.all(waits).then(() => tick()).then(() => { if (el.isConnected) again(); });
 };
