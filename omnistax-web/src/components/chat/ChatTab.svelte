@@ -7,7 +7,8 @@
   import Transcript from './Transcript.svelte';
   import TreeView from './TreeView.svelte';
   import { chats } from '../../lib/chat/store.svelte';
-  import { pending, takeChips } from '../../lib/chat/open.svelte';
+  import BackLink from '../ui/BackLink.svelte';
+  import { pending, showConversations, takeChips } from '../../lib/chat/open.svelte';
   import { spokenIn, transcript, type Chat, type MessageId } from '../../lib/chat/model';
   import { replyParent, withLeaf } from '../../lib/chat/tree';
   import { chip, withChip, type Chip } from '../../lib/chat/context';
@@ -19,7 +20,9 @@
   import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
 
   /* `inline` is the chat standing inside the Conversations page rather than
-     filling a tab of its own: it takes the room the page gives it. */
+     filling a tab of its own: it takes the room the page gives it, under the
+     page's way back to the list. A chat in a tab of its own carries that way
+     back itself. */
   let { chatId, inline = false }: { chatId: ChatId; inline?: boolean } = $props();
 
   const chat = $derived<Chat | null>(chats.get(chatId));
@@ -133,6 +136,7 @@
 <!-- what is dropped anywhere on the chat goes to its composer -->
 <article class="chat-tab" class:inline data-chat={chatId} data-book={mathBook}
   ondragover={(e) => composer?.over(e, true)} ondragleave={(e) => composer?.leave(e)} ondrop={(e) => composer?.drop(e, true)}>
+  {#if !inline}<div class="back-row"><BackLink label={i18n.t('chat.conversations.label')} onclick={showConversations} /></div>{/if}
   <header class="chat-head">
     {#if renaming}
       <input class="name-input" bind:value={draft} onkeydown={onNameKey} onblur={commitName} use:takeFocus aria-label={i18n.t('chat.tab.name')} />
@@ -164,6 +168,7 @@
   /* an article of the shell wears the page's padding; a chat keeps its sides and gives up most of the top and the foot */
   .chat-tab{position:absolute;inset:0;display:flex;flex-direction:column;max-width:920px;padding-top:4px;padding-bottom:20px;font-family:var(--sans)}
   .chat-tab.inline{position:relative;inset:auto;flex:1;min-height:0;width:100%;max-width:none;margin:0;padding:0 0 8px}
+  .back-row{flex:none;padding:6px 36px 0}
   .chat-head{flex:none;display:flex;align-items:center;gap:6px;padding:6px 40px 5px;border-bottom:1px solid var(--rule);background:var(--bg)}
   .name{flex:1;min-width:0;font:inherit;font-size:1.05rem;font-weight:600;color:var(--ink);text-align:left;background:none;border:0;padding:3px 6px;margin-left:-6px;border-radius:5px;cursor:text;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .name:hover{background:var(--soft)}
@@ -172,5 +177,5 @@
   .messages{flex:1;min-height:0;overflow:auto;padding:4px 40px 20px}
   .tree-host{flex:1;min-height:0;border-bottom:1px solid var(--rule)}
   .empty{color:var(--muted);font-size:0.86rem;margin:18px 0}
-  @media (max-width:900px){ .chat-head{padding:6px 18px 5px} .messages{padding:4px 18px 20px} }
+  @media (max-width:900px){ .back-row{padding:6px 14px 0} .chat-head{padding:6px 18px 5px} .messages{padding:4px 18px 20px} }
 </style>
