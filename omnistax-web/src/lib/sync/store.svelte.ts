@@ -1,10 +1,12 @@
 /* Where this device syncs to, and the base: each file's blob as this device
    and the repo last agreed on it, which tells a change made here from one made
-   there. Both keys stay out of backups and pushes: the repo is this device's choice, and
+   there, with what each of those blobs holds whatever order its fields stand
+   in (`canon`, same.ts). Both keys stay out of backups and pushes: the repo is this device's choice, and
    the token could be spent. */
 import { z } from 'zod';
 import { repoName, type Remote } from './github';
 import type { Base } from './plan';
+import { pruned, type Canon } from './same';
 
 const KEY = 'omnistax-sync-v1';
 const TOKEN_KEY = 'omnistax-github-token';
@@ -15,7 +17,7 @@ export const PUSH_EVERY = [0, 5, 60, 1440] as const;
 export const PUSH_EVERY_KEY = { 0: 'views.sync.every.never', 5: 'views.sync.every.minutes', 60: 'views.sync.every.hour', 1440: 'views.sync.every.day' } as const satisfies Readonly<Record<typeof PUSH_EVERY[number], string>>;
 const SavedSchema = z.object({
   repo: z.string(), branch: z.string(), every: z.number().default(0),
-  last: z.object({ repo: z.string(), branch: z.string(), at: z.number().nullable(), base: z.record(z.string()).default({}) }).nullable(),
+  last: z.object({ repo: z.string(), branch: z.string(), at: z.number().nullable(), base: z.record(z.string()).default({}), canon: z.record(z.string()).default({}) }).nullable(),
 });
 type Saved = z.infer<typeof SavedSchema>;
 const EMPTY: Saved = { repo: '', branch: 'main', every: 0, last: null };
@@ -42,14 +44,15 @@ class SyncStore {
     return repo && this.token ? { repo, branch: this.saved.branch, token: this.token } : null;
   }
   /* The last sync counts only for the repo and branch it was made with. */
-  get last(): { readonly at: number | null; readonly base: Base } | null {
+  get last(): { readonly at: number | null; readonly base: Base; readonly canon: Canon } | null {
     const l = this.saved.last;
-    return l && l.repo === this.saved.repo && l.branch === this.saved.branch ? { at: l.at, base: l.base as Base } : null;
+    return l && l.repo === this.saved.repo && l.branch === this.saved.branch ? { at: l.at, base: l.base as Base, canon: l.canon as Canon } : null;
   }
   /* A sync that moved files stamps the time; a survey that only found files
-     already agreeing keeps the last one. */
-  agreed(base: Base, synced: boolean, at: number = Date.now()): void {
-    this.save({ ...this.saved, last: { repo: this.saved.repo, branch: this.saved.branch, base, at: synced ? at : this.last?.at ?? null } });
+     already agreeing keeps the last one. `learnt` is what was found out about
+     the blobs' contents on the way. */
+  agreed(base: Base, synced: boolean, learnt: Canon = {}, at: number = Date.now()): void {
+    this.save({ ...this.saved, last: { repo: this.saved.repo, branch: this.saved.branch, base, canon: pruned({ ...this.last?.canon, ...learnt }, base), at: synced ? at : this.last?.at ?? null } });
   }
 }
 export const sync = new SyncStore();

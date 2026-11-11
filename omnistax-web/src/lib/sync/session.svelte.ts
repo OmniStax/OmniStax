@@ -7,8 +7,9 @@ import { createBackup, importBackup } from '../backup/adapters';
 import { readBlob, type GitSha } from './github';
 import { toRepo, type RepoPath } from './layout';
 import { changesOf, isMerged, mergedFor, overwrite, planOf, rebase, type Change, type Pick, type Plan, type Status } from './plan';
-import { NewerRepo, bothWays, carry, hashed, screen, settle, survey, type BothWays, type HashedFile, type Survey } from './run';
+import { NewerRepo, bothWays, carry, hashed, sameAs, screen, settle, survey, type BothWays, type HashedFile, type Survey } from './run';
 import { reconcile, withHeld, type Held } from './held';
+import { unmoved } from './same';
 import { heldQueue } from './queue.svelte';
 import type { Choices } from './conflict';
 import { sync } from './store.svelte';
@@ -51,17 +52,23 @@ class SyncSession {
     this.phase = 'reading'; this.problem = ''; this.newer = null;
     try {
       const last = sync.last?.base ?? {};
-      const [s, files] = await Promise.all([survey(remote, fetch.bind(globalThis), last), createBackup().then(toRepo).then(hashed)]);
+      const [s, written] = await Promise.all([survey(remote, fetch.bind(globalThis), last), createBackup().then(toRepo).then(hashed)]);
       if (mine !== this.#ticket) return;
       this.seen = s;
-      const base = rebase({ ...s.base, ...last }, new Map(files.map((f) => [f.path, f.sha] as const)), new Map(s.remote.map((e) => [e.path, e.sha] as const)));
+      /* A file that holds what was agreed, its fields in another order, is the agreed file (same.ts). */
+      const before = { ...s.base, ...last };
+      const canon = await sameAs(written, s.remote, before, sync.last?.canon ?? {}, (sha) => this.remoteBytes(sha));
+      const there = new Map(s.remote.map((e) => [e.path, e.sha] as const));
+      const files = await unmoved(written, before, canon, there);
+      if (mine !== this.#ticket) return;
+      const base = rebase(before, new Map(files.map((f) => [f.path, f.sha] as const)), there);
       const changes = changesOf(files, s.remote, base, s.manifest);
       const merges = await bothWays(changes, files, base, (sha) => this.remoteBytes(sha));
       const checked = await screen(changes, files, (sha) => this.remoteBytes(sha));
       if (mine !== this.#ticket) return;
       this.seen = { ...s, held: new Map([...s.held, ...checked.bytes]) };
       heldQueue.set(reconcile(heldQueue.items, checked.found, changes));
-      sync.agreed(base, false);
+      sync.agreed(base, false, canon);
       this.local = files; this.changes = changes; this.merges = merges;
       /* A choice stands while the file it was made for still differs the same
          way; a merge the app made is offered for each file that merged clean. */
@@ -87,12 +94,12 @@ class SyncSession {
       const stays = heldQueue.items.filter((h) => !moved.has(h.path) && !out.held.some((x) => x.path === h.path));
       heldQueue.set(out.held.length ? [...stays, ...reconcile(heldQueue.items, out.held, this.changes)] : stays);
       if (out.backup) {
-        try { await importBackup(out.backup, { keepWorkspace: true }); sync.agreed(out.base, true); }
+        try { await importBackup(out.backup, { keepWorkspace: true }); sync.agreed(out.base, true, out.canon); }
         catch (e) { alert(e instanceof Error ? e.message : t('files.sync.error.restored')); }
         location.reload();
         return;
       }
-      sync.agreed(out.base, true);
+      sync.agreed(out.base, true, out.canon);
       this.phase = 'ready';
       await this.read();
     } catch (e) { this.phase = 'ready'; this.problem = failure(e); }

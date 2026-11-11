@@ -6,6 +6,9 @@ import { blobSha, gitSha, readHead, repoName, type Fetch, type Remote, type Remo
 import { changesOf, manifestOf, overwrite, planOf, rebase, type Base, type Status } from '../src/lib/sync/plan';
 import { carry, hashed, survey, type HashedFile } from '../src/lib/sync/run';
 import { hunksOf, lineDiff } from '../src/lib/sync/diff';
+import { canonSha, pruned, unmoved } from '../src/lib/sync/same';
+import { sameAs } from '../src/lib/sync/run';
+import { jsonBytes } from '../src/lib/sync/layout';
 
 const drawing = (id: string, name: string) => ({ id, name, items: [], created: 1, updated: 2 });
 const sample = (): ReaderBackup => parseBackup({
@@ -254,4 +257,62 @@ test('a line diff keeps what is shared, and its hunks fold the unchanged stretch
   assert.equal(tail, 0);
   assert.deepEqual(lineDiff([], ['x']).map((l) => l.kind), ['add']);
   assert.deepEqual(hunksOf(lineDiff(['x'], ['x'])), { hunks: [], tail: 1 });
+});
+
+/* The other device built its chat with the fields in another order than the schema lists them. */
+const SPRINGS = 'chats/abcd1234.json';
+const reordered = (text = 'hi') => jsonBytes({ updated: 1, created: 1, leaf: 'm1', root: 'm1', name: 'Springs', id: 'abcd1234', messages: { m1: { state: 'done', at: 1, chips: [], text, role: 'user', parent: null, id: 'm1' } } });
+
+test('a file that comes down with its fields in another order is not offered for a push afterwards', async () => {
+  const theirs = toRepo(sample()).map((f) => (f.path === SPRINGS ? { ...f, bytes: reordered() } : f));
+  const gh = github({ head: 'c9', tree: await treeOf(theirs) });
+  const seen = await survey(remote, gh.f);
+  const mine = await hashed(toRepo({ ...sample(), chats: [] }));
+  const base: Base = Object.fromEntries(mine.map((f) => [f.path, f.sha]));
+  const changes = changesOf(mine, seen.remote, base, seen.manifest);
+  assert.deepEqual(changes.map((c) => `${c.side} ${c.path}`), [`down ${SPRINGS}`]);
+  const out = await carry(remote, gh.f, seen, mine, planOf(changes, new Map()), base, () => undefined);
+  const pulledSha = await blobSha(reordered());
+  assert.equal(out.base[SPRINGS], pulledSha);
+  assert.equal(out.canon[pulledSha], await canonSha(reordered()));
+
+  /* The import wrote the chat through its schema: the same chat, other bytes. */
+  const written = await hashed(toRepo(out.backup!));
+  assert.notEqual(written.find((f) => f.path === SPRINGS)!.sha, pulledSha);
+  assert.deepEqual(changesOf(written, seen.remote, out.base, seen.manifest).map((c) => `${c.side} ${c.path}`), [`up ${SPRINGS}`], 'by its bytes alone it reads as changed here');
+  const after = await unmoved(written, out.base, out.canon);
+  assert.deepEqual(changesOf(after, seen.remote, out.base, seen.manifest), []);
+
+  /* A change the repo then makes comes down; it is not a conflict. */
+  const later = github({ head: 'c10', tree: await treeOf(theirs.map((f) => (f.path === SPRINGS ? { ...f, bytes: reordered('hello') } : f))) });
+  assert.deepEqual(changesOf(after, (await survey(remote, later.f)).remote, out.base, seen.manifest).map((c) => `${c.side} ${c.path}`), [`down ${SPRINGS}`]);
+
+  /* A change made here still goes up. */
+  const edited = await hashed(toRepo({ ...out.backup!, chats: out.backup!.chats.map((c) => ({ ...c, name: 'Coils' })) }));
+  assert.deepEqual(changesOf(await unmoved(edited, out.base, out.canon), seen.remote, out.base, seen.manifest).map((c) => `${c.side} ${c.path}`), [`up ${SPRINGS}`]);
+});
+
+test('a device already left with such a file to push finds it is the agreed one, with one fetch of the base', async () => {
+  const theirs = toRepo(sample()).map((f) => (f.path === SPRINGS ? { ...f, bytes: reordered() } : f));
+  const gh = github({ head: 'c9', tree: await treeOf(theirs) });
+  const seen = await survey(remote, gh.f);
+  const mine = await hashed(toRepo(sample()));
+  const base: Base = Object.fromEntries(seen.remote.map((e) => [e.path, e.sha]));
+  assert.deepEqual(changesOf(mine, seen.remote, base, seen.manifest).map((c) => `${c.side} ${c.path}`), [`up ${SPRINGS}`]);
+  const reads = gh.calls.length;
+  const blob = async (s: string) => { await gh.f(`https://api.github.com/repos/chen/notes/git/blobs/${s}`); return (await treeOf(theirs))[SPRINGS].bytes; };
+  const canon = await sameAs(mine, seen.remote, base, {}, blob as never);
+  assert.equal(gh.calls.length - reads, 1);
+  assert.deepEqual(changesOf(await unmoved(mine, base, canon), seen.remote, base, seen.manifest), []);
+  await sameAs(mine, seen.remote, base, canon, blob as never);
+  assert.equal(gh.calls.length - reads, 1, 'what a base holds is found out once');
+  assert.deepEqual(Object.keys(pruned(canon, { [SPRINGS]: base[SPRINGS] })), [base[SPRINGS]]);
+});
+
+test('only the order of fields is set aside: a list in another order, or another value, is another file', async () => {
+  const sha = (v: unknown) => canonSha(jsonBytes(v));
+  assert.equal(await sha({ a: 1, b: { c: 2, d: [1, 2] } }), await sha({ b: { d: [1, 2], c: 2 }, a: 1 }));
+  assert.notEqual(await sha({ a: [1, 2] }), await sha({ a: [2, 1] }));
+  assert.notEqual(await sha({ a: 1 }), await sha({ a: '1' }));
+  assert.equal(await canonSha(new TextEncoder().encode('%PDF')), null);
 });

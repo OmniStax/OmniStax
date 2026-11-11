@@ -183,6 +183,20 @@ on one and changed on the other is a conflict of the whole file. After a sync
 the base takes every file both sides now hold alike and forgets every file
 both lack (`rebase`).
 
+A JSON file is compared by what it holds, the order of its fields aside
+(`same.ts`). A file that comes down is read through its schema and written
+again by its store, either of which may set its fields in another order than
+the device that pushed it did: the same file, other bytes. So beside the base
+the device keeps, for each agreed blob, the sha of its content with every
+object's keys sorted (`canon`, in `omnistax-sync-v1`), and a file of this
+device that differs from its agreed blob only in that order counts as the
+agreed blob: it is not offered for a push, and a change the repo then makes to
+it comes down rather than conflicting. The sorted form is only compared; files
+are written as before, and the order of a list still counts. What a base holds
+is worked out from the bytes a sync moves, or from this device's own copy
+where it already agrees; for a file this device holds differently and whose
+base it has never read, the base is fetched once.
+
 ### Merging a file changed on both sides
 
 The last agreed version is fetched by its sha (the repo's history keeps it) and
