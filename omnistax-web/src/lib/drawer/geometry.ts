@@ -185,6 +185,22 @@ export const simplify = (points: readonly Point[], tolerance = 1): readonly Poin
   return out;
 };
 
+/* The glass reports the hand faithfully, tremor and all, and a pencil reports
+   it some two hundred times a second in steps a pixel wide: drawn as they
+   come, the points make a line that is rough along its edge and lumpy in its
+   width. So each point is laid part of the way from the last one kept towards
+   where the pointer says it is, the pressure more slowly than the place, and a
+   point that would land closer to the last than `gap` is not laid at all. The
+   line trails the pen by less than a sample, and the stroke's last point is
+   put where the pen left off when it lifts. */
+export const STEADY = 0.6;
+export const STEADY_PRESSURE = 0.35;
+export const steadied = (last: Point, raw: Point, gap: number): Point | null => {
+  const x = last[0] + (raw[0] - last[0]) * STEADY, y = last[1] + (raw[1] - last[1]) * STEADY;
+  if (Math.hypot(x - last[0], y - last[1]) < gap) return null;
+  return [x, y, last[2] + (raw[2] - last[2]) * STEADY_PRESSURE];
+};
+
 /* The width of the nib at one point: pressure either side of the nominal size,
    so a pen pressed hard is half again as wide and a pen barely touching is
    half as wide. A device reporting nothing sends 0.5 and draws at its size. */

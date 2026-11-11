@@ -4,7 +4,7 @@
    owns the three things the model will not touch — the ticking clock, the
    chime, and the screen-lock watch — and says when the panel should come
    forward, which the panel itself listens for. */
-import { type Category, type Instant, type Millis, type Mode, type Pomodoro, type Session, LENGTH, addCategory, clampLength, clockText, dropped, faceMs, finish, idle, instant, isLive, logged, lose, amended, millis, nextColor, parseCategories, parseLog, pause, recolourCategory, record, removeCategory, renameCategory, resume, setLength, setMode, setSeed, start, stop, tick, unfiled } from './model';
+import { type Category, type Instant, type Millis, type Mode, type Pomodoro, type Session, LENGTH, addCategory, clampLength, clockText, dropped, faceMs, finish, idle, instant, isLive, logged, lose, amended, millis, nextColor, parseCategories, parseLog, parseSaved, pause, recolourCategory, record, removeCategory, renameCategory, resume, revive, setLength, setMode, setSeed, start, stop, tick, unfiled } from './model';
 import { settings } from '../settings/store.svelte';
 import { armSound, chime } from './sound';
 import { type Unwatch, hasPointer, watchAway } from './lock';
@@ -14,6 +14,11 @@ import { readerWritesAllowed } from '../backup/guard';
 
 const KEYS = { log: 'omnistax-pomodoros', len: 'omnistax-pomodoro-len', lock: 'omnistax-pomodoro-lock', cats: 'omnistax-pomodoro-categories' } as const;
 export const POMODORO_KEY = 'view:pomodoro';
+/* The session under way, kept for the tab it runs in: a reload of that tab finds
+   it again, and a second tab opened beside it starts with a clock of its own. */
+const SESSION_KEY = 'omnistax-pomodoro-session';
+/* How often a live session says the page is still here, which is what a reload measures its gap from. */
+const SEEN_MS = 1000;
 /* How often the clock is read: four times a second, so the seconds never
    visibly stick, and nothing is computed between the reads. */
 const TICK_MS = 250;
@@ -25,8 +30,13 @@ const now = (): Instant => instant(Date.now());
 /* A fresh id, for a category the reader has just named and for a sitting as it is written down. */
 const freshId = (): string => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
+const readSaved = (): unknown => { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null'); } catch { return null; } };
+
 class PomodoroStore {
-  session = $state.raw<Session>(idle());
+  /* Every change of the session is written down as it is made. */
+  #session = $state.raw<Session>(idle());
+  get session(): Session { return this.#session; }
+  set session(next: Session) { this.#session = next; this.seen(); }
   log = $state.raw<readonly Pomodoro[]>([]);
   categories = $state.raw<readonly Category[]>([]);
   /* What the clock reads, refreshed by the tick rather than by every consumer. */
@@ -40,6 +50,7 @@ class PomodoroStore {
   /* When screen lock gives up, while the reader is away from the window. */
   awayUntil = $state<number | null>(null);
   private timer: ReturnType<typeof setInterval> | null = null;
+  private pulse: ReturnType<typeof setInterval> | null = null;
   private unwatch: Unwatch | null = null;
   private loaded = false;
 
@@ -51,9 +62,18 @@ class PomodoroStore {
     this.log = parseLog(readJson(KEYS.log));
     this.categories = parseCategories(readJson(KEYS.cats));
     const len = read(KEYS.len);
-    this.session = idle(len === null ? LENGTH.default : clampLength(Number(len)));
+    const length = len === null ? LENGTH.default : clampLength(Number(len));
     this.screenLock = read(KEYS.lock) === '1' && hasPointer();
-    this.left = faceMs(this.session, now());
+    const saved = parseSaved(readSaved());
+    const back = saved ? revive(saved, now(), this.screenLock ? millis(settings.lockGrace * 1000) : null) : null;
+    /* Between sittings the length is the one this browser remembers, which a backup may have changed. */
+    this.session = !back ? idle(length) : back.session.phase === 'idle' ? setLength(back.session, length) : back.session;
+    this.face();
+    this.run();
+    window.addEventListener('pagehide', () => this.seen());
+    /* Lost while the page was away: said as it is when the lock gives up with the page open,
+       once the shell has its layout to bring the panel forward in. */
+    if (back?.lost) setTimeout(() => { this.lost = true; this.forward(); }, 0);
     const seed = new URLSearchParams(location.search).get('seed');
     if (seed && (import.meta.env.DEV || ['localhost', '127.0.0.1'].includes(location.hostname)))
       void import('./devseed').then((m) => m.runSeed(seed, (log, cats) => this.rewrite(log, cats)));
@@ -68,6 +88,8 @@ class PomodoroStore {
   get railText(): string { return isLive(this.session) ? this.clock : ''; }
 
   private face(): void { this.left = faceMs(this.session, now()); }
+  /* The session as it stands, and that the page was here to say so. */
+  private seen(): void { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ session: this.#session, seenAt: now() })); } catch { /* private mode */ } }
 
   setMode(mode: Mode): void { this.session = setMode(this.session, mode); this.face(); }
   setSeed(ms: number): void { this.session = setSeed(this.session, ms); this.face(); }
@@ -150,6 +172,9 @@ class PomodoroStore {
     const wanted = this.session.phase === 'running';
     if (wanted && this.timer === null) this.timer = setInterval(() => this.beat(), TICK_MS);
     if (!wanted && this.timer !== null) { clearInterval(this.timer); this.timer = null; }
+    const live = this.session.phase === 'running';
+    if (live && this.pulse === null) this.pulse = setInterval(() => this.seen(), SEEN_MS);
+    if (!live && this.pulse !== null) { clearInterval(this.pulse); this.pulse = null; }
   }
   private watch(): void {
     const wanted = this.session.phase === 'running' && this.screenLock;
@@ -173,10 +198,13 @@ class PomodoroStore {
     this.face();
     this.run();
     if (!gone) chime();
+    this.forward();
+    if (!gone) this.ended += 1;
+  }
+  private forward(): void {
     if (!where(layoutStore.layout, POMODORO_KEY)) layoutStore.apply((l) => openSide(l, POMODORO_KEY, 'left'));
     /* On a narrow screen the sidebar lies over the text, so it has to be asked for. */
     if (window.innerWidth < 900) layoutStore.overlay = 'left';
-    if (!gone) this.ended += 1;
   }
 }
 

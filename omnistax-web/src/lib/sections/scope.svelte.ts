@@ -27,12 +27,29 @@ const load = (): Scopes => {
   try { return parseScopes(read(KEY)); } catch { return {}; }   /* private mode, or no browser at all */
 };
 
+/* The places views are held on for a while, kept so a reload finds a focused
+   map where it stood. They are written as pinned scopes are, and read by the
+   same rule; no backup carries them. */
+const HELD_KEY = 'omnistax-scopes-held';
+const loadHeld = (): Readonly<Record<ItemKey, Target>> => {
+  try { return Object.fromEntries(Object.entries(parseScopes(read(HELD_KEY))).flatMap(([k, v]) => (v.follow ? [] : [[k, v.target]]))); } catch { return {}; }
+};
+
 class Scope {
   scopes = $state.raw<Scopes>(load());
-  held = $state.raw<Readonly<Record<ItemKey, Target>>>({});
+  held = $state.raw<Readonly<Record<ItemKey, Target>>>(loadHeld());
   of(key: ItemKey): ViewScope { const h = this.held[key]; return h ? { follow: false, target: h } : scopeAt(this.scopes, key); }
-  hold(key: ItemKey, target: Target): void { this.held = { ...this.held, [key]: target }; }
-  release(key: ItemKey): void { if (!(key in this.held)) return; const { [key]: _gone, ...rest } = this.held; this.held = rest; }
+  hold(key: ItemKey, target: Target): void { this.held = { ...this.held, [key]: target }; this.saveHeld(); }
+  release(key: ItemKey): void { if (!(key in this.held)) return; const { [key]: _gone, ...rest } = this.held; this.held = rest; this.saveHeld(); }
+  /* Let go of the holds of views that no longer stand. */
+  keepHeld(items: ReadonlySet<string>): void {
+    const next = Object.fromEntries(Object.entries(this.held).filter(([k]) => items.has(k)));
+    if (Object.keys(next).length !== Object.keys(this.held).length) { this.held = next; this.saveHeld(); }
+  }
+  private saveHeld(): void {
+    if (!readerWritesAllowed()) return;
+    try { localStorage.setItem(HELD_KEY, JSON.stringify(Object.fromEntries(Object.entries(this.held).map(([k, target]) => [k, { follow: false, target }])))); } catch { /* private mode */ }
+  }
   /* The tree of the book a view stands in. */
   treeOf(key: ItemKey): BookTree | null { const b = bookOfScope(this.of(key), focus.section); return b ? registry.manifest(b) : null; }
   targetFor(key: ItemKey): Target | null { return resolve(this.of(key), focus.section, this.treeOf(key)); }

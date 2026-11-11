@@ -11,11 +11,11 @@ import { handOver, letGo } from './handoff';
 import { chatPages } from '../chat/pages.svelte';
 import { practice } from '../practice/store.svelte';
 import { scope } from '../sections/scope.svelte';
-import { mapKinds, mapViews } from '../sections/mapview';
+import { mapViews } from '../sections/mapview';
 
 const copyPage = (from: ItemKey, to: ItemKey): void => {
   chatPages.copy(from, to); practice.copy(from, to); scope.copy(from, to);
-  mapViews.copy(from, to); mapKinds.copy(from, to);
+  mapViews.copy(from, to);
   handOver(from, to);
 };
 

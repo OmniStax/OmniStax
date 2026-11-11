@@ -128,6 +128,45 @@ export const tick = (s: Session, now: Instant): Session =>
 export const setLength = (s: Session, len: number): Session =>
   isLive(s) ? s : { ...s, minutes: clampLength(len) };
 
+/* A session across a reload. The page going away takes the ticking clock with
+   it but not the sitting: the session is written down with the instant the page
+   was last seen alive, and the page that comes back decides by the gap between
+   the two. Under screen lock a reload is time away from the window like any
+   other, so a gap longer than the lock's grace loses the session; without it, a
+   gap longer than RELOAD_GRACE is a reader who left rather than one who
+   reloaded, and the session is let go as Stop would. A session that comes back
+   has counted the gap, since a running clock is reckoned from when it started.
+   A paused session counts nothing and is watched by nothing, so it comes back
+   however long the page was away. */
+export const RELOAD_GRACE = millis(60_000);
+export type Saved = { readonly session: Session; readonly seenAt: Instant };
+export type Revived = { readonly session: Session; readonly lost: boolean };
+const SavedSchema = z.object({
+  session: z.object({
+    phase: z.enum(['idle', 'running', 'paused', 'done', 'lost']), mode: z.enum(MODES),
+    minutes: z.number().finite().positive(), seed: z.number().finite().nonnegative(),
+    startedAt: z.number().finite().nullable(), spent: z.number().finite().nonnegative(), since: z.number().finite().nullable(),
+  }),
+  seenAt: z.number().finite(),
+});
+export const parseSaved = (raw: unknown): Saved | null => {
+  const r = SavedSchema.safeParse(raw);
+  if (!r.success) return null;
+  const s = r.data.session;
+  /* a running session is reckoned from `since`, so one without it cannot be read */
+  if ((s.phase === 'running') !== (s.since !== null)) return null;
+  return { session: { ...s, minutes: clampLength(s.minutes), seed: clampSeed(s.seed) } as Session, seenAt: instant(r.data.seenAt) };
+};
+/* `lock` is the screen lock's grace while the lock is on, and null while it is off. */
+export const revive = (saved: Saved, now: Instant, lock: Millis | null): Revived => {
+  const s = saved.session;
+  if (s.phase === 'lost') return { session: stop(s), lost: false };
+  if (s.phase !== 'running') return { session: s, lost: false };
+  const gap = Math.max(0, now - saved.seenAt);
+  if (lock !== null) return gap > lock ? { session: stop(s), lost: true } : { session: s, lost: false };
+  return { session: gap > RELOAD_GRACE ? stop(s) : s, lost: false };
+};
+
 /* Persistence boundary: the categories the reader has made and the history of
    the sittings that have ended, as both are written to this browser and read
    back from it. A log written before categories or modes existed is read all

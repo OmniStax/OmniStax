@@ -17,7 +17,8 @@
   import { joinDictated } from '../../lib/chat/dictation';
   import { alerts } from '../../lib/alerts.svelte';
   import { ICON } from '../../lib/icons';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
+  import { chatDrafts } from '../../lib/chat/drafts';
   import type { MessageKey } from '../../lib/i18n/index';
 
   let { chatId, chips, onchips, onsend, onstop, streaming, blocked }: {
@@ -30,7 +31,9 @@
     blocked?: string;
   } = $props();
 
-  let text = $state('');
+  /* What was being typed when the page was last here comes back with it. */
+  let text = $state(untrack(() => chatDrafts.get(chatId)?.text ?? ''));
+  $effect(() => { chatDrafts.set(chatId, { text }); });
   let field = $state<HTMLTextAreaElement | null>(null);
   let picker = $state<{ handleKey(e: KeyboardEvent): boolean; complete(): void } | null>(null);
   let at = $state<number | null>(null);
@@ -65,8 +68,6 @@
   });
 
   export function focus(): void { field?.focus(); }
-  /* The words typed and not yet sent. */
-  export function draft(): string { return text; }
   export function insert(words: string): void {
     const cut = field?.selectionStart ?? text.length;
     text = `${text.slice(0, cut)}${text.slice(0, cut) && !/\s$/.test(text.slice(0, cut)) ? '\n\n' : ''}${words}${text.slice(cut) ? '\n\n' : ''}${text.slice(cut)}`;

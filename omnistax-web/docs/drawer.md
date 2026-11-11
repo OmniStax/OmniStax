@@ -23,8 +23,18 @@ sideways). Zoom is held between 0.1 and 8. "Fit" on the toolbar, or 0 while
 in the tab, frames everything there is; Shift+0 goes home to the origin at
 full size. Where the reader was looking is kept with the
 drawing, so opening it again lands where they left off. While a pen is
-touching, touches are ignored (palm rejection). Pressure sets the pen width
-when the device reports it.
+touching, and for a moment after it lifts, touches are ignored (palm
+rejection): they are not counted as fingers at all, so a hand moving,
+lifting or being cancelled by the system cannot end or bend the pen's stroke,
+and a hand that landed before the pen loses whatever it had begun. Only the
+pointer that began a gesture carries it on or ends it. The first pen seen
+turns "Draw with finger" off unless the reader has set it themselves.
+Pressure sets the pen width when the device reports it. Ink is steadied as
+it is laid (`steadied` in `geometry.ts`) and drawn as curves through the
+midpoints of its segments, so it is smooth at any sample rate. The surface
+refuses `touchstart` and `touchmove` with non-passive listeners, which is
+what stops Safari on a tablet selecting nearby text or holding a pencil
+stroke back for handwriting.
 
 Tools, on a toolbar at the top of the tab: pen, highlighter (wide, half
 transparent, multiply blend), eraser (stroke-wise), lasso (select strokes,

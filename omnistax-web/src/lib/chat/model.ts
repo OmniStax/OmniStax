@@ -204,6 +204,14 @@ export const setPick = (chat: Chat, pick: { readonly provider: ProviderId; reado
 export const finish = (chat: Chat, id: MessageId): Chat => patch(chat, id, { state: 'done' });
 export const stop = (chat: Chat, id: MessageId): Chat => patch(chat, id, { state: 'stopped' });
 export const fail = (chat: Chat, id: MessageId, error: string): Chat => patch(chat, id, { state: 'failed', error });
+/* A chat read back with an answer still marked as arriving, and nothing here
+   sending it: the page went away under it. What had come is kept, as Stop
+   keeps it, so the answer can be copied or asked for again. */
+export const interrupted = (chat: Chat): Chat => {
+  const cut = Object.values(chat.messages).filter((m) => m.state === 'streaming');
+  if (!cut.length) return chat;
+  return { ...chat, messages: { ...chat.messages, ...Object.fromEntries(cut.map((m) => [m.id, { ...m, state: 'stopped' as const }])) } };
+};
 
 /* Moving the pager on a message: the nth sibling, and the leaf goes to the end
    of that branch as the reader last left it. */

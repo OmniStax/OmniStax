@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
+  import { chatDrafts } from '../../lib/chat/drafts';
   import { i18n } from '../../lib/i18n/store.svelte';
   import Composer from './Composer.svelte';
   import Crumbs from './Crumbs.svelte';
@@ -24,11 +25,11 @@
      filling a tab of its own: it takes the room the page gives it, under the
      page's way back to the list. A chat in a tab of its own carries that way
      back itself. `page` is the Conversations page it stands in, which a split
-     copies: the chat lends that copy what only it holds — the words typed and
-     not sent, the chips above them, what is folded — and takes them when it is
-     the copy. */
+     copies: the chat lends that copy what only it holds, which messages are
+     folded, and takes it when it is the copy. The words typed and their chips
+     are the chat's draft (chat/drafts.ts), which the copy reads as it mounts. */
   let { chatId, inline = false, page = null }: { chatId: ChatId; inline?: boolean; page?: string | null } = $props();
-  type Lent = { readonly chat: ChatId; readonly chips: readonly Chip[]; readonly words: string; readonly collapsed: ReadonlySet<MessageId> };
+  type Lent = { readonly chat: ChatId; readonly collapsed: ReadonlySet<MessageId> };
   const lent = untrack(() => { const l = page ? inherit<Lent>(page, 'chat') : undefined; return l && l.chat === chatId ? l : null; });
 
   const chat = $derived<Chat | null>(chats.get(chatId));
@@ -48,8 +49,12 @@
      they come and stand in place of the pin; otherwise a chat that has said
      nothing yet pins the section focused when it opened. A chat reopened on
      a conversation already held is left as it was asked, with nothing pinned. */
-  let chips = $state.raw<readonly Chip[]>(lent?.chips ?? []);
-  let handed = lent !== null;
+  /* A draft the page went away under comes back as it stood, chips and all,
+     and stands in place of the pin as chips handed from outside do. */
+  const drafted = untrack(() => chatDrafts.get(chatId));
+  let chips = $state.raw<readonly Chip[]>(drafted?.chips ?? []);
+  let handed = drafted !== null;
+  $effect(() => { chatDrafts.set(chatId, { chips }); });
   $effect(() => {
     if (!pending.chips[chatId]) return;
     const given = takeChips(chatId) ?? [];
@@ -84,7 +89,7 @@
     if (mathBooks.length <= 1) return mathBooks[0] ?? null;
     const name = `blend:${chatId}`; registerFigBlend(name, mathBooks); return name;
   });
-  let composer = $state<{ focus(): void; insert(words: string): void; draft(): string; over(e: DragEvent, wide?: boolean): void; leave(e: DragEvent): void; drop(e: DragEvent, wide?: boolean): void } | null>(null);
+  let composer = $state<{ focus(): void; insert(words: string): void; over(e: DragEvent, wide?: boolean): void; leave(e: DragEvent): void; drop(e: DragEvent, wide?: boolean): void } | null>(null);
   $effect(() => {
     const words = pending.words[chatId];
     if (!words || !composer) return;
@@ -92,13 +97,7 @@
     void tick().then(() => c.insert(pending.take(chatId)));
   });
 
-  let owed = lent?.words ?? '';
-  $effect(() => {
-    const c = composer; if (!owed || !c) return;
-    const words = owed; owed = '';
-    void tick().then(() => c.insert(words));
-  });
-  $effect(() => (page ? lends(page, 'chat', (): Lent => ({ chat: chatId, chips, words: composer?.draft() ?? '', collapsed })) : undefined));
+  $effect(() => (page ? lends(page, 'chat', (): Lent => ({ chat: chatId, collapsed })) : undefined));
 
   let renaming = $state(false);
   let draft = $state('');

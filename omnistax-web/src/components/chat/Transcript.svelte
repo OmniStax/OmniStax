@@ -46,10 +46,34 @@
   const onScroll = (): void => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; place(); }); };
   $effect(() => {
     void path; void collapsed; const host = list; if (!host || compact) return;
-    place();
-    const ro = new ResizeObserver(onScroll); ro.observe(host);
+    place(); arrive(host);
+    const ro = new ResizeObserver(() => { arrive(host); onScroll(); }); ro.observe(host);
     return () => { ro.disconnect(); cancelAnimationFrame(frame); frame = 0; };
   });
+
+  /* A conversation opens on its latest words: the first time the tab is shown
+     with something said in it, the view goes to the end, and stays there while
+     the answers above take their height as their maths is set. The reader's
+     own wheel, touch, press or key ends that at once. */
+  const SETTLE_MS = 2000, STILL_FRAMES = 30;
+  let arrived = false;
+  const arrive = (host: HTMLElement): void => {
+    if (arrived || !host.clientHeight || !path.length) return;
+    arrived = true;
+    const until = performance.now() + SETTLE_MS, inputs = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+    let still = 0, done = false;
+    const quit = (): void => { done = true; inputs.forEach((e) => host.removeEventListener(e, quit)); };
+    inputs.forEach((e) => host.addEventListener(e, quit, { passive: true }));
+    const step = (): void => {
+      if (done) return;
+      if (!host.isConnected || performance.now() > until) { quit(); return; }
+      const end = host.scrollHeight - host.clientHeight;
+      if (end - host.scrollTop > 1) { still = 0; host.scrollTo({ top: end, behavior: 'instant' }); }
+      else if ((still += 1) >= STILL_FRAMES) { quit(); return; }
+      requestAnimationFrame(step);
+    };
+    step();
+  };
 
   let list = $state<HTMLElement | null>(null);
   export const scrollTo = (id: MessageId, block: ScrollLogicalPosition = 'center'): void => {

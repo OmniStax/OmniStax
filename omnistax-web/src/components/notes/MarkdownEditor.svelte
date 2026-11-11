@@ -9,11 +9,12 @@
      kept inside the editor, so typing a letter never runs a command of the
      shell — Ctrl+E is let through, because that is how the reader leaves. */
   import { EditorView, keymap, drawSelection } from '@codemirror/view';
-  import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+  import { defaultKeymap, history, historyField, historyKeymap } from '@codemirror/commands';
+  import { readNoteUndo, writeNoteUndo } from '../../lib/notes/undo';
   import { markdown } from '@codemirror/lang-markdown';
   import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
   import { tags } from '@lezer/highlight';
-  import type { Extension } from '@codemirror/state';
+  import { EditorState, type Extension } from '@codemirror/state';
   import type { Candidate } from '../../lib/notes/md/complete';
   import AtPicker from '../ui/AtPicker.svelte';
   import { pickerRoot } from '../../lib/picker/sources';
@@ -26,8 +27,10 @@
      picker reads the same stores and more, so the rows come from there now and
      the prop is kept only so that the tab need not change; it is the next thing
      to go from the note tab. */
-  let { value, onchange, complete, onimage }: {
+  let { value, onchange, complete, onimage, undoKey }: {
     value: string;
+    /* The note this editor writes, where its undo history should outlive the editor. */
+    undoKey?: string;
     onchange: (v: string) => void;
     complete?: () => readonly Candidate[];
     onimage: (file: File) => Promise<string>;
@@ -231,14 +234,30 @@
       if (!u.docChanged) return;
       emitted = u.state.doc.toString();
       onchange(emitted);
+      keepUndo();
     }),
   ];
 
+  /* The history is written a short pause after the last edit, and as the editor goes. */
+  const UNDO_SAVE_MS = 400;
+  let undoTimer: ReturnType<typeof setTimeout> | null = null;
+  const writeUndo = (): void => {
+    if (undoTimer !== null) { clearTimeout(undoTimer); undoTimer = null; }
+    if (undoKey && view) writeNoteUndo(undoKey, view.state.toJSON({ history: historyField }));
+  };
+  const keepUndo = (): void => { if (undoKey) undoTimer ??= setTimeout(() => { undoTimer = null; writeUndo(); }, UNDO_SAVE_MS); };
+  /* The editor as it was left, when what was kept was made on this very text. */
+  const opening = (): EditorState => {
+    const kept = undoKey ? readNoteUndo(undoKey, value) : null;
+    if (kept) try { return EditorState.fromJSON(kept, { extensions: [...extensions()] }, { history: historyField }); } catch { /* written by another build */ }
+    return EditorState.create({ doc: value, extensions: [...extensions()] });
+  };
+
   const mount = (node: HTMLElement) => {
     emitted = value;
-    view = new EditorView({ doc: value, parent: node, extensions: [...extensions()] });
+    view = new EditorView({ state: opening(), parent: node });
     drawCardsWhenReady(view);
-    return { destroy() { view?.destroy(); view = null; } };
+    return { destroy() { if (undoTimer !== null) writeUndo(); view?.destroy(); view = null; } };
   };
 
   /* A note swapped in under the editor, or an edit made elsewhere, replaces the

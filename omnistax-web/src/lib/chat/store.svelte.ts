@@ -30,6 +30,7 @@ import { chatSeen } from './seen.svelte';
    it is filed at. The indexes older builds kept are taken over as the app
    starts (backup/migrate.ts). */
 export const INDEX_KEY = 'omnistax-chat-index';
+import { chatDrafts } from './drafts';
 const SAVE_DELAY = 250;
 
 export { parseIndex, type ChatEntry } from './entries';
@@ -58,6 +59,7 @@ class Chats {
 
   init(): void {
     try { this.index = parseIndex(JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]')); } catch { this.index = []; }
+    chatDrafts.keep(new Set(this.index.map((e) => e.id)));
   }
 
   get(id: ChatId): Chat | null { return this.open[id] ?? null; }
@@ -97,7 +99,7 @@ class Chats {
   async load(id: ChatId): Promise<Chat> {
     const held = this.get(id); if (held) return held;
     const stored = await getChat(id);
-    const chat = stored ?? { ...M.newChat(id), name: this.entry(id)?.name ?? '' };
+    const chat = stored ? (this.running.has(id) ? stored : M.interrupted(stored)) : { ...M.newChat(id), name: this.entry(id)?.name ?? '' };
     const again = this.get(id);
     if (again) return again;
     this.open = { ...this.open, [id]: chat };
@@ -110,6 +112,7 @@ class Chats {
     this.abort(id);
     this.index = this.index.filter((e) => e.id !== id);
     chatSeen.forget(id);
+    chatDrafts.drop(id);
     const { [id]: _gone, ...rest } = this.open;
     this.open = rest;
     this.saveIndex();

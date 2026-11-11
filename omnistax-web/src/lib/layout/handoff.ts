@@ -1,5 +1,5 @@
-/* What a page's components hold only in themselves — words typed and not yet
-   sent, what is folded away — handed to the page a split opens beside it. A
+/* What a page's components hold only in themselves — what is folded away in
+   a chat, say — handed to the page a split opens beside it. A
    component says what it would lend for as long as it is mounted; a copy asks
    every lender of the one page and leaves the answers for the other, whose
    components take them once as they mount. After that the two pages are each

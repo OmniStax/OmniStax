@@ -16,6 +16,7 @@ import { drawingId, type DrawingId } from '../types/ids';
 import { readerWritesAllowed } from '../backup/guard';
 import { t } from '../i18n';
 import { emptyDrawing, rowByName, rowOf, parseRows, type Drawing, type DrawingRow } from './model';
+import { dropTimeline } from './undo';
 import { deleteDrawingRecord, deleteScratchRecord, getDrawing, getScratchRecord, putDrawing, putScratchRecord } from './db';
 
 export { exportDrawings, exportScratch, replaceDrawings, replaceScratch, type ScratchRecord } from './db';
@@ -220,7 +221,7 @@ class Drawings {
 
   private write(drawing: Drawing): Promise<void> { return putDrawing(drawing); }
   private writeScratch(key: ScratchKey, drawing: Drawing): Promise<void> { return putScratchRecord(key, drawing); }
-  private erase(id: DrawingId): Promise<void> { return deleteDrawingRecord(id); }
+  private erase(id: DrawingId): Promise<void> { dropTimeline(id); return deleteDrawingRecord(id); }
 }
 
 export const drawings = new Drawings();
