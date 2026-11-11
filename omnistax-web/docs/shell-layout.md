@@ -77,6 +77,12 @@ Interactions:
   tab strip (drops before the tab under the cursor), or a group body. A
   drop on the right half of the only group splits it. Dragging a tab
   moves it; opening from the "+" adds it.
+- A link to a page of OmniStax drags the same way (`lib/sections/linkdrag.ts`):
+  a link to another section or sheet, a link to a figure or equation of an
+  open page, and a wiki link in a note or a chat to a section, note, drawing,
+  file or chat. Dropped on a tab strip or a group body it opens there as a
+  tab, on an edge in a split of its own, and scrolls to the place it named.
+  A link that leaves OmniStax is the browser's to drag.
 - "Split right" button: as in VS Code, opens the active document again
   in a new group to the right and focuses it; the original stays. A view
   moves instead, since it has one instance.
