@@ -25,5 +25,5 @@ export const splitGroup = (index: number, side: SplitSide): void => {
   if (active && page) copyPage(active, page);
   layoutStore.apply((x) => split(x, index, side, page ?? undefined));
   /* the pages are drawn before this runs; what they left untaken was not wanted */
-  if (active && page) setTimeout(() => letGo(active, page));
+  if (page) setTimeout(() => letGo(page));
 };

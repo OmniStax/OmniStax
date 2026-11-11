@@ -22,13 +22,9 @@ export const inherit = <T>(page: ItemKey, part: string): T | undefined => {
   parts.delete(part); if (!parts.size) left.delete(page);
   return value;
 };
-/* The same answers are left for the page that gave them: a split that turns a
-   lone group into two draws that group again, and its components come back
-   asking for what they held. */
 export const handOver = (from: ItemKey, to: ItemKey): void => {
   const parts = lenders.get(from); if (!parts?.size) return;
-  const given = [...parts].map(([part, give]) => [part, give()] as const);
-  left.set(to, new Map(given)); left.set(from, new Map(given));
+  left.set(to, new Map([...parts].map(([part, give]) => [part, give()] as const)));
 };
 /* What nobody took is let go, so a page drawn again later does not find it. */
 export const letGo = (...pages: readonly ItemKey[]): void => { pages.forEach((page) => left.delete(page)); };
