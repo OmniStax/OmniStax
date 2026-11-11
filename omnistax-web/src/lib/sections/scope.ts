@@ -1,12 +1,19 @@
-/* What a companion view describes. A view is no longer tied to one section: it
-   stands at a level of the book — the whole book, one chapter, or one section —
-   and at that level it either follows the reader or is pinned to a place of its
-   own. Widening and narrowing walk the levels and keep the pin, so a view
-   pinned to 16.3 widens to a view pinned to chapter 16 rather than letting go.
+/* What a companion view describes. A view stands on a place of the book — the
+   whole book, one chapter, or one section — and stays there: reading on in
+   another page does not move it. It moves when the reader sends it somewhere,
+   from its bar, from a command, or by asking a card to show a concept in it.
+   Widening and narrowing walk the levels from where it stands, so a view on
+   16.3 widens to chapter 16.
+
+   A view that has not been placed yet is the one exception: it has only a
+   level, and reads as the place around the section being read until the store
+   places it there, which it does the first time the view is drawn. In storage
+   that is `follow: true`, the shape every view had while views followed the
+   page, so a view saved then is placed at the level it was left on.
+
    Everything here is pure: a scope is read against the focused section and the
    tree of the book it stands in, and the store applies these functions and
-   persists the result. A target names its book; a following view stands in the
-   book of the section being read. */
+   persists the result. A target names its book. */
 import { type BookId, type ChapterId, type SectionId, type SectionRef, type ViewKind, VIEW_KINDS, bookId, chapterId, itemKey, sectionId, viewItem } from '../types/ids';
 import type { BookTree } from '../commands/browser';
 import { pagesOf } from '../content/roles';
@@ -15,7 +22,7 @@ import { t } from '../i18n/index';
 export type Level = 'book' | 'chapter' | 'section';
 export const LEVELS: readonly Level[] = ['book', 'chapter', 'section'];   /* wider first */
 
-/* Where a view is pointed once any following has been resolved. */
+/* The place a view stands on. */
 export type Target =
   | { readonly level: 'book'; readonly book: BookId }
   | { readonly level: 'chapter'; readonly book: BookId; readonly chapter: ChapterId }
@@ -44,9 +51,9 @@ export const levelOf = (scope: ViewScope): Level => (scope.follow ? scope.level 
 /* The book a scope stands in, whose tree the functions below are handed. */
 export const bookOfScope = (scope: ViewScope, focused: SectionRef | null): BookId | null => (scope.follow ? focused?.book ?? null : scope.target.book);
 
-/* A following view reads as the place around the focused section at its level; a
+/* A view not yet placed reads as the place around the focused section at its level; a
    section the book does not know belongs to no chapter, so chapter level falls back to the book.
-   Following nothing stands nowhere. */
+   With nothing read it stands nowhere. */
 export const resolve = (scope: ViewScope, focused: SectionRef | null, tree: BookTree | null): Target | null => {
   if (!scope.follow) return scope.target;
   if (!focused) return null;
@@ -56,9 +63,17 @@ export const resolve = (scope: ViewScope, focused: SectionRef | null, tree: Book
   return chapter ? { level: 'chapter', book: focused.book, chapter } : bookAt(focused.book);
 };
 
-/* One level out, stopping at the book. A pin survives the step and keeps its book:
-   a pinned section widens to a pin on its chapter, and a pinned chapter to a pin on
-   its book. */
+/* The place around a section at a level: where a view of that level stands to show it. */
+export const placeOf = (level: Level, section: SectionRef, tree: BookTree | null): Target => resolve({ follow: true, level }, section, tree) ?? bookAt(section.book);
+/* Placing a view: it takes the place it reads as and keeps it. One already placed is
+   left alone, and so is one with nothing read to stand beside. */
+export const settle = (scope: ViewScope, focused: SectionRef | null, tree: BookTree | null): ViewScope => {
+  const target = scope.follow ? resolve(scope, focused, tree) : null;
+  return target ? { follow: false, target } : scope;
+};
+
+/* One level out, stopping at the book, and keeping the book: a section widens to
+   its chapter, and a chapter to its book. */
 export const widen = (scope: ViewScope, tree: BookTree): ViewScope => {
   if (scope.follow) return scope.level === 'book' ? scope : { follow: true, level: scope.level === 'section' ? 'chapter' : 'book' };
   const { book } = scope.target;
@@ -68,9 +83,9 @@ export const widen = (scope: ViewScope, tree: BookTree): ViewScope => {
   return { follow: false, target: chapter ? { level: 'chapter', book, chapter } : bookAt(book) };
 };
 
-/* One level in, stopping at a section. Following narrows to following; a pinned
-   book narrows to a pinned chapter and a pinned chapter to a pinned section — the
-   one being read when it lies there, else the first that has something built. */
+/* One level in, stopping at a section: a book narrows to a chapter and a chapter
+   to a section — the one being read when it lies there, else the first that has
+   something built. */
 export const narrow = (scope: ViewScope, focused: SectionRef | null, tree: BookTree): ViewScope => {
   if (scope.follow) return scope.level === 'section' ? scope : { follow: true, level: scope.level === 'book' ? 'chapter' : 'section' };
   if (scope.target.level === 'section') return scope;
@@ -122,10 +137,8 @@ export const targetLabel = (target: Target, tree: BookTree): string => crumbsOf(
 export const sameTarget = (a: Target, b: Target): boolean =>
   a.book === b.book && (a.level === 'book' ? b.level === 'book' : a.level === 'chapter' ? b.level === 'chapter' && a.chapter === b.chapter : b.level === 'section' && a.section === b.section);
 
-/* Picking a place at a level: the place a following view would land on there means
-   following again, since that is what the reader is asking for, and any other place is
-   a pin. A choice carries its own level, so choosing also walks the view to it. */
-export const choose = (target: Target, focused: SectionRef | null, tree: BookTree): ViewScope => { const at = resolve({ follow: true, level: target.level }, focused, tree); return at && sameTarget(target, at) ? { follow: true, level: target.level } : { follow: false, target }; };
+/* A view sent to a place stands on it. A place carries its own level, so sending also walks the view to it. */
+export const placed = (target: Target): ViewScope => ({ follow: false, target });
 
 /* The chapter a target lies in, and for the book the first one, which is where the trail runs. */
 const anchorChapter = (anchor: Target, tree: BookTree): ChapterId | null =>
@@ -148,15 +161,15 @@ export const stepSibling = (scope: ViewScope, dir: 1 | -1, focused: SectionRef |
   const places: readonly Target[] = target.level === 'chapter'
     ? tree.chapters.map((c): Target => ({ level: 'chapter', book: tree.id, chapter: chapterId(c.id) }))
     : sectionsOf(bookAt(tree.id), tree).map((s): Target => ({ level: 'section', book: tree.id, section: s }));
-  const at = places.findIndex((p) => sameTarget(p, target));
-  const next = at < 0 ? undefined : places[at + dir];
-  return next ? choose(next, focused, tree) : scope;
+  const here = places.findIndex((p) => sameTarget(p, target));
+  const next = here < 0 ? undefined : places[here + dir];
+  return next ? placed(next) : scope;
 };
 
-/* The boundary with storage, where anything may come back. A pin on the book with no
-   book named is no pin at all, so it comes back as following the book; any other pin
-   that names no book — as the older shells wrote them — is left out, and the view
-   follows the page again. */
+/* The boundary with storage, where anything may come back. A place on the book with no
+   book named is no place at all, so it comes back as a view to be placed at the book; any
+   other that names no book — as the older shells wrote them — is left out, and the view
+   is placed afresh. */
 const bookOf = (raw: unknown): BookId | null => (typeof raw === 'string' && raw !== '' ? bookId(raw) : null);
 export const parseScope = (raw: unknown): ViewScope | null => {
   if (typeof raw !== 'object' || raw === null) return null;
@@ -181,6 +194,6 @@ const scopeKey = (k: string): string => ((VIEW_KINDS as readonly string[]).inclu
 export const parseScopes = (raw: unknown): Scopes =>
   typeof raw !== 'object' || raw === null ? {}
     : Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([k, v]) => { const s = parseScope(v); return s ? [[scopeKey(k), s]] : []; }));
-/* Where one page stands: what was saved for it, and the section being read for a page
-   nothing was saved for — a view opens following the page it was opened beside. */
+/* Where one page stands: what was saved for it, and for a page nothing was saved
+   for, the section being read — a view opens on the page it was opened beside. */
 export const scopeAt = (scopes: Scopes, key: string): ViewScope => scopes[key] ?? FOLLOW_SECTION;

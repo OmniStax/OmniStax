@@ -179,7 +179,7 @@
     practice.prune(instancesOf(layoutStore.layout, 'exercises'));
     chatPages.prune(instancesOf(layoutStore.layout, 'chats'));
     const standing = new Set<string>([...layoutStore.layout.sides.left.items, ...layoutStore.layout.sides.right.items, ...layoutStore.layout.groups.flatMap((g) => g.tabs)]);
-    mapViews.keepItems(standing); scope.keepHeld(standing);
+    mapViews.keepItems(standing);
     keepPlaces(new Set(layoutStore.layout.groups.flatMap((g) => g.tabs.map((k) => placeKey(g.key, k)))));
     registry.adopt(document.getElementById('pool') ?? document);
     if (addressed && page !== carried && !restored) void openDoc(addressed, 'text');

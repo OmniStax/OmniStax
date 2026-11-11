@@ -7,10 +7,13 @@
 
      The arrow at the end of a row goes to where its concept is introduced, the
      one on a form to where the text states it, and a row dragged into a note
-     writes the concept out there as a card. */
+     writes the concept out there as a card.
+
+     A card may ask this page to show a concept: its chapter's fold is opened,
+     and its row is brought to the middle and marked for a moment. */
   import { registry } from '../../lib/sections/registry.svelte';
   import Fold from '../ui/Fold.svelte';
-  import { getContext as getCtx } from 'svelte';
+  import { getContext as getCtx, tick } from 'svelte';
   import { focus } from '../../lib/sections/focus.svelte';
   import type { Target } from '../../lib/sections/scope';
   import { groupBySection, label, type ChapterGroup, type SectionGroup } from '../../lib/sections/grouping';
@@ -19,9 +22,10 @@
   import { conceptId, sectionId, sectionRef, spanId, spanRef } from '../../lib/types/ids';
   import type { FormDTO } from '../../lib/content/schema';
   import { goSpanFromView, openSectionFromView, openingInView, onMiddle, type Opening } from '../../lib/sections/nav.svelte';
-  import { goConceptFromView } from '../../lib/sections/concepts.svelte';
+  import { asking, goConceptFromView } from '../../lib/sections/concepts.svelte';
   import { figFor } from '../../lib/fig/figlib';
   import { dragout } from '../../lib/notes/md/dragout';
+  let { item }: { item: string } = $props();
   const scoped = getCtx<() => Target>('scope');
   const target = $derived(scoped());
   const book = $derived(target.book);
@@ -29,6 +33,20 @@
   const rows = $derived(referenceRows(registry.concepts(book), registry.coverage(book), registry.variables(book)));
   const grouped = $derived(groupBySection(rows, (r) => sectionId(r.concept.section), target, tree));
   const openChapter = $derived(focus.section && focus.section.book === book ? registry.chapterOf(focus.section)?.id ?? '' : '');
+  /* the chapter a concept was asked for in stays open, as the one being read does */
+  let root = $state<HTMLElement | null>(null);
+  let unfolded = $state('');
+  $effect(() => {
+    const id = asking.for(item); if (!id) return;
+    const chapter = grouped.find((c) => c.sections.some((s) => s.items.some((r) => r.concept.id === id)))?.chapter; if (!chapter) return;
+    unfolded = chapter;
+    void tick().then(() => {
+      const row = root?.querySelector<HTMLElement>(`li[data-row="${CSS.escape(id)}"]`); if (!row) return;
+      asking.done(item);
+      row.scrollIntoView({ block: 'center' });
+      row.animate([{ backgroundColor: 'color-mix(in srgb, var(--accent) 24%, transparent)' }, { backgroundColor: 'transparent' }], { duration: 1800, easing: 'ease-out' });
+    });
+  });
   /* the reader opens a concept's other forms; which ones, by concept id */
   let shown = $state<ReadonlySet<string>>(new Set());
   const toggle = (id: string): void => { const next = new Set(shown); if (!next.delete(id)) next.add(id); shown = next; };
@@ -61,7 +79,7 @@
 {#snippet row(r: ReferenceRow)}
   {@const c = r.concept}
   {@const extra = c.forms.slice(1)}
-  <li data-sec={c.section} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}>
+  <li data-sec={c.section} data-row={c.id} use:dragout={{ kind: 'concept', book, section: c.section, id: c.id }}>
     <div class="head">
       <i class="kb k-{c.kind}">{kindLabel(c.kind, i18n.t)}</i>
       <span class="name" use:math={c.name}></span>
@@ -96,13 +114,13 @@
   </Fold>
 {/snippet}
 
-<div class="rows" data-book={book}>
+<div class="rows" data-book={book} bind:this={root}>
 {#if target.level === 'section'}
   {#each grouped as c (c.chapter)}{#each c.sections as s (s.section)}{@render list(s.items)}{/each}{/each}
 {:else if target.level === 'chapter'}
   {#each grouped as c (c.chapter)}{#each c.sections as s (s.section)}{@render sectionGroup(s)}{/each}{/each}
 {:else}
-  {#each grouped as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter)}{/each}
+  {#each grouped as c (c.chapter)}{@render chapterGroup(c, c.chapter === openChapter || c.chapter === unfolded)}{/each}
 {/if}
 </div>
 

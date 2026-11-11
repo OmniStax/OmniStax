@@ -47,7 +47,7 @@ export const swatchOf = (type: string | null | undefined, types: TypeMap): Swatc
 export type Nav = {
   readonly goSpan: (id: SpanId, split?: boolean) => void;   /* split: in a new group beside the focused one */
   readonly openSection: (sec: SectionId, split?: boolean) => void;
-  readonly showView: (view: 'reference' | 'concepts', split?: boolean) => void;
+  readonly showView: (view: 'reference' | 'concepts', concept: string, split?: boolean) => void;
   readonly openExternal: (sec: SectionId) => void;   /* the publisher's page for a section this app has not built */
   readonly showElement: (symbol: string, split?: boolean) => void;   /* opens the book's elements sheet with that element pinned */
   readonly showGraph: (expr: string, split?: boolean) => void;   /* opens the book's grapher with that function among its rows */
@@ -122,7 +122,7 @@ export const definitionCard = (f: DefinitionFacts, nav: Nav): Card => {
     refs: formulaGroup(c.forms, nav),
     actions: [
       { label: tr('views.hover.goToFirstIntroduced'), run: (s?: boolean) => (f.intro ? nav.goSpan(f.intro, s) : nav.openSection(secIdOf(c.section), s)) },
-      { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', s) },
+      { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', c.id, s) },
     ],
   };
 };
@@ -160,7 +160,7 @@ export const equationCard = (f: EquationFacts, nav: Nav): Card => {
     ...(e.condition ? { notes: [{ label: tr('views.hover.holdsUnder'), text: sentence(e.condition) }] } : {}),
     actions: [
       ...(anchor ? [{ label: tr('views.hover.goToIntroduced'), run: (s?: boolean) => nav.goSpan(anchor, s) }] : [{ label: tr('views.hover.goToSection'), run: (s?: boolean) => nav.openSection(e.section, s) }]),
-      { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', s) },
+      { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', f.concept.id, s) },
     ],
   };
 };
@@ -218,8 +218,8 @@ export const conceptCard = (f: ConceptFacts, nav: Nav): Card => {
     kind: 'concept', eyebrow, conceptKind: c.kind, title: c.name, ...(c.type ? { type: c.type } : {}), body: c.statement ? sentence(c.statement) : undefined, refs,
     actions: [
       { label: tr('views.hover.addToSession'), run: () => nav.addToSession(c.id) },
-      { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', s) },
-      ...(f.onMap ? [] : [{ label: tr('views.hover.showInConceptMap'), run: (s?: boolean) => nav.showView('concepts', s) }]),
+      { label: tr('views.hover.showInReference'), run: (s?: boolean) => nav.showView('reference', c.id, s) },
+      ...(f.onMap ? [] : [{ label: tr('views.hover.showInConceptMap'), run: (s?: boolean) => nav.showView('concepts', c.id, s) }]),
     ],
   };
 };

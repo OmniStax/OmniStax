@@ -33,7 +33,7 @@ export const shell = {
   'shell.browser.none': 'Nothing matches',
   'shell.browser.open': 'Open',
   'shell.browser.openTitle': 'Open a file',
-  'shell.browser.pickTitle': 'Pin the view to a place in the book',
+  'shell.browser.pickTitle': 'Move the view to a place in the book',
   'shell.close': 'Close',
   'shell.docGroup.empty': 'Nothing open. Press + to open a section.',
   'shell.dragToast.leftSelects': 'Drop in a note/drawing. Left-click + drag to select text instead',

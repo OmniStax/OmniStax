@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, choose, crumbsOf, levelOf, narrow, parseScope, parseScopes, resolve, sameTarget, scopeAt, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
+import { FOLLOW_SECTION, LEVELS, atLevel, chapterOf, crumbsOf, levelOf, narrow, parseScope, parseScopes, placeOf, placed, resolve, settle, sameTarget, scopeAt, sectionsOf, siblingsOf, stepSibling, targetLabel, widen, type Target, type ViewScope } from '../src/lib/sections/scope';
 import { bookId, chapterId, sectionId, sectionRef, type SectionId } from '../src/lib/types/ids';
 import type { BookTree } from '../src/lib/commands/browser';
 
@@ -20,24 +20,25 @@ const ch16 = chapterId('16');
 const book: Target = { level: 'book', book: B };
 const chapter: Target = { level: 'chapter', book: B, chapter: ch16 };
 const section: Target = { level: 'section', book: B, section: here };
+/* a view not yet placed has only a level, and one that is placed stands on its target */
 const follow = (level: 'book' | 'chapter' | 'section'): ViewScope => ({ follow: true, level });
 const pin = (target: Target): ViewScope => ({ follow: false, target });
 
-test('the levels run wider first, and a new view follows the page it is beside', () => {
+test('the levels run wider first, and a new view waits to be placed at a section', () => {
   assert.deepEqual(LEVELS, ['book', 'chapter', 'section']);
   assert.deepEqual(FOLLOW_SECTION, { follow: true, level: 'section' });
   assert.equal(levelOf(FOLLOW_SECTION), 'section'); assert.equal(levelOf(pin(chapter)), 'chapter');
 });
-test('a following view resolves to the place around the focused section at its level', () => {
+test('a view not yet placed reads as the place around the focused section at its level', () => {
   assert.deepEqual(resolve(follow('section'), at(here), BOOK), section);
   assert.deepEqual(resolve(follow('chapter'), at(here), BOOK), chapter);
   assert.deepEqual(resolve(follow('book'), at(here), BOOK), book);
 });
-test('a pinned view resolves to its own target, whatever is being read', () => {
+test('a placed view stands on its own target, whatever is being read', () => {
   assert.deepEqual(resolve(pin(chapter), at(elsewhere), BOOK), chapter);
   assert.deepEqual(resolve(pin(section), at(elsewhere), BOOK), section);
 });
-test('a focused section the book does not know has no chapter to follow', () => {
+test('a focused section the book does not know lies in no chapter', () => {
   assert.deepEqual(resolve(follow('chapter'), at(unknown), BOOK), book);
   assert.deepEqual(resolve(follow('section'), at(unknown), BOOK), { level: 'section', book: B, section: unknown });
   assert.equal(chapterOf(BOOK, unknown), null); assert.equal(chapterOf(BOOK, here), '16');
@@ -48,9 +49,9 @@ test('widening walks out to the book and stops there', () => {
   assert.deepEqual(widen(follow('chapter'), BOOK), follow('book'));
   assert.deepEqual(widen(follow('book'), BOOK), follow('book'));
 });
-test('widening keeps a pin, and its book, out to the book', () => {
+test('widening a placed view keeps its book, out to the book', () => {
   assert.deepEqual(widen(pin(section), BOOK), pin(chapter));
-  assert.deepEqual(widen(pin(chapter), BOOK), pin(book), 'a pin keeps its book');
+  assert.deepEqual(widen(pin(chapter), BOOK), pin(book), 'the book is kept');
   assert.deepEqual(widen(pin({ level: 'section', book: B, section: unknown }), BOOK), pin(book));
 });
 test('narrowing walks in to a section and stops there', () => {
@@ -59,20 +60,20 @@ test('narrowing walks in to a section and stops there', () => {
   assert.deepEqual(narrow(follow('section'), at(here), BOOK), follow('section'));
   assert.deepEqual(narrow(pin(section), at(elsewhere), BOOK), pin(section));
 });
-test('with nothing read, a following view stands nowhere and a pin still stands', () => {
+test('with nothing read, a view not yet placed stands nowhere and a placed one still stands', () => {
   assert.equal(resolve(follow('section'), null, BOOK), null);
   assert.equal(resolve(follow('chapter'), null, null), null);
   assert.deepEqual(resolve(pin(chapter), null, BOOK), chapter);
   assert.deepEqual(narrow(pin(book), null, BOOK), pin({ level: 'chapter', book: B, chapter: chapterId('2') }));
   assert.deepEqual(narrow(pin(chapter), null, BOOK), pin(section));
-  assert.deepEqual(choose(section, null, BOOK), pin(section));
+  assert.deepEqual(settle(follow('section'), null, BOOK), follow('section'), 'nothing to be placed beside');
   assert.deepEqual(stepSibling(follow('section'), 1, null, BOOK), follow('section'));
   assert.deepEqual(atLevel(follow('section'), 'book', null, BOOK), follow('section'));
 });
-test('a pinned chapter narrows to the section being read when it is one of its own', () => {
+test('a chapter narrows to the section being read when it is one of its own', () => {
   assert.deepEqual(narrow(pin(chapter), at(sibling), BOOK), pin({ level: 'section', book: B, section: sibling }));
 });
-test('a pinned chapter narrows to its first built section when the reader is elsewhere', () => {
+test('a chapter narrows to its first built section when the reader is elsewhere', () => {
   assert.deepEqual(narrow(pin(chapter), at(elsewhere), BOOK), pin(section));
   assert.deepEqual(narrow(pin({ level: 'chapter', book: B, chapter: chapterId('99') }), at(elsewhere), BOOK), pin({ level: 'chapter', book: B, chapter: chapterId('99') }));
 });
@@ -115,12 +116,24 @@ test('two targets are the same when they name the same place', () => {
   assert.ok(sameTarget(book, { level: 'book', book: B })); assert.ok(!sameTarget(book, chapter));
 });
 
-test('choosing the place the open page lies in follows it again, and any other place pins', () => {
-  assert.deepEqual(choose(section, at(here), BOOK), follow('section'));
-  assert.deepEqual(choose(section, at(elsewhere), BOOK), pin(section));
-  assert.deepEqual(choose(chapter, at(here), BOOK), follow('chapter'));
-  assert.deepEqual(choose(chapter, at(elsewhere), BOOK), pin(chapter));
-  assert.deepEqual(choose(book, at(here), BOOK), follow('book'), 'the book is the same book whatever is being read');
+test('a view is placed beside the page being read at its level, and then stays', () => {
+  assert.deepEqual(settle(follow('section'), at(here), BOOK), pin(section));
+  assert.deepEqual(settle(follow('chapter'), at(here), BOOK), pin(chapter), 'a view saved while views followed the page keeps its level');
+  assert.deepEqual(settle(follow('book'), at(here), BOOK), pin(book));
+  const stays = pin(section);
+  assert.equal(settle(stays, at(elsewhere), BOOK), stays, 'reading on does not move it');
+  assert.deepEqual(resolve(settle(follow('section'), at(here), BOOK), at(elsewhere), BOOK), section);
+});
+test('a view sent to a place stands on it, the open page\'s own included', () => {
+  assert.deepEqual(placed(section), pin(section));
+  assert.deepEqual(placed(book), pin(book));
+});
+test('the place around a section at a level is where a view of that level shows it', () => {
+  assert.deepEqual(placeOf('section', at(elsewhere), BOOK), { level: 'section', book: B, section: elsewhere });
+  assert.deepEqual(placeOf('chapter', at(elsewhere), BOOK), { level: 'chapter', book: B, chapter: chapterId('2') });
+  assert.deepEqual(placeOf('book', at(elsewhere), BOOK), book);
+  assert.deepEqual(placeOf('chapter', at(unknown), BOOK), book, 'a section in no chapter is shown by the book');
+  assert.deepEqual(placeOf('chapter', at(here), null), book);
 });
 
 test('a chapter menu offers every chapter the book lists, and says which have something built', () => {
@@ -141,15 +154,15 @@ test('a section menu offers the sections of the chapter the trail runs through, 
 test('stepping at chapter level walks the chapters and holds at both ends', () => {
   const ch2: Target = { level: 'chapter', book: B, chapter: chapterId('2') };
   assert.deepEqual(stepSibling(pin(chapter), -1, at(here), BOOK), pin(ch2));
-  assert.deepEqual(stepSibling(pin(ch2), 1, at(here), BOOK), follow('chapter'), 'the chapter being read is followed, not pinned');
+  assert.deepEqual(stepSibling(pin(ch2), 1, at(here), BOOK), pin(chapter), 'the chapter being read is a place like any other');
   assert.deepEqual(stepSibling(pin(ch2), -1, at(here), BOOK), pin(ch2));
   assert.deepEqual(stepSibling(pin(chapter), 1, at(here), BOOK), pin(chapter));
 });
 test('stepping at section level runs through the built sections of the whole book', () => {
   const s21: Target = { level: 'section', book: B, section: elsewhere }, s164: Target = { level: 'section', book: B, section: sibling };
   assert.deepEqual(stepSibling(FOLLOW_SECTION, 1, at(here), BOOK), pin(s164));
-  assert.deepEqual(stepSibling(pin(s164), -1, at(here), BOOK), follow('section'), 'stepping back onto the open page follows it again');
-  assert.deepEqual(stepSibling(pin(s21), 1, at(here), BOOK), follow('section'), 'the step runs on past the end of a chapter');
+  assert.deepEqual(stepSibling(pin(s164), -1, at(here), BOOK), pin(section), 'stepping back onto the open page stands on it');
+  assert.deepEqual(stepSibling(pin(s21), 1, at(here), BOOK), pin(section), 'the step runs on past the end of a chapter');
   assert.deepEqual(stepSibling(pin(s21), -1, at(here), BOOK), pin(s21));
   assert.deepEqual(stepSibling(pin(s164), 1, at(here), BOOK), pin(s164));
   assert.deepEqual(stepSibling(FOLLOW_SECTION, 1, at(unknown), BOOK), FOLLOW_SECTION, 'a section the book does not know has nothing to step from');
@@ -159,7 +172,7 @@ test('the book has no siblings to step through', () => {
   assert.deepEqual(stepSibling(follow('book'), -1, at(here), BOOK), follow('book'));
 });
 
-test('a stored scope is read back, and a stored pin that names no book is no pin at all', () => {
+test('a stored scope is read back, and a stored place that names no book is no place at all', () => {
   assert.deepEqual(parseScope({ follow: true, level: 'chapter' }), follow('chapter'));
   assert.deepEqual(parseScope({ follow: false, target: { level: 'chapter', book: B, chapter: '16' } }), pin(chapter));
   assert.deepEqual(parseScope({ follow: false, target: { level: 'section', book: B, section: '16.3' } }), pin(section));
@@ -176,13 +189,13 @@ test('anything else out of storage is refused', () => {
     assert.equal(parseScope(raw), null, JSON.stringify(raw ?? null)));
 });
 
-test('every page of a view stands where it was left, and a new one follows the page being read', () => {
+test('every page of a view stands where it was left, and a new one waits to be placed', () => {
   const map = 'view:concepts@ab12cd', other = 'view:concepts@ef34gh';
   const saved = parseScopes({ concepts: { follow: false, target: { level: 'section', book: B, section: '16.3' } }, [map]: { follow: false, target: { level: 'chapter', book: B, chapter: '16' } }, [other]: { follow: true, level: 'book' }, 'view:formulas': 42 });
-  assert.deepEqual(saved['view:concepts'], pin(section), 'a pin saved against the bare kind belongs to that kind\'s singleton');
+  assert.deepEqual(saved['view:concepts'], pin(section), 'a place saved against the bare kind belongs to that kind\'s singleton');
   assert.deepEqual(saved[map], pin(chapter)); assert.deepEqual(saved[other], follow('book'), 'two pages of one view stand where each was left');
   assert.equal('view:formulas' in saved, false, 'an entry that does not read as a scope is left out');
-  assert.deepEqual(scopeAt(saved, 'view:concepts@999999'), FOLLOW_SECTION, 'a page nothing was saved for follows the section being read');
+  assert.deepEqual(scopeAt(saved, 'view:concepts@999999'), FOLLOW_SECTION, 'a page nothing was saved for is placed at the section being read');
   assert.deepEqual(parseScopes(null), {}); assert.deepEqual(parseScopes('scopes'), {});
 });
 
@@ -192,6 +205,6 @@ test('a target names its book, and the same place in two books is two places', (
   assert.deepEqual(resolve(follow('section'), sectionRef(other, sectionId('1.1')), BOOK), { level: 'section', book: other, section: sectionId('1.1') });
   assert.deepEqual(resolve(follow('chapter'), sectionRef(other, here), BOOK), { level: 'book', book: other }, 'another book\'s tree names no chapter of this one');
   assert.deepEqual(narrow(pin(chapter), sectionRef(other, sibling), BOOK), pin(section), 'the same number in another book is not the section being read');
-  assert.deepEqual(choose({ level: 'book', book: other }, at(here), BOOK), pin({ level: 'book', book: other }));
+  assert.deepEqual(placeOf('section', sectionRef(other, sectionId('1.1')), null), { level: 'section', book: other, section: sectionId('1.1') });
   assert.deepEqual(narrow(pin(book), at(elsewhere), BOOK), pin({ level: 'chapter', book: B, chapter: chapterId('2') }));
 });

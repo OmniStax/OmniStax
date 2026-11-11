@@ -27,6 +27,19 @@ export const goConceptFromView = async (book: BookId, id: ConceptId, how: Openin
 export const testers = (book: BookId, id: ConceptId): readonly { section: SectionId; ex: ExerciseDTO }[] =>
   registry.sectionsOf(book).flatMap(([section, s]) => s.exercises.filter((e) => e.concepts.includes(id)).map((ex) => ({ section, ex })));
 
+/* A concept a card asked a page of a view to show. The view finds it once it is
+   drawn there, brings it into sight and lets the asking go; one it never finds
+   lapses, so a row that turns up much later does not move the view on its own. */
+const ASK_LASTS = 5000;
+export type Asked = { readonly item: string; readonly concept: ConceptId; readonly at: number };
+class Asking {
+  asked = $state.raw<Asked | null>(null);
+  ask(item: string, concept: ConceptId): void { this.asked = { item, concept, at: Date.now() }; }
+  for(item: string): ConceptId | null { const a = this.asked; return a && a.item === item && Date.now() - a.at < ASK_LASTS ? a.concept : null; }
+  done(item: string): void { if (this.asked?.item === item) this.asked = null; }
+}
+export const asking = new Asking();
+
 class Pin {
   pinned = $state<ConceptId | null>(null);
   toggle(id: ConceptId): void { this.pinned = this.pinned === id ? null : id; }

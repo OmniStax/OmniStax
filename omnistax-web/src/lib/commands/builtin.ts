@@ -47,7 +47,7 @@ export type BuiltinDeps = {
   readonly reader: { readonly supported: boolean; readonly speaking: boolean; readFocused(): void; stop(): void };
   /* The view the commands act on is whichever page the reader last touched, named by
      its item key, since a kind may be open in several; with none there is nothing to scope. */
-  readonly scope: { activeView(): ItemKey | null; level(): Level | null; pinned(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; togglePin(): void; pickTarget(): void };
+  readonly scope: { activeView(): ItemKey | null; level(): Level | null; away(): boolean; widen(): void; narrow(): void; atLevel(l: Level): void; previous(): void; next(): void; here(): void; pickTarget(): void };
   readonly docs: { openView(kind: ViewKind, where: ViewWhere): void; openAbout(): void };
   /* The reader's own notes: a new one, and the mode of the note tab in the focused group. */
   readonly notes: { newNote(): void; toggleMode(): void; canToggle(): boolean };
@@ -104,7 +104,7 @@ export const BUILTIN = {
   scopeWiden: commandId('scope-widen'), scopeNarrow: commandId('scope-narrow'),
   scopePrevious: commandId('scope-previous'), scopeNext: commandId('scope-next'),
   scopeBook: commandId('scope-book'), scopeChapter: commandId('scope-chapter'), scopeSection: commandId('scope-section'),
-  scopePin: commandId('scope-pin'), scopeUnpin: commandId('scope-unpin'), scopePick: commandId('scope-pick'),
+  scopeHere: commandId('scope-here'), scopePick: commandId('scope-pick'),
   reopenAbout: commandId('reopen-about'),
   downloadDesktop: commandId('download-desktop'), installApp: commandId('install-app'),
   noteNew: commandId('note-new'), noteToggleMode: commandId('note-toggle-mode'),
@@ -239,8 +239,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
       return { options: (c?.to ?? []).map((b) => ({ value: b.id, label: b.label, ...(b.detail ? { detail: b.detail } : {}) })), current: '', commit: (to) => { if (c) d.editions.switchTo(c.from, to); } };
     } },
   scopeCommand(d, BUILTIN.scopeBook, 'book'), scopeCommand(d, BUILTIN.scopeChapter, 'chapter'), scopeCommand(d, BUILTIN.scopeSection, 'section'),
-  { id: BUILTIN.scopePin, label: d.t('commands.scope.pin'), group: g.view, run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.level() !== 'book' && !d.scope.pinned() },
-  { id: BUILTIN.scopeUnpin, label: d.t('commands.scope.unpin'), group: g.view, run: () => d.scope.togglePin(), when: () => d.scope.activeView() !== null && d.scope.pinned() },
+  { id: BUILTIN.scopeHere, label: d.t('commands.scope.here'), group: g.view, run: () => d.scope.here(), when: () => d.scope.activeView() !== null && d.scope.away() },
   { id: BUILTIN.scopePick, label: d.t('commands.scope.pick'), group: g.view, run: () => d.scope.pickTarget(), when: () => d.scope.activeView() !== null },
   ...viewCommands(d),
   /* The front of OmniStax is a standing page like any other, and a reader who

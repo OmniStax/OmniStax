@@ -17,7 +17,7 @@ const ROOT = await bookRoot(PHYSICS);
 const sec = (s: string) => s as SectionId;
 const span = (s: string) => s as SpanId;
 const calls: string[] = [];
-const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v) => calls.push(`view:${v}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`), showGraph: (e) => calls.push(`graph:${e}`), addToSession: (c) => calls.push(`session:${c}`) };
+const nav: Nav = { goSpan: (id) => calls.push(`span:${id}`), openSection: (s) => calls.push(`sec:${s}`), showView: (v, c) => calls.push(`view:${v}:${c}`), openExternal: (s) => calls.push(`ext:${s}`), showElement: (sym) => calls.push(`el:${sym}`), showGraph: (e) => calls.push(`graph:${e}`), addToSession: (c) => calls.push(`session:${c}`) };
 const run = (label: string, card: { actions: readonly { label: string; run: () => void }[] }) => { calls.length = 0; card.actions.find((a) => a.label === label)?.run(); return calls.join(','); };
 
 /* ---------- prose ---------- */
@@ -99,7 +99,7 @@ test('an equation card names the concept and goes to where it is introduced', ()
   const c = equationCard({ form: hookeForm, concept: hookeLaw, introducedIn: 'Hooke’s Law' }, nav);
   assert.equal(c.eyebrow, 'Formula · Result'); assert.equal(c.title, hookeLaw.name); assert.equal(c.body, hookeLaw.statement);
   assert.deepEqual(c.actions.map((a) => a.label), ['Go to where it is introduced', 'Show in Reference']);
-  assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference');
+  assert.equal(run('Go to where it is introduced', c), 'span:16.1-hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference:hookes-law');
   const bare = equationCard({ form: { ...vForm, anchor: undefined }, concept: { ...vFromAt, statement: undefined }, introducedIn: 'Solving for Final Velocity' }, nav);
   assert.equal(bare.body, 'Introduced in “Solving for Final Velocity”.'); assert.equal(run('Go to section', bare), 'sec:2.5');
 });
@@ -167,7 +167,7 @@ test('a concept card gives its statement, then where the text introduces and use
   assert.deepEqual(refOf(c, 'Used in')?.links.map((l) => l.label), ['Energy in a Spring', 'Period and Frequency']);
   assert.equal(refOf(c, 'Used in')?.more, undefined);
   assert.deepEqual(c.actions.map((a) => a.label), ['Add to Exercise Session', 'Show in Reference', 'Show in Concept map']);
-  assert.equal(run('Add to Exercise Session', c), 'session:hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference'); assert.equal(run('Show in Concept map', c), 'view:concepts');
+  assert.equal(run('Add to Exercise Session', c), 'session:hookes-law'); assert.equal(run('Show in Reference', c), 'view:reference:hookes-law'); assert.equal(run('Show in Concept map', c), 'view:concepts:hookes-law');
 });
 test('a card opened on the map itself does not offer the map', () => {
   const c = conceptCard({ concept: hooke, intro: [place('16.1-hookes-law', 'Hooke’s Law')], uses: [], built: true, onMap: true }, nav);
