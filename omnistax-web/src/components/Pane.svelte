@@ -9,6 +9,8 @@
   import { spy } from '../lib/sections/spy.svelte';
   import { parseItemKey, sectionOfItem, type GroupKey } from '../lib/types/ids';
   import { adopt } from './actions/adopt';
+  import { notePlace, placeKey, restorePlace } from '../lib/layout/places';
+  import { untrack } from 'svelte';
   import View from './views/View.svelte';
   import NoteTab from './notes/NoteTab.svelte';
   import Sheet from './sheets/Sheet.svelte';
@@ -31,10 +33,27 @@
   $effect(() => { if (sec && status === 'loading' && !registry.state(sec)?.docs.text) void registry.load(sec); });
   /* The failure line around its link: {link} is left in place by the template and cut here. */
   const failed = $derived(i18n.t('shell.pane.failed', { section: sec?.section ?? '', error: String(error) }).split('{link}'));
-  const onscroll = (e: Event) => { if (active && layoutStore.layout.focus === groupIndex) spy.read(e.currentTarget as HTMLElement); };
+  /* The place this pane was left at comes back the first time it is shown with
+     its page in it; a hidden pane cannot be scrolled, and an empty one has
+     nowhere to go. The pane a link's hash is about to land in is left to the link. */
+  let pane = $state<HTMLElement | null>(null);
+  let placed = false;
+  const place = $derived(placeKey(groupKey, itemKey));
+  $effect(() => {
+    if (placed || !active || !pane) return;
+    if (sec && (!el || status !== 'loaded')) return;
+    placed = true;
+    const box = pane;
+    untrack(() => { if (!(location.hash.length > 1 && layoutStore.layout.focus === groupIndex)) restorePlace(place, box); });
+  });
+  const onscroll = (e: Event) => {
+    const box = e.currentTarget as HTMLElement;
+    if (active && layoutStore.layout.focus === groupIndex) spy.read(box);
+    if (placed) notePlace(place, box);
+  };
 </script>
 
-<div class="pane" data-tab={itemKey} data-key={groupKey} data-group={groupIndex} hidden={!active} {onscroll}>
+<div class="pane" bind:this={pane} data-tab={itemKey} data-key={groupKey} data-group={groupIndex} hidden={!active} {onscroll}>
   {#if id && id.kind === 'view'}
     <div class="view-pane" data-view={id.view} data-item={itemKey}><View item={itemKey} /></div>
   {:else if id && id.kind === 'note'}

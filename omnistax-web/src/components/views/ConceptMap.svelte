@@ -59,7 +59,7 @@
   import { edgeKey, wireOf, type Box, type Laid, type Pt } from '../../lib/sections/sugiyama';
   import { abs2, apply, centring, dragged, geodesic, IDENTITY, positionsFrom, reanchored, ROOT, type Mobius } from '../../lib/sections/hyperbolic';
   import { boxOf, extentOf, keyOf, laidOf, laidOut, loadLayouts, sessionLayouts, wiresOf, MAXW, MINW, NODE_FONT, NODE_LINE, PAD_X, PAD_Y, SEC_LINE, type LayoutFileDTO, type LayoutKey, type MapKind } from '../../lib/sections/layouts';
-  import { alignedTo, connectedOf, crowdScale, mapKinds, mapViews, viewKeyOf, type ViewKey } from '../../lib/sections/mapview';
+  import { alignedTo, connectedOf, crowdScale, mapHidden, mapKinds, mapViews, viewKeyOf, type ViewKey } from '../../lib/sections/mapview';
   import type { LayoutReply, LayoutRequest } from '../../lib/sections/layout.worker';
   import { inPolygon, type Vec } from '../../lib/drawer/geometry';
   import { conceptId, sectionId, sectionRef } from '../../lib/types/ids';
@@ -421,8 +421,8 @@
   };
 
   /* The kinds the legend has switched off. */
-  let hidden = $state<ReadonlySet<ConceptKind>>(new Set());
-  const toggleKind = (k: ConceptKind) => { const s = new Set(hidden); if (!s.delete(k)) s.add(k); hidden = s; };
+  let hidden = $state<ReadonlySet<ConceptKind>>(new Set(untrack(() => mapHidden.get(item)) as readonly ConceptKind[]));
+  const toggleKind = (k: ConceptKind) => { const s = new Set(hidden); if (!s.delete(k)) s.add(k); hidden = s; mapHidden.set(item, [...s]); };
   const shown = $derived(hidden.size ? list.filter((c) => !hidden.has(c.kind)) : list);
   const shownIds = $derived(hidden.size ? new Set(shown.map((c) => c.id)) : null);
   const ready = $derived(readyConcepts(shown.filter((c) => !c.ext), practice.mastery).map((c) => c.id as string));
