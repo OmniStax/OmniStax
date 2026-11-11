@@ -125,9 +125,13 @@ pick into the remaining parts.
 
 In the session a sticky bar holds the numbered grid (✓ or ✗ per answered
 exercise), "One at a time | All", and End session. Every answered exercise
-stays until Next, with its verdict and Discuss with AI beneath it; Scratchpad and
-Note stand beside the answer while the exercise is open, each filed under
-`_practice` and named by the exercise.
+stays until Next, with its verdict beneath it. Scratchpad, Note and Discuss
+with AI stand beside the answer, before it is checked and after, each filed
+under `_practice` and named by the exercise. An exercise has one scratchpad
+and one note, and their buttons open them. Discuss with AI ends in a plus:
+every press starts another chat, and the chats so far are listed under the
+card. A chat started before the answer is checked tells the model the reader
+is still working, so it helps with hints and keeps the solution back.
 
 An exercise is marked seen only when its card is actually presented. Slots in
 an abandoned round that the reader never visited remain unseen.

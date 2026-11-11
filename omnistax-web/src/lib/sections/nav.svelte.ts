@@ -4,7 +4,7 @@
    lone `#id` selector is answered from the document's id map; a selector
    that also names the book walks the whole document. */
 import { layoutStore } from '../layout/store.svelte';
-import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight } from '../layout/model';
+import { openTab, openSide, activate, homeSide, where, toggleCollapsed, splitRight, openBeside } from '../layout/model';
 import { registry } from './registry.svelte';
 import { type BookId, type SpanRef, type SectionRef, type ItemId, type FileId, bookId, itemKey, parseItemKey, sectionOfSpan, sectionOfItem, sectionRef, docItem, fileItem, spanId } from '../types/ids';
 import { fileOpens } from '../files/open.svelte';
@@ -151,6 +151,10 @@ export const cite = (book: BookId, id: string, tries = 12): void => {
    out of. A page and a note come out of no section, so for them there is
    nothing to fetch. */
 export type Target = number | 'new';
+const loadFor = (key: string): Promise<void> => {
+  const id = parseItemKey(key); const ref = id ? sectionOfItem(id) : null;
+  return ref ? registry.load(ref) : Promise.resolve();
+};
 export const openItem = (key: string, group?: Target, how: Opening = ambient): Promise<void> => {
   const l = layoutStore.layout;
   const at = typeof group === 'number' ? group : l.focus;
@@ -158,8 +162,19 @@ export const openItem = (key: string, group?: Target, how: Opening = ambient): P
   if (group === 'new' || how === 'new') layoutStore.apply((x) => splitRight(x, at, key));
   else if (loc && loc.type === 'group') layoutStore.apply((x) => activate(x, loc.index, key));
   else layoutStore.apply((x) => openTab(x, key, at));
-  const id = parseItemKey(key); const ref = id ? sectionOfItem(id) : null;
-  return ref ? registry.load(ref) : Promise.resolve();
+  return loadFor(key);
+};
+/* The group a click came from: the pane it stands in, or the focused group for a click outside any. */
+export const groupOfEl = (el: EventTarget | null | undefined): number => {
+  const pane = el instanceof Element ? el.closest<HTMLElement>('.pane') : null;
+  return pane?.dataset.group !== undefined ? +pane.dataset.group : layoutStore.layout.focus;
+};
+/* A companion to what the reader is looking at (an exercise's scratchpad, its
+   note, its chat): it opens beside the group it was asked from and leaves that
+   group showing what it showed. With Ctrl it takes a new group to the right. */
+export const openItemBeside = (key: string, group: number, how: Opening = 'tab'): Promise<void> => {
+  layoutStore.apply((x) => (how === 'new' ? splitRight(x, group, key) : openBeside(x, group, key)));
+  return loadFor(key);
 };
 export const openDoc = (ref: SectionRef, doc: 'text', group?: Target, how?: Opening): Promise<void> => openItem(itemKey(docItem(ref, doc)), group, how);
 /* A file the reader imported, at the page a link named. The page is asked for

@@ -13,10 +13,10 @@
   import { exerciseName } from '../../lib/practice/labels';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
   import { drawings } from '../../lib/drawer/store.svelte';
-  import { openFromView, openItem, openingInView, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
+  import { openItemBeside, groupOfEl, openItem, openingInView, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { ICON } from '../../lib/icons';
   import { layoutStore } from '../../lib/layout/store.svelte';
-  import { bookId, drawingItem, itemKey, noteItem } from '../../lib/types/ids';
+  import { bookId, itemKey, noteItem } from '../../lib/types/ids';
   import { generated } from '../../lib/practice/generated.svelte';
   import { isGenerated } from '../../lib/practice/generated';
   import type { Graded } from '../../lib/practice/grade';
@@ -92,7 +92,8 @@
   const scratched = $derived(hasScratch(at));
   const linked = $derived(linkedDrawing(at));
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? i18n.t('exercises.card.drawing') : null);
-  const scratch = (e?: MouseEvent): void => { void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
+  /* The scratchpad, the note, the chat and the files beside this exercise open next to the group the card is in, so the problem stays in view. */
+  const scratch = (e?: MouseEvent): void => { void openScratch(at, groupOfEl(e?.currentTarget), openingOf(e)); };
   /* A choice and a code card answer by their own buttons; the rest show a solution and the reader marks it.
      No AI grades either: a choice has its key, and code has its tests. */
   const selfMarked = $derived(a.type !== 'choice' && a.type !== 'code');
@@ -105,14 +106,14 @@
   const onGraded = (g: Graded, answer: string): void => { graded = g; answered = answer; solutionOpen = true; record(g.verdict === 'right', false); };
   const revealable = $derived(selfMarked && !!sol && !solutionOpen && !completed && !aiGrading);
   const hintable = $derived(!review && !!hint && !hintShown && !completed);
-  /* The files beside this exercise, under _practice: its scratch drawing, and its notes and chats. */
-  const KIND_ICON: Readonly<Record<string, string>> = { note: ICON.note, drawing: ICON.drawing, chat: ICON.chat };
-  const linkedItems = $derived(links.of(at).flatMap((key) => {
-    const e = entryOfKey(key); const row = e ? explorer.entry(e) : undefined;
-    return row && key !== (linked ? itemKey(drawingItem(linked)) : '') ? [{ key, name: row.name, icon: KIND_ICON[row.kind] ?? '' }] : [];
+  /* The chats held about this exercise, under _practice/chats. An exercise has one scratchpad and one
+     note, and their buttons open them; it may have any number of chats, so those are listed. */
+  const chatLinks = $derived(links.of(at).flatMap((key) => {
+    const e = key.startsWith('chat:') ? entryOfKey(key) : null; const row = e ? explorer.entry(e) : undefined;
+    return row ? [{ key, name: row.name }] : [];
   }));
-  const openLink = (key: string, e: MouseEvent): void => { void openFromView(key, openingInView(e)); };
-  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, openingInView(e), recorded, answered, graded !== null); };
+  const openLink = (key: string, e: MouseEvent): void => { void openItemBeside(key, groupOfEl(e.currentTarget), openingInView(e)); };
+  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, groupOfEl(e.currentTarget), openingInView(e), completed ? recorded : null, answered, graded !== null, completed); };
   /* One note per exercise: made under _practice/notes the first time, opened after. */
   const noteKey = $derived(links.of(at).find((k) => k.startsWith('note:')) ?? null);
   const addNote = (e: MouseEvent): void => {
@@ -125,16 +126,23 @@
   const GRADED = $derived<Readonly<Record<Graded['verdict'], string>>>({ right: `✓ ${i18n.t('exercises.check.correct')}`, partial: `~ ${i18n.t('exercises.card.partlyRight')}`, wrong: `✗ ${i18n.t('exercises.check.incorrect')}` });
 </script>
 
-{#snippet scratchpad()}
+{#snippet tools(pad: boolean)}
   <span class="tools">
-    <button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>
-      {@html ICON.drawing}{i18n.t('exercises.card.scratchpad')}{#if scratched || linked}<span class="mark" aria-label={i18n.t('exercises.card.hasScratch')}>•</span>{/if}
-    </button>
+    {#if pad}
+      <button type="button" class="btn ghost sm" onclick={scratch} onauxclick={onMiddle(scratch)}>
+        {@html ICON.drawing}{i18n.t('exercises.card.scratchpad')}{#if scratched || linked}<span class="mark" aria-label={i18n.t('exercises.card.hasScratch')}>•</span>{/if}
+      </button>
+    {/if}
     <button type="button" class="btn ghost sm" onclick={addNote} onauxclick={onMiddle(addNote)}>
       {@html ICON.note}{i18n.t('exercises.card.note')}{#if noteKey}<span class="mark" aria-label={i18n.t('exercises.card.hasNote')}>•</span>{/if}
     </button>
+    <!-- the plus says each press starts another chat, where the two before it open the one they have -->
+    <button type="button" class="btn ghost sm" onclick={discuss} onauxclick={onMiddle(discuss)}>
+      {@html ICON.chat}{i18n.t('exercises.card.discuss')}<span class="more" aria-hidden="true">{@html ICON.plus}</span>
+    </button>
   </span>
 {/snippet}
+{#snippet scratchpad()}{@render tools(true)}{/snippet}
 
 {#snippet solution()}
   <div class="solution-block">
@@ -204,7 +212,8 @@
   {/if}
 
   {#if !review && aiGrading && !completed}
-    {#if hintable}<div class="actions">{@render hintButton()}</div>{/if}
+    <!-- the scratchpad is the grader's own "attach" here -->
+    <div class="actions">{@render tools(false)}{#if hintable}{@render hintButton()}{/if}</div>
     <AiGrade {ex} {at} ongraded={onGraded} onfail={(why) => (gradeFailed = why)} />
   {:else if !review && ((!inline && selfMarked) || revealable || hintable)}
     <div class="actions">
@@ -217,16 +226,11 @@
   {#if gradeFailed}<p class="note" role="status">{i18n.t('exercises.card.gradingFailed', { why: gradeFailed })}</p>{/if}
   {#if !review && a.type !== 'choice' && !graded && recorded !== null}{@render verdict(recorded)}{/if}
 
-  {#if !inline && !review && completed}
-    <div class="follow">
-      <button type="button" class="btn sm" onclick={discuss} onauxclick={onMiddle(discuss)}>{@html ICON.chat}{i18n.t('exercises.card.discuss')}</button>
-    </div>
-  {/if}
-  {#if !inline && linkedItems.length}
+  {#if !inline && !review && chatLinks.length}
     <div class="linked">
-      {#each linkedItems as l (l.key)}
+      {#each chatLinks as l (l.key)}
         <span class="chip link-chip">
-          <button type="button" class="open" onclick={(e) => openLink(l.key, e)} onauxclick={onMiddle((e) => openLink(l.key, e))}>{@html l.icon}<span>{l.name}</span></button>
+          <button type="button" class="open" onclick={(e) => openLink(l.key, e)} onauxclick={onMiddle((e) => openLink(l.key, e))}>{@html ICON.chat}<span>{l.name}</span></button>
         </span>
       {/each}
     </div>
@@ -279,19 +283,16 @@
   .reveal-btn{margin-left:auto}
   .reveal-btn+.reveal-btn{margin-left:0}
   .tools{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
-  .follow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
   .linked{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
   /* a linked file is a bordered pill with a blue dot, so the link reads at a glance */
   .link-chip{gap:4px;padding:0 8px 0 7px;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:7px}
   .link-chip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
   .link-chip button{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:0}
-  .link-chip .x{width:18px;justify-content:center;color:var(--muted);border-radius:999px;transition:color 120ms}
-  .link-chip .x:hover{color:var(--ink)}
   .link-chip button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .link-pick{position:relative;display:inline-flex;min-width:16rem}
-  .link-pick .input{width:100%}
-  .link-chip :global(svg),.follow :global(svg){width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .link-chip :global(svg){width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .tools :global(svg),.actions :global(svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .more{display:inline-flex;margin-left:3px;color:var(--muted)}
+  .more :global(svg){width:11px;height:11px}
   .mark{color:var(--ink);font-size:1rem;line-height:0;margin-left:2px}
   .link{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
   .solution-block{border-top:1px solid var(--rule);margin-top:16px;padding-top:12px}

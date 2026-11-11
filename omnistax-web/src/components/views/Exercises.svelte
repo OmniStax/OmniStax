@@ -10,18 +10,20 @@
   let { item }: { item: string } = $props();
   const page = $derived(practice.page(item));
   const session = $derived(practice.sessionOf(item));
+  /* A round two pages stood on may be ended from the other: this one reads it as ended too. */
+  const face = $derived(page.face === 'practise' && session?.status === 'done' ? 'review' : page.face);
   const shelf = $derived(library.shelf(focus.book));
   $effect(() => { if (library.status === 'idle') library.load().catch(() => {}); });
 </script>
 
 <div class="practice">
-  {#if page.face === 'choose'}
+  {#if face === 'choose'}
     <Builder {item} {shelf} />
-  {:else if page.face === 'practise' && session}
+  {:else if face === 'practise' && session}
     <SessionRun {item} />
-  {:else if page.face === 'review' && session}
+  {:else if face === 'review' && session}
     <SessionReview {item} />
-  {:else if page.face === 'sessions'}
+  {:else if face === 'sessions'}
     <Sessions {item} />
   {:else}
     <Dashboard {item} {shelf} />

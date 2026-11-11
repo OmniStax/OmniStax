@@ -49,6 +49,8 @@ class Scope {
   /* Whether a view stands away from the page being read, and sending it back there. */
   away(key: ItemKey): boolean { const now = this.targetFor(key), s = focus.section; return !!now && !!s && !sameTarget(now, this.around(key, s)); }
   here(key: ItemKey): void { const s = focus.section; if (s) this.put(key, this.around(key, s)); }
+  /* A page opened as the copy of another stands where that one does. */
+  copy(from: ItemKey, to: ItemKey): void { const s = this.scopes[from]; if (s) this.set(to, s); }
   private save(): void { if (!readerWritesAllowed()) return; try { localStorage.setItem(KEY, JSON.stringify(this.scopes)); } catch { /* private mode */ } }
 }
 export const scope = new Scope();

@@ -2,7 +2,7 @@
    document groups of tabs arranged in a tree of rows and columns, and which
    group is focused. Every operation here is a pure function from Layout to
    Layout; the store applies them and persists. */
-import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
+import { type ItemId, type GroupKey, type SectionRef, type ViewKind, VIEW_KINDS, itemKey, parseItemKey, isView, isSidebarView, isPaletteOnlyKind, viewKindOf, viewItem, newViewItem, newGroupKey, sectionOfItem, aboutItem } from '../types/ids';
 
 export type Side = 'left' | 'right';
 export type ItemKey = string;                 /* itemKey(ItemId): what tabs and sidebars hold */
@@ -228,16 +228,23 @@ const seat = (l: Layout, target: GroupKey, fresh: Group, side: SplitSide): Layou
   const at = groupIndex(l, target);
   return { ...l, groups: [...l.groups.slice(0, at + 1), fresh, ...l.groups.slice(at + 1)], tree: insertLeaf(l.tree, target, fresh.key, side) };
 };
+/* Another page of the view a key names, and nothing for a key that names
+   something else: one page of a view lives in only one place, so a view is
+   had twice as two pages of it. */
+export const anotherPageOf = (k: ItemKey): ItemKey | null => { const kind = viewKindOf(k); return kind ? keyOf(newViewItem(kind)) : null; };
 /* Split a group (as in VS Code): the item opens again in a new group on the
-   side asked for. A document stays where it was and is copied; a view moves,
-   because one page of a view lives in only one place — which is why the rail
-   hands this a page of its own each time. A group with nothing to split simply
-   gains an empty neighbour, which stays until the reader closes it. */
+   side asked for. A document stays where it was and is copied. A view named
+   by the caller moves, because one page of a view lives in only one place —
+   which is why the rail hands this a page of its own each time — and a group
+   split on a view keeps it and gains another page of the same view beside it,
+   which layout/split.svelte.ts opens on what the first was showing. A group
+   with nothing to split simply gains an empty neighbour, which stays until
+   the reader closes it. */
 export const split = (l: Layout, index: number, side: SplitSide, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => {
   const g = l.groups[index]; if (!g) return l;
-  const k = id ? keyOf(id) : g.active;
+  const k = id ? keyOf(id) : g.active ? anotherPageOf(g.active) ?? g.active : null;
   if (!k) { const fresh = emptyGroup(); return focusOn(settle(seat(l, g.key, fresh, side)), fresh.key); }
-  const source = id ? from ?? null : viewKey(k) ? g.key : null;
+  const source = id ? from ?? null : null;
   const base = viewKey(k) ? detach(l, k) : source ? withGroups(l, l.groups.map((x) => (x.key === source ? removeFromGroup(x, k) : x))) : l;
   const fresh: Group = { key: newGroupKey(), tabs: [k], active: k };
   return focusOn(dropEmptied(l, seat(base, g.key, fresh, side)), fresh.key);
@@ -263,6 +270,36 @@ export const reopenGroup = (l: Layout, tabs: readonly ItemKey[], active: ItemKey
 };
 export const splitRight = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'right', id, from);
 export const splitDown = (l: Layout, index: number, id?: ItemId | ItemKey, from?: GroupKey | null): Layout => split(l, index, 'down', id, from);
+/* The group a companion page opens in: the one standing beside this group in a
+   row, the right-hand neighbour before the left-hand one and the nearest row
+   before one further out. A group above or below is no neighbour, since it
+   leaves the reader no wider a view of both. Null when the group stands in no row. */
+export const besideOf = (l: Layout, index: number): number | null => {
+  const key = l.groups[index]?.key; if (!key) return null;
+  const trail = (n: SplitNode): readonly { readonly split: Split; readonly at: number }[] | null => {
+    if (n.type === 'leaf') return n.group === key ? [] : null;
+    for (const [at, c] of n.children.entries()) { const rest = trail(c); if (rest) return [...rest, { split: n, at }]; }
+    return null;
+  };
+  /* innermost first */
+  const rows = (trail(l.tree) ?? []).filter((s) => s.split.dir === 'row');
+  /* The leaf of a neighbouring subtree that touches this group: its near edge in a row, its top in a column. */
+  const edge = (n: SplitNode, last: boolean): GroupKey => (n.type === 'leaf' ? n.group : edge(n.children[last && n.dir === 'row' ? n.children.length - 1 : 0], last));
+  const right = rows.find((s) => s.at < s.split.children.length - 1), left = rows.find((s) => s.at > 0);
+  const found = right ? edge(right.split.children[right.at + 1], false) : left ? edge(left.split.children[left.at - 1], true) : null;
+  return found ? groupIndex(l, found) : null;
+};
+/* Open a page next to the group it was asked from, so what the reader was
+   looking at stays in view: it comes forward where it is already open (in
+   another group before this one), or opens as a tab of the neighbouring group,
+   or with no neighbour in a new group to the right. */
+export const openBeside = (l: Layout, index: number, id: ItemId | ItemKey): Layout => {
+  const k = keyOf(id); if (!l.groups[index]) return l;
+  const open = groupsWith(l, k); const there = open.find((i) => i !== index) ?? open[0];
+  if (there !== undefined) return activate(l, there, k);
+  const beside = besideOf(l, index);
+  return beside === null ? split(l, index, 'right', k) : openTab(l, k, beside);
+};
 /* Step to a page that is named: it shows it where it already stands, and where it
    stands nowhere it opens as a tab of the focused group. */
 export const openInFocus = (l: Layout, id: ItemId | ItemKey): Layout => {
