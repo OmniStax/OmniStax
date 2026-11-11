@@ -5,7 +5,7 @@
   import { i18n } from '../../lib/i18n/store.svelte';
   import Steps from './Steps.svelte';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
-  import { chatBooks, chatResolver, decorateAnswer, placeAttrs, placeOf } from '../../lib/chat/resolve';
+  import { chatBooks, chatResolver, decorateAnswer, otherBooksOf, placeAttrs, placeOf } from '../../lib/chat/resolve';
   import { partsOf } from '../../lib/chat/widget';
   import { CORS_MESSAGE } from '../../lib/chat/providers/index';
   import { ICON } from '../../lib/icons';
@@ -23,6 +23,8 @@
 
   const pager = $derived(pagerOf(chat, message.id));
   const place = $derived(placeOf(chat, message.id));
+  /* the other books named on the way here, whose macros its maths may be written in */
+  const others = $derived(otherBooksOf(chat, message.id));
   const mine = $derived(message.role === 'user');
   /* An answer still arriving is drawn again at most every STREAM_DRAW_MS rather
      than on every word, since each drawing sets the whole answer afresh. */
@@ -56,7 +58,7 @@
 
   let render = $state<RenderFn | null>(loaded());
   if (render === null) void loadRenderer().then((f) => { render = f; });
-  const html = (markdown: string): string => (render === null ? '' : render(markdown, chatResolver(place)));
+  const html = (markdown: string): string => (render === null ? '' : render(markdown, chatResolver(place, others)));
 
   let editing = $state(false);
   let draft = $state('');
@@ -71,7 +73,7 @@
 
   /* Maths goes through the book's renderer for its macros. */
   const decorate = (el: HTMLElement): void => {
-    decorateAnswer(el, place, () => decorate(el));
+    decorateAnswer(el, place, () => decorate(el), others);
     for (const pre of el.querySelectorAll<HTMLPreElement>('pre')) {
       if (pre.dataset.copy === '1') continue;
       pre.dataset.copy = '1';

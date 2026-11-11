@@ -5,7 +5,9 @@
   import { childrenOf, pathTo, type Chat, type Message, type MessageId } from '../../lib/chat/model';
   import { ANCHOR, NODE, NODE_COMPACT, nodeSize, opening, openSize, speakerOf, timeOf } from '../../lib/chat/tree';
   import { loadRenderer, loaded, type RenderFn } from '../../lib/notes/md/lazy';
-  import { chatResolver, decorateAnswer, placeAttrs, placeOf, type AnswerPlace } from '../../lib/chat/resolve';
+  import { registry } from '../../lib/sections/registry.svelte';
+  import type { BookId } from '../../lib/types/ids';
+  import { chatResolver, decorateAnswer, otherBooksOf, placeAttrs, placeOf, type AnswerPlace } from '../../lib/chat/resolve';
 
   type Ids = ReadonlySet<MessageId>;
 
@@ -47,11 +49,12 @@
   const html = (m: Message, place: AnswerPlace, attrs: Readonly<Record<string, string>>): string => {
     if (render === null) return '';
     const open = expanded.has(m.id);
-    const key = `${open ? 'open' : scale.chars}|${Object.values(attrs).join('|')}`;
+    const others = otherBooksOf(chat, m.id);
+    const key = `${open ? 'open' : scale.chars}|${Object.values(attrs).join('|')}|${others.filter((b) => registry.hasBook(b)).join(',')}`;
     const kept = drawn.get(m) ?? new Map<string, string>();
     drawn.set(m, kept);
     const had = kept.get(key); if (had !== undefined) return had;
-    const out = render(open ? m.text.trim() : opening(m.text, scale.chars), chatResolver(place));
+    const out = render(open ? m.text.trim() : opening(m.text, scale.chars), chatResolver(place, others));
     kept.set(key, out);
     return out;
   };
@@ -87,12 +90,12 @@
     ro.observe(node);
     return { destroy: () => ro.disconnect() };
   };
-  type Drawn = { readonly html: string; readonly place: AnswerPlace };
+  type Drawn = { readonly html: string; readonly place: AnswerPlace; readonly others: readonly BookId[] };
   const decorated = (node: HTMLElement, first: Drawn) => {
-    let place = first.place;
-    const go = (): void => decorateAnswer(node, place, go);
+    let place = first.place, others = first.others;
+    const go = (): void => decorateAnswer(node, place, go, others);
     go();
-    return { update: (next: Drawn) => { place = next.place; go(); } };
+    return { update: (next: Drawn) => { place = next.place; others = next.others; go(); } };
   };
 </script>
 
@@ -122,10 +125,10 @@
             <span class="head"><span class="role">{speakerOf(m)}</span>{#if !compact}<time>{timeOf(m.at)}</time>{/if}</span>
             {#if expanded.has(m.id)}
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <span class="text full" use:measure={m.id} use:decorated={{ html: h, place }}>{@html h}</span>
+              <span class="text full" use:measure={m.id} use:decorated={{ html: h, place, others: otherBooksOf(chat, m.id) }}>{@html h}</span>
             {:else}
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-              <span class="text" style:-webkit-line-clamp={scale.lines} use:decorated={{ html: h, place }}>{@html h}</span>
+              <span class="text" style:-webkit-line-clamp={scale.lines} use:decorated={{ html: h, place, others: otherBooksOf(chat, m.id) }}>{@html h}</span>
             {/if}
           </button>
         {/if}
