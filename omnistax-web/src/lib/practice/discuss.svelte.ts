@@ -12,7 +12,7 @@ import { linkInner } from '../notes/md/links';
 import { sectionTextOf } from '../picker/sources';
 import { registry } from '../sections/registry.svelte';
 import { label as sectionLabel } from '../sections/grouping';
-import { openFromView, type Opening } from '../sections/nav.svelte';
+import { openItemBeside, type Opening } from '../sections/nav.svelte';
 import { bookId, secKey, sectionRef } from '../types/ids';
 import { excerpt, exerciseName } from './labels';
 import { links } from './links.svelte';
@@ -52,7 +52,7 @@ const sectionChip = async (ref: ExerciseRef): Promise<Chip | null> => {
    section's text follows when it has been fetched, which for a section no tab
    holds is a request away; the chat stood waiting on it before, with nothing
    on screen, and a second click made a second chat. */
-export const discussExercise = async (ref: ExerciseRef, ex: ExerciseDTO, how: Opening, outcome: Outcome, answer?: string, aiGraded = false, checked = true): Promise<void> => {
+export const discussExercise = async (ref: ExerciseRef, ex: ExerciseDTO, group: number, how: Opening, outcome: Outcome, answer?: string, aiGraded = false, checked = true): Promise<void> => {
   const name = links.fileName(ref, 'chats', ex);
   const chat = chats.create();
   chats.rename(chat.id, name);
@@ -61,7 +61,7 @@ export const discussExercise = async (ref: ExerciseRef, ex: ExerciseDTO, how: Op
   pending.give(chat.id, [exerciseChip(ref, ex, checked)]);
   /* a reader still at work has a question of their own, so nothing is written for them */
   const line = checked ? firstLine(outcome, answer, aiGraded) : ''; if (line) pending.put(chat.id, line);
-  const opened = openFromView(chatTabKey(chat.id), how);
+  const opened = openItemBeside(chatTabKey(chat.id), group, how);
   void sectionChip(ref).then((section) => { if (section) pending.give(chat.id, [section]); });
   await opened;
 };

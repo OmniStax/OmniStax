@@ -130,6 +130,15 @@ export const mapViews = {
     let gone = false;
     for (const m of [a.held, a.picked, a.kinds, a.hidden] as const) for (const k of [...m.keys()]) if (!of(k)) { m.delete(k); gone = true; }
     if (gone) save();
+    },
+  /* Every level one map tab walked, for a tab opened as its copy. */
+  copy: (from: string, to: string): void => {
+    const a = all(), under = <V>(m: Map<ViewKey, V>): void => { [...m].forEach(([k, v]) => { if (k.startsWith(`${from}|`)) m.set(to + k.slice(from.length), v); }); };
+    under(a.held); under(a.picked);
+    const kind = a.kinds.get(from), off = a.hidden.get(from);
+    if (kind) a.kinds.set(to, kind);
+    if (off) a.hidden.set(to, off);
+    save();
   },
 };
 

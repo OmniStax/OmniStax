@@ -7,12 +7,12 @@
      sidebar and a second click puts it away; a page view's click opens it as a
      tab of the focused group, or brings forward the page of it that group holds,
      and a Ctrl click puts a page of it in a new group beside. Every button drags,
-     so any view can be dropped into a group. */
+     so any view can be dropped into a group, a page view as a new page each time. */
   import { layoutStore } from '../lib/layout/store.svelte';
   import { where, openSide, openTab, closeItem, openInFocus, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { openingOf } from '../lib/sections/nav.svelte';
-  import { isSidebarKind, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
+  import { isSidebarKind, itemKey, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
   import { ICON, viewTitle } from '../lib/icons';
   import { i18n } from '../lib/i18n/store.svelte';
   import { ui } from '../lib/commands/ui.svelte';
@@ -45,11 +45,13 @@
     const fresh = newViewItem(kind);
     layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, fresh) : showViewInFocus(x, kind, fresh)));
   };
-  /* The conversations are one page: wherever it stands it comes forward. */
+  /* The conversations' own page comes forward wherever it stands; asked for beside, another page of them opens. */
   const openChats = (e: MouseEvent) => {
     const k = viewItem('chats');
-    layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, k) : openInFocus(x, k)));
+    layoutStore.apply((x) => (openingOf(e) === 'new' ? splitRight(x, x.focus, newViewItem('chats')) : openInFocus(x, k)));
   };
+  /* A sidebar view drags as the one view it is, so a sidebar can take it; a page view drags out a new page of itself each time. */
+  const dragOf = (kind: ViewKind) => (isSidebarKind(kind) ? { key: keyOf(kind), from: null } : { make: () => itemKey(newViewItem(kind)), from: null });
   const voiceTitle = $derived(i18n.t(reader.speaking ? 'commands.stopReading' : 'commands.readAloud'));
   /* The chat button lights while any chat stands open, as a view's button
      lights while any page of it does. */
@@ -64,7 +66,7 @@
       {#each kinds as kind (kind)}
         {@const count = kind === 'pomodoro' ? pomodoro.railText : kind === 'exercises' && cart.count > 0 ? String(cart.count) : ''}
         <button type="button" id={kind === 'sync' ? 'sync-btn' : kind === 'exercises' ? 'rail-exercises' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? i18n.t('shell.rail.askAi') : titleOf(kind)}
-          use:draggable={{ key: keyOf(kind), from: null }} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
+          use:draggable={dragOf(kind)} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
       {/each}
     </div>
   {/each}

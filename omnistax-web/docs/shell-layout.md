@@ -86,6 +86,15 @@ Interactions:
 - "Split right" button: as in VS Code, opens the active document again
   in a new group to the right and focuses it; the original stays. A view
   moves instead, since it has one instance.
+- A companion opens beside what it belongs to (`openBeside` in
+  `lib/layout/model.ts`): an exercise card's Scratchpad, Note, Discuss with AI
+  and linked files, and "Practice this section" at the end of a section's
+  problems. It comes forward where it is already open; otherwise it opens as
+  a tab of the group to the right in the same row, or of the one to the left
+  when nothing is to the right, or in a new group to the right when the group
+  has no neighbour in a row. A group above or below does not count. With Ctrl
+  the card's buttons always take a new group to the right, and "Practice this
+  section" opens as a tab of the group it was clicked in.
 - Navigation goes through `jump(el)` / `go(id)`: reveal the item that
   contains the target (activate its tab, expand its box, open it if
   closed), then scroll. Every in-page link, formula card, concept node and

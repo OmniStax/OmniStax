@@ -19,12 +19,18 @@
   import { registerFigBlend } from '../../lib/fig/figlib';
   import { label as sectionLabel } from '../../lib/sections/grouping';
   import { secKey, bookId, type ChatId, type SectionRef } from '../../lib/types/ids';
+  import { inherit, lends } from '../../lib/layout/handoff';
 
   /* `inline` is the chat standing inside the Conversations page rather than
      filling a tab of its own: it takes the room the page gives it, under the
      page's way back to the list. A chat in a tab of its own carries that way
-     back itself. */
-  let { chatId, inline = false }: { chatId: ChatId; inline?: boolean } = $props();
+     back itself. `page` is the Conversations page it stands in, which a split
+     copies: the chat lends that copy what only it holds, which messages are
+     folded, and takes it when it is the copy. The words typed and their chips
+     are the chat's draft (chat/drafts.ts), which the copy reads as it mounts. */
+  let { chatId, inline = false, page = null }: { chatId: ChatId; inline?: boolean; page?: string | null } = $props();
+  type Lent = { readonly chat: ChatId; readonly collapsed: ReadonlySet<MessageId> };
+  const lent = untrack(() => { const l = page ? inherit<Lent>(page, 'chat') : undefined; return l && l.chat === chatId ? l : null; });
 
   const chat = $derived<Chat | null>(chats.get(chatId));
   const path = $derived(chat ? transcript(chat) : []);
@@ -91,6 +97,8 @@
     void tick().then(() => c.insert(pending.take(chatId)));
   });
 
+  $effect(() => (page ? lends(page, 'chat', (): Lent => ({ chat: chatId, collapsed })) : undefined));
+
   let renaming = $state(false);
   let draft = $state('');
   const startRename = (): void => { draft = chat?.name ?? ''; renaming = true; };
@@ -119,7 +127,7 @@
     void tick().then(() => list?.scrollTo(id));
   };
 
-  let collapsed = $state.raw<ReadonlySet<MessageId>>(new Set());
+  let collapsed = $state.raw<ReadonlySet<MessageId>>(lent?.collapsed ?? new Set());
   const anyOpen = $derived(path.some((m) => !collapsed.has(m.id)));
   const foldAll = (): void => { collapsed = anyOpen ? new Set(path.map((m) => m.id)) : new Set(); };
 

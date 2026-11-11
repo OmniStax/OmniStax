@@ -13,7 +13,7 @@
   import { exerciseName } from '../../lib/practice/labels';
   import { hasScratch, linkedDrawing, openScratch } from '../../lib/practice/scratch.svelte';
   import { drawings } from '../../lib/drawer/store.svelte';
-  import { openFromView, openItem, openingInView, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
+  import { openItemBeside, groupOfEl, openItem, openingInView, openingOf, onMiddle } from '../../lib/sections/nav.svelte';
   import { ICON } from '../../lib/icons';
   import { layoutStore } from '../../lib/layout/store.svelte';
   import { bookId, itemKey, noteItem } from '../../lib/types/ids';
@@ -92,7 +92,8 @@
   const scratched = $derived(hasScratch(at));
   const linked = $derived(linkedDrawing(at));
   const linkedName = $derived(linked ? drawings.row(linked)?.name ?? i18n.t('exercises.card.drawing') : null);
-  const scratch = (e?: MouseEvent): void => { void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
+  /* The scratchpad, the note, the chat and the files beside this exercise open next to the group the card is in, so the problem stays in view. */
+  const scratch = (e?: MouseEvent): void => { void openScratch(at, groupOfEl(e?.currentTarget), openingOf(e)); };
   /* A choice and a code card answer by their own buttons; the rest show a solution and the reader marks it.
      No AI grades either: a choice has its key, and code has its tests. */
   const selfMarked = $derived(a.type !== 'choice' && a.type !== 'code');
@@ -111,8 +112,8 @@
     const e = key.startsWith('chat:') ? entryOfKey(key) : null; const row = e ? explorer.entry(e) : undefined;
     return row ? [{ key, name: row.name }] : [];
   }));
-  const openLink = (key: string, e: MouseEvent): void => { void openFromView(key, openingInView(e)); };
-  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, openingInView(e), completed ? recorded : null, answered, graded !== null, completed); };
+  const openLink = (key: string, e: MouseEvent): void => { void openItemBeside(key, groupOfEl(e.currentTarget), openingInView(e)); };
+  const discuss = (e: MouseEvent): void => { void discussExercise(at, ex, groupOfEl(e.currentTarget), openingInView(e), completed ? recorded : null, answered, graded !== null, completed); };
   /* One note per exercise: made under _practice/notes the first time, opened after. */
   const noteKey = $derived(links.of(at).find((k) => k.startsWith('note:')) ?? null);
   const addNote = (e: MouseEvent): void => {

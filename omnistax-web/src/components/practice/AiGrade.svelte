@@ -3,8 +3,7 @@
   import { gradeAnswer } from '../../lib/practice/ai.svelte';
   import type { Graded } from '../../lib/practice/grade';
   import { hasScratch, openScratch, type ScratchAt } from '../../lib/practice/scratch.svelte';
-  import { layoutStore } from '../../lib/layout/store.svelte';
-  import { openingOf } from '../../lib/sections/nav.svelte';
+  import { groupOfEl, openingOf } from '../../lib/sections/nav.svelte';
   import { i18n } from '../../lib/i18n/store.svelte';
   import { ICON } from '../../lib/icons';
 
@@ -13,7 +12,7 @@
   let text = $state('');
   let attached = $state(false);
   let waiting = $state(false);
-  const attach = (e: MouseEvent): void => { attached = true; void openScratch(at, layoutStore.layout.focus, openingOf(e)); };
+  const attach = (e: MouseEvent): void => { attached = true; void openScratch(at, groupOfEl(e.currentTarget), openingOf(e)); };
   const canSend = $derived(!waiting && (text.trim() !== '' || (attached && hasScratch(at))));
 
   const submit = async (): Promise<void> => {

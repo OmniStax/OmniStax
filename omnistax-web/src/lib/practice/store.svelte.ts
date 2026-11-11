@@ -275,6 +275,8 @@ class Practice {
     return mismatch?.release ? { book: mismatch.book, release: mismatch.release } : null;
   }
   discard(id: SessionId): void { this.drop(id); }
+  /* A page opened as the copy of another: the same face, curriculum and round, which are each page's own from then on. */
+  copy(from: ItemKey, to: ItemKey): void { const page = this.pages[from]; if (page) this.set(to, page); }
   forget(key: ItemKey): void { if (key in this.pages) { this.pages = Object.fromEntries(Object.entries(this.pages).filter(([id]) => id !== key)); this.savePages(); } }
   prune(open: readonly ItemKey[]): void { const keep = new Set(open), entries = Object.entries(this.pages).filter(([key]) => keep.has(key)); if (entries.length !== Object.keys(this.pages).length) { this.pages = Object.fromEntries(entries); this.savePages(); } }
 

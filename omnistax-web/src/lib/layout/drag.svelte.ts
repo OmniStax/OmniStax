@@ -13,12 +13,15 @@ const clearZones = (): void => document.querySelectorAll(DROP_CLASSES.map((c) =>
 export const beginDrag = (d: Drag): void => { current = d; };
 export const endDrag = (): void => { current = null; clearZones(); };
 
-export function draggable(node: HTMLElement, params: Drag) {
+/* What a handle drags: an item that stands somewhere, or one made as the drag
+   begins — a rail button's page of its view, new each time it is dragged out. */
+export type Dragged = Drag | { readonly make: () => ItemKey; readonly from: GroupKey | null };
+export function draggable(node: HTMLElement, params: Dragged) {
   let p = params; node.draggable = true;
-  const start = (e: DragEvent) => { current = p; e.dataTransfer?.setData('text/plain', p.key); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; };
+  const start = (e: DragEvent) => { const d: Drag = 'make' in p ? { key: p.make(), from: p.from } : p; current = d; e.dataTransfer?.setData('text/plain', d.key); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; };
   const end = endDrag;
   node.addEventListener('dragstart', start); node.addEventListener('dragend', end);
-  return { update(next: Drag) { p = next; }, destroy() { node.removeEventListener('dragstart', start); node.removeEventListener('dragend', end); } };
+  return { update(next: Dragged) { p = next; }, destroy() { node.removeEventListener('dragstart', start); node.removeEventListener('dragend', end); } };
 }
 
 export type DropHandlers = { over?: (e: DragEvent, d: Drag) => void; leave?: (e: DragEvent) => void; drop: (d: Drag, e: DragEvent) => void };
