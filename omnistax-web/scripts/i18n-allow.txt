@@ -41,7 +41,7 @@
 # What practice sends the model, not what the reader sees: the writer's and the grader's prompts, the parse errors sent back to the model for a retry, and the exercise chip's reference text. The model is told in English.
 ^src/lib/practice/prompt\.ts:
 ^src/lib/practice/generated\.ts:\d+: (No fenced ```json block was found\.|The json block does not parse: \{\}|The json block must hold an array\.)$
-^src/lib/practice/discuss\.svelte\.ts:\d+: (Reference solution: \{\}|The answer has already been checked; do not grade it again\.)$
+^src/lib/practice/discuss\.svelte\.ts:\d+: (Reference solution: \{\}|The answer has already been checked; do not grade it again\.|The reader is still working on this exercise and has not seen the solution\. .*)$
 # The palette registry's own English names, the fallback paletteName() reads past for the app's generated palettes (whose shown names are views.colours.palette.*); the published palettes keep their published names.
 ^src/lib/colours/palettes\.ts:\d+: (Even hues|Hue families)$
 # The service the sync view connects to: a product name.

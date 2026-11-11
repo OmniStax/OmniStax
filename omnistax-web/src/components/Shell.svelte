@@ -16,6 +16,7 @@
   import { spy } from '../lib/sections/spy.svelte';
   import { folded, hiddenFigs, applyState } from '../lib/sections/fold.svelte';
   import { findEl, jump, activePane, openDoc, openItem, bookOfEl, openingOf } from '../lib/sections/nav.svelte';
+  import { installLinkDrag } from '../lib/sections/linkdrag';
   import { layoutStore } from '../lib/layout/store.svelte';
   import { keepPlaces, placeKey } from '../lib/layout/places';
   import { mapViews } from '../lib/sections/mapview';
@@ -323,10 +324,11 @@
       ui.spotFrom = from;
     };
     document.addEventListener('mouseover', onOver);
+    const stopLinkDrag = installLinkDrag();
     document.addEventListener('keydown', onKey); document.addEventListener('click', onLink, true); document.addEventListener('auxclick', onLink, true); document.addEventListener('click', onClick); document.addEventListener('auxclick', onAux); document.addEventListener('focusin', clearView);
     document.fonts?.ready.then(() => FIG.redrawAll());
     ready = true;
-    return () => { stopAutoPush(); window.removeEventListener('popstate', onPop); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
+    return () => { stopAutoPush(); stopLinkDrag(); window.removeEventListener('popstate', onPop); document.removeEventListener('mouseover', onOver); mq.removeEventListener('change', onMq); window.removeEventListener('resize', onResize); window.removeEventListener('hashchange', onHash); document.removeEventListener('keydown', onKey); document.removeEventListener('click', onLink, true); document.removeEventListener('auxclick', onLink, true); document.removeEventListener('click', onClick); document.removeEventListener('auxclick', onAux); document.removeEventListener('focusin', clearView); document.removeEventListener('visibilitychange', onLeave); window.removeEventListener('pagehide', onHide); reader.stop(); stopLang(); };
   });
 
   /* settings → document */
