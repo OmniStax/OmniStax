@@ -188,6 +188,15 @@ export const openSide = (l: Layout, id: ItemId | ItemKey, side: Side): Layout =>
   const d = detach(l, k);
   return dropEmptied(l, { ...d, sides: { ...d.sides, [side]: { ...d.sides[side], items: [k] } }, home: { ...d.home, [k]: side } });
 };
+/* Show or hide a sidebar, as Ctrl+B does in VS Code. A sidebar showing a view
+   puts it away and remembers which; an empty one brings back the view it last
+   put away, or the explorer when it remembers none. */
+export const toggleSide = (l: Layout, side: Side): Layout => {
+  const shown = l.sides[side].items[0];
+  if (shown) return { ...detach(l, shown), stowed: { ...l.stowed, [side]: shown } };
+  const back = l.stowed?.[side];
+  return openSide(l, back && sideKey(back) ? back : 'view:explorer', side);
+};
 
 export type OpenOpts = { readonly before?: ItemKey | null; readonly from?: GroupKey | null };
 /* One page of a view lives in one place; a document may be open in several
@@ -425,7 +434,10 @@ export const parseLayout = (raw: unknown, known: (k: ItemKey) => boolean): Layou
   const fresh = OFFERED.filter((k) => !was.includes(k) && known(k));
   const items = (left.items.length ? left.items : fresh).slice(0, 1);
   const focus = typeof raw.focus === 'number' ? Math.max(0, Math.min(raw.focus, groups.length - 1)) : 0;
-  return normalize({ sides: { left: { ...left, items }, right: { ...right, items: right.items.slice(0, 1) } }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row, offered: [...new Set([...was, ...OFFERED])] });
+  /* What each sidebar last put away, kept only while it is still something a sidebar holds. */
+  const stowedOf = (x: unknown): ItemKey | undefined => (typeof x === 'string' && sideKey(x) && known(x) ? x : undefined);
+  const stowed = isRec(raw.stowed) ? Object.fromEntries((['left', 'right'] as const).flatMap((s) => { const k = stowedOf((raw.stowed as Record<string, unknown>)[s]); return k ? [[s, k]] : []; })) : {};
+  return normalize({ sides: { left: { ...left, items }, right: { ...right, items: right.items.slice(0, 1) } }, home, collapsed, groups, focus, tree: node(raw.tree) ?? row, offered: [...new Set([...was, ...OFFERED])], ...(Object.keys(stowed).length ? { stowed } : {}) });
 };
 export const VIEW_KEYS: readonly ItemKey[] = VIEW_KINDS.map((v) => keyOf(viewItem(v)));
 /* Every page of one kind of view that is open, in the sidebars and in the groups:

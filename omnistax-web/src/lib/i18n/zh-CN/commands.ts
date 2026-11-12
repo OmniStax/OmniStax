@@ -85,6 +85,7 @@ export const commands: Readonly<Record<keyof typeof source, string>> = {
   'commands.stopReading': '停止朗读',
   'commands.theme': '主题：更改主题',
   'commands.themeCycle': '主题：轮换',
+  'commands.toggleSidebar': '显示或隐藏侧边栏',
   'commands.undo': '撤销',
   'commands.unfoldAll': '展开所有标题',
   'commands.untitledDrawing': '未命名手绘',

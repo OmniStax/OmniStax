@@ -9,7 +9,7 @@
      and a Ctrl click puts a page of it in a new group beside. Every button drags,
      so any view can be dropped into a group, a page view as a new page each time. */
   import { layoutStore } from '../lib/layout/store.svelte';
-  import { where, openSide, openTab, closeItem, openInFocus, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
+  import { where, openSide, openTab, toggleSide as stowSide, openInFocus, showViewInFocus, splitRight, instancesOf } from '../lib/layout/model';
   import { draggable, dropzone } from '../lib/layout/drag.svelte';
   import { openingOf } from '../lib/sections/nav.svelte';
   import { isSidebarKind, itemKey, newViewItem, viewItem, viewKindOf, type ViewKind } from '../lib/types/ids';
@@ -37,7 +37,7 @@
     if (!loc || (loc.type === 'side' && loc.side !== 'left')) { layoutStore.apply((x) => openSide(x, k, 'left')); layoutStore.overlay = 'left'; return; }
     if (loc.type === 'side') {
       if (narrow && layoutStore.overlay !== 'left') { layoutStore.overlay = 'left'; return; }
-      layoutStore.apply((x) => closeItem(x, k)); return;
+      layoutStore.apply((x) => stowSide(x, 'left')); return;
     }
     layoutStore.apply((x) => openTab(x, k, loc.index));
   };
