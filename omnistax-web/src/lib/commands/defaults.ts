@@ -29,6 +29,8 @@ export const DEFAULT_PAIRS: readonly (readonly [string, string])[] = [
   ['Ctrl+Shift+[', 'fold-all'], ['Ctrl+Shift+]', 'unfold-all'],
   ['Ctrl+Shift+H', 'hide-figures'],
   ['Ctrl+\\', 'split-right'], ['Ctrl+Shift+\\', 'split-down'],
+  /* VS Code's sidebar chord; "Ctrl" is Cmd on a Mac, so this is Cmd+B there. */
+  ['Ctrl+B', 'toggle-sidebar'],
   ['Ctrl+Alt+ArrowLeft', 'focus-group-left'], ['Ctrl+Alt+ArrowRight', 'focus-group-right'],
   ['Ctrl+Alt+ArrowUp', 'focus-group-up'], ['Ctrl+Alt+ArrowDown', 'focus-group-down'],
   ['Ctrl+PageDown', 'next-tab'], ['Ctrl+PageUp', 'previous-tab'],

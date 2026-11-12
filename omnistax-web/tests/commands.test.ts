@@ -123,6 +123,7 @@ const deps = (browserOpen = false, groups = 2, view: ViewState = {}, _exercisesB
       focusNextGroup: () => log.push('focus next'), focusPreviousGroup: () => log.push('focus previous'), focusGroup: (dir) => log.push(`focus ${dir}`),
       nextTab: () => log.push('next tab'), previousTab: () => log.push('previous tab'),
       reopenClosedTab: () => log.push('reopen tab'), canReopenTab: closedTabs,
+      toggleSidebar: () => log.push('toggle sidebar'),
       groupCount: groups,
     },
     fold: { foldAll: () => log.push('fold'), unfoldAll: () => log.push('unfold'), hideFigures: () => log.push('hide'), showFigures: () => log.push('show') },

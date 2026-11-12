@@ -12,7 +12,7 @@ import { ui } from './ui.svelte';
 import { keys } from './keys.svelte';
 import { settings } from '../settings/store.svelte';
 import { layoutStore } from '../layout/store.svelte';
-import { split, newGroup, moveToNewGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide, focusedGroup, type ItemKey } from '../layout/model';
+import { split, newGroup, moveToNewGroup, closeOtherGroups, evenSizes, focusNext, activateNext, setFocus, openTab, openSide, homeSide, focusedGroup, toggleSide, type ItemKey } from '../layout/model';
 import { groupToward, type GroupRect } from '../layout/spatial';
 import { tabTitle } from '../layout/titles';
 import { focusedArticle, openItem } from '../sections/nav.svelte';
@@ -157,6 +157,16 @@ export const installCommands = (): void => {
     nextTab: () => layoutStore.apply((x) => activateNext(x, x.focus, 1)),
     previousTab: () => layoutStore.apply((x) => activateNext(x, x.focus, -1)),
     reopenClosedTab: () => layoutStore.reopenClosed(),
+    /* On a narrow screen the sidebar stands over the documents (Sidebar.svelte),
+       so there the toggle shows or dismisses that overlay and keeps the view. */
+    toggleSidebar: () => {
+      const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 900px)').matches;
+      const showing = layoutStore.layout.sides.left.items.length > 0;
+      if (!narrow) { layoutStore.apply((x) => toggleSide(x, 'left')); return; }
+      if (showing && layoutStore.overlay === 'left') { layoutStore.overlay = null; return; }
+      if (!showing) layoutStore.apply((x) => toggleSide(x, 'left'));
+      layoutStore.overlay = 'left';
+    },
     get canReopenTab(): boolean { return layoutStore.canReopen; },
     get groupCount(): number { return layoutStore.layout.groups.length; },
   };

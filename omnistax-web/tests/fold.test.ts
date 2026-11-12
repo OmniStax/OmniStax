@@ -39,7 +39,7 @@ const deps = (): BuiltinDeps => ({
   layout: {
     reset: () => {}, splitRight: () => {}, splitDown: () => {}, moveRight: () => {}, moveDown: () => {},
     closeTab: () => {}, closeGroup: () => {}, newGroup: () => {}, closeOtherGroups: () => {}, evenGroups: () => {}, focusNextGroup: () => {}, focusPreviousGroup: () => {}, focusGroup: () => {},
-    nextTab: () => {}, previousTab: () => {}, reopenClosedTab: () => {}, canReopenTab: true, groupCount: 2,
+    nextTab: () => {}, previousTab: () => {}, reopenClosedTab: () => {}, canReopenTab: true, toggleSidebar: () => {}, groupCount: 2,
   },
   fold: { foldAll: () => {}, unfoldAll: () => {}, hideFigures: () => {}, showFigures: () => {} },
   ui: { openPalette: () => {}, openSettings: () => {}, openBrowser: () => {}, openFindTextbook: () => {}, palette: { open: false, group: null }, browser: { open: false } },

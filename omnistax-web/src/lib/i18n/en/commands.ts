@@ -87,6 +87,7 @@ export const commands = {
   'commands.stopReading': 'Stop reading',
   'commands.theme': 'Theme: change theme',
   'commands.themeCycle': 'Theme: cycle',
+  'commands.toggleSidebar': 'Toggle sidebar',
   'commands.undo': 'Undo',
   'commands.unfoldAll': 'Unfold all headings',
   'commands.untitledDrawing': 'Untitled drawing',

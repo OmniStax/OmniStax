@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLayout as make, openBeside, besideOf, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
+import { defaultLayout as make, openBeside, besideOf, openTab, splitRight, splitDown, split, openInFocus, closeItem, closeGroup, closeOtherGroups, activate, where, firstLayout, newGroup, reopenGroup, groupsWith, openSide, ensureOwn, parseLayout, prune, focusNext, activateNext, moveToNewGroup, groupIndex, resizeSplit, evenSizes, nodeAt, instancesOf, showViewInFocus, toggleSide, VIEW_KEYS, type Layout, type SplitNode, type SplitPath } from '../src/lib/layout/model';
 import { bookId, sectionId, sectionRef, noteId, parseItemKey, itemKey, docItem, figItem, aboutItem, noteItem, exItem, sectionOfItem, viewItem, newViewItem, viewKindOf, PALETTE_ONLY_KINDS, retiredViewKeys } from '../src/lib/types/ids';
 import { focusedSection } from '../src/lib/layout/model';
 import { groupToward, type Rect } from '../src/lib/layout/spatial';
@@ -21,6 +21,22 @@ test('default layout opens the text alone, and the explorer in the sidebar', () 
   const l = defaultLayout();
   assert.deepEqual(l.groups[0].tabs, [text]); assert.equal(l.groups[0].active, text);
   assert.deepEqual(l.sides.left.items, ['view:explorer']); assert.deepEqual(l.sides.right.items, []);
+});
+test('toggleSide hides an open sidebar and restores the view it put away', () => {
+  const open = defaultLayout();
+  assert.deepEqual(open.sides.left.items, ['view:explorer']);
+  const hidden = toggleSide(open, 'left');
+  assert.deepEqual(hidden.sides.left.items, []);
+  assert.equal(hidden.stowed?.left, 'view:explorer');
+  const restored = toggleSide(hidden, 'left');
+  assert.deepEqual(restored.sides.left.items, ['view:explorer']);
+});
+test('toggleSide with another view restores that specific view', () => {
+  const withSearch = openSide(defaultLayout(), 'view:search', 'left');
+  const hidden = toggleSide(withSearch, 'left');
+  assert.equal(hidden.stowed?.left, 'view:search');
+  const restored = toggleSide(hidden, 'left');
+  assert.deepEqual(restored.sides.left.items, ['view:search']);
 });
 test('a page of its own opens alone', () => {
   const l = defaultLayout(aboutItem());

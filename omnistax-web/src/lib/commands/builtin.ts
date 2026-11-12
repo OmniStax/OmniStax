@@ -35,6 +35,7 @@ export type BuiltinDeps = {
     splitRight(): void; splitDown(): void; moveRight(): void; moveDown(): void;
     closeTab(): void; closeGroup(): void; newGroup(): void; closeOtherGroups(): void; evenGroups(): void;
     reopenClosedTab(): void; readonly canReopenTab: boolean;
+    toggleSidebar(): void;
     focusNextGroup(): void; focusPreviousGroup(): void; focusGroup(dir: FocusDir): void;
     nextTab(): void; previousTab(): void;
     readonly groupCount: number;
@@ -94,6 +95,7 @@ export const BUILTIN = {
   moveRight: commandId('move-right'), moveDown: commandId('move-down'),
   closeTab: commandId('close-tab'), closeGroup: commandId('close-group'), closeOtherGroups: commandId('close-other-groups'), evenGroups: commandId('even-groups'),
   reopenClosedTab: commandId('reopen-closed-tab'), newGroup: commandId('new-group'),
+  toggleSidebar: commandId('toggle-sidebar'),
   undo: commandId('undo'), redo: commandId('redo'),
   focusNextGroup: commandId('focus-next-group'), focusPreviousGroup: commandId('focus-previous-group'),
   focusGroupLeft: commandId('focus-group-left'), focusGroupRight: commandId('focus-group-right'),
@@ -209,6 +211,7 @@ export const builtinCommands = (d: BuiltinDeps): readonly Command[] => { const g
   { id: BUILTIN.hideFigures, label: d.t('commands.hideFigures'), group: g.reading, run: () => d.fold.hideFigures() },
   { id: BUILTIN.showFigures, label: d.t('commands.showFigures'), group: g.reading, run: () => d.fold.showFigures() },
   { id: BUILTIN.resetLayout, label: d.t('commands.resetLayout'), group: g.layout, run: () => d.layout.reset() },
+  { id: BUILTIN.toggleSidebar, label: d.t('commands.toggleSidebar'), group: g.layout, run: () => d.layout.toggleSidebar() },
   { id: BUILTIN.splitRight, label: d.t('commands.splitRight'), group: g.layout, run: () => d.layout.splitRight() },
   { id: BUILTIN.splitDown, label: d.t('commands.splitDown'), group: g.layout, run: () => d.layout.splitDown() },
   { id: BUILTIN.moveRight, label: d.t('commands.moveRight'), group: g.layout, run: () => d.layout.moveRight() },
