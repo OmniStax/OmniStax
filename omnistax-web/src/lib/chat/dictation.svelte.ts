@@ -26,6 +26,8 @@ class Dictation {
   /* The box listening now, by the key it started with. */
   owner = $state<string | null>(null);
   private running: Recognition | null = null;
+  /* Turns off the running one's late words, for cancel. */
+  private mute: (() => void) | null = null;
 
   constructor() {
     if (typeof window === 'undefined') return;
@@ -52,19 +54,24 @@ class Dictation {
     this.stop();
     const r = new Ctor();
     r.lang = this.lang; r.continuous = true; r.interimResults = true;
-    let failure: Failure | null = null;
-    /* The last words can arrive after a stop, before the end: they still count. */
-    r.onresult = (e) => listener.heard(heardOf(e));
+    let failure: Failure | null = null, muted = false;
+    /* The last words can arrive after a stop, before the end: they still count,
+       unless the listening was cancelled. */
+    r.onresult = (e) => { if (!muted) listener.heard(heardOf(e)); };
     r.onerror = (e) => { failure = failureOf(e.error) ?? failure; };
     r.onend = () => {
       if (this.running === r) { this.running = null; this.owner = null; }
       listener.ended(failure);
     };
-    this.running = r; this.owner = owner;
-    try { r.start(); } catch { this.running = null; this.owner = null; listener.ended('other'); }
+    this.running = r; this.owner = owner; this.mute = () => { muted = true; };
+    try { r.start(); } catch { this.running = null; this.owner = null; this.mute = null; listener.ended('other'); }
   }
-  /* Stop listening; what was heard so far stays where it was put. */
-  stop(): void { const r = this.running; if (!r) return; this.running = null; this.owner = null; try { r.stop(); } catch { /* already over */ } }
+  /* Stop listening; what was heard so far stays where it was put, and the last
+     words still on their way are put there too. */
+  stop(): void { const r = this.running; if (!r) return; this.running = null; this.owner = null; this.mute = null; try { r.stop(); } catch { /* already over */ } }
+  /* Stop listening and take no more words, not even the ones still on their
+     way: the field has moved on (sent, or typed in) and must stay as it is. */
+  cancel(): void { const r = this.running; if (!r) return; this.mute?.(); this.running = null; this.owner = null; this.mute = null; try { r.abort(); } catch { /* already over */ } }
   listening(owner: string): boolean { return this.owner === owner; }
 }
 export const dictation = new Dictation();

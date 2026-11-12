@@ -132,10 +132,12 @@
       ended: (failure) => { if (failure) alerts.show({ text: i18n.t(FAILED[failure]) }); focus(); },
     });
   };
-  onDestroy(() => { if (dictation.listening(chatId)) dictation.stop(); });
+  onDestroy(() => { if (dictation.listening(chatId)) dictation.cancel(); });
 
+  /* Sending mid-dictation cancels it, so words still on their way cannot put
+     the sent text back in the emptied box. */
   const send = (): void => {
-    if (listening) dictation.stop();
+    if (listening) dictation.cancel();
     const words = text.trim(); if (words === '') return;
     text = '';
     close();
@@ -236,7 +238,7 @@
     {#if at !== null}
       <AtPicker bind:this={picker} {root} {query} {field} previews onchoose={choose} onclose={close} />
     {/if}
-    <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={() => { if (listening) dictation.stop(); read(); }} onclick={read} onfocus={read}
+    <textarea bind:this={field} bind:value={text} {onkeydown} {onpaste} oninput={() => { if (listening) dictation.cancel(); read(); }} onclick={read} onfocus={read}
       placeholder={ready ? i18n.t('chat.composer.placeholder') : i18n.t('chat.composer.noModel')}
       aria-label={i18n.t('chat.composer.message')} rows="2"></textarea>
     <div class="acts">
