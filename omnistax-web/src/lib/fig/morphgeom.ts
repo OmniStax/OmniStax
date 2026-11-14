@@ -367,6 +367,29 @@ export function retarget(tracks: readonly Track[], t: number, pathArc = 0): { re
 export const pathD = (rings: readonly Ring[]): string =>
   rings.map((r) => 'M' + r.map((p) => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z').join('');
 
+/* ---------- lines ----------
+   A `\\` (or `\newline`) at the top level ends a line, as KaTeX sets it; MathJax would run the
+   lines together, so a morph host sets each line apart. One inside braces, \left…\right or an
+   environment (a gathered block's rows) stays with its group; the spacing of `\\[4pt]` is dropped
+   (a bracket that is not a length, as in `\\ [\text{Ag}^{+}]`, begins the next line). */
+export function splitLines(tex: string): string[] {
+  const out: string[] = [];
+  let depth = 0, from = 0;
+  for (let i = 0; i < tex.length; i++) {
+    const c = tex[i];
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+    else if (c === '\\') {
+      const rest = tex.slice(i), w = /^\\(left|right|begin|end)(?![a-zA-Z])/.exec(rest);
+      if (w) depth += w[1] === 'left' || w[1] === 'begin' ? 1 : -1;
+      const br = depth === 0 ? /^(?:\\\\(?:\[\s*-?[\d.]+\s*[a-z]{2}\s*\])?|\\newline(?![a-zA-Z]))/.exec(rest) : null;
+      if (br) { out.push(tex.slice(from, i)); from = i + br[0].length; i = from - 1; continue; }
+      i++;
+    }
+  }
+  return [...out, tex.slice(from)].map((t) => t.trim()).filter(Boolean);
+}
+
 /* ---------- line breaks ----------
    Inline, KaTeX lets a line break after a relation at the top level; the morph host sets
    each piece up to and including a top-level = as its own SVG, so it wraps the same way. */

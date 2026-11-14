@@ -5,7 +5,7 @@
    once, and a key the reader's hand changed glows beneath (glow.ts). The geometry is
    morphgeom's; this file measures, draws and times. */
 import { mkKeys, morphPlan } from './motion';
-import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, boxOf, numberGlyphs, pageFrame, type Glyph, type KeyMap, type Track, type Pt, type Ring } from './morphgeom';
+import { glyphsOf, match, tracksOf, frame, retarget, pathD, plainTex, splitTex, splitLines, boxOf, numberGlyphs, pageFrame, type Glyph, type KeyMap, type Track, type Pt, type Ring } from './morphgeom';
 import { step, glowOf, lit, byHand, inputSeq, type Trace } from './glow';
 import type { Typeset, ViewBox } from './mathjax';
 import { lazy, importing } from './lazy';
@@ -37,8 +37,9 @@ function wait(el: HTMLElement, tex: string, display: boolean): void {
 }
 
 /* ---------- renders, cached by book, mode and string ----------
-   An inline formula is set as one SVG per line-breakable piece (splitTex). */
-type Part = Typeset & { node?: SVGSVGElement; glyphs?: readonly Glyph[]; inks?: { readonly sig: string; readonly list: readonly string[] } };
+   A formula is set as one SVG per line (splitLines: a top-level \\ ends one), and an inline
+   line as one SVG per line-breakable piece (splitTex); `line` is the line a piece is on. */
+type Part = Typeset & { line: number; node?: SVGSVGElement; glyphs?: readonly Glyph[]; inks?: { readonly sig: string; readonly list: readonly string[] } };
 type Render = { readonly tex: string; readonly parts: readonly Part[] };
 const renders = new Map<string, Render>();
 const bookIds = new WeakMap<Macros, number>();
@@ -47,7 +48,7 @@ function renderOf(m: Mj, macros: Macros, tex: string, display: boolean): Render 
   const book = bookIds.get(macros) ?? (bookIds.set(macros, ++nextBook), nextBook);
   const id = `${book}\u0000${display ? 1 : 0}\u0000${tex}`, hit = renders.get(id);
   if (hit) { renders.delete(id); renders.set(id, hit); return hit; }
-  const r: Render = { tex, parts: (display ? [tex] : splitTex(tex)).map((t): Part => ({ ...m.typeset(macros, t, display) })) };
+  const r: Render = { tex, parts: splitLines(tex).flatMap((ln, line) => (display ? [ln] : splitTex(ln)).map((t): Part => ({ ...m.typeset(macros, t, display), line }))) };
   renders.set(id, r);
   if (renders.size > CACHE) renders.delete(renders.keys().next().value!);
   return r;
@@ -80,7 +81,11 @@ function show(el: HTMLElement, h: Host, r: Render, macros: Macros, hidden = fals
   wrap.className = h.display ? 'tm katex-display' : 'tm katex';
   wrap.style.cssText = h.display ? 'position:relative;isolation:isolate' : 'position:relative;isolation:isolate;display:inline-block;max-width:100%';
   if (h.display) { inner.className = 'katex'; wrap.appendChild(inner); }
-  svgs.forEach((svg, i) => { if (hidden) svg.style.visibility = 'hidden'; if (i) inner.append(' '); inner.appendChild(svg); });
+  svgs.forEach((svg, i) => {
+    if (hidden) svg.style.visibility = 'hidden';
+    if (i) inner.append(r.parts[i].line !== r.parts[i - 1].line ? document.createElement('br') : ' ');
+    inner.appendChild(svg);
+  });
   el.replaceChildren(wrap);
   el.setAttribute('role', 'img');
   el.setAttribute('aria-label', plainTex(r.tex, macros));

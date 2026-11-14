@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parsePath, parseTransform, apply, resample, bestOffset, rotate, pairRings, area, perimeter, glyphsOf, match, pairGlyphs,
-  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, lcs, retarget, keyEdges, bends, FADE_BY, pageFrame, type Glyph, type Ring, type Pt, type SvgNode,
+  tracksOf, frame, arcLerp, mixInk, plainTex, splitTex, splitLines, lcs, retarget, keyEdges, bends, FADE_BY, pageFrame, type Glyph, type Ring, type Pt, type SvgNode,
 } from '../src/lib/fig/morphgeom';
 import { typeset } from '../src/lib/fig/mathjax';
 
@@ -191,6 +191,17 @@ test('MathJax outlines carry \\mk keys and the book’s colour classes', () => {
 test('an inline formula breaks after each top-level =, never inside a group', () => {
   assert.deepEqual(splitTex('P = \\frac{a = b}{c} = \\left( x = y \\right) = 3'), ['P =', '\\frac{a = b}{c} =', '\\left( x = y \\right) =', '3']);
   assert.deepEqual(splitTex('\\mk{eq}{=} x'), ['\\mk{eq}{=} x']);
+});
+
+test('a top-level \\ ends a line, as KaTeX sets it; one inside a group or environment stays', () => {
+  assert.deepEqual(splitLines('a = 1 \\\\ b = 2'), ['a = 1', 'b = 2']);
+  assert.deepEqual(splitLines('x \\\\[4pt] y \\newline z'), ['x', 'y', 'z']);
+  /* a bracket that is no length is the next line's: a concentration */
+  assert.deepEqual(splitLines('K \\\\ [\\text{Ag}^{+}] = 1'), ['K', '[\\text{Ag}^{+}] = 1']);
+  assert.deepEqual(splitLines('\\begin{gathered}a \\\\ b\\end{gathered}'), ['\\begin{gathered}a \\\\ b\\end{gathered}']);
+  assert.deepEqual(splitLines('\\mk{p}{a \\\\ b} \\\\ \\left( c \\right)'), ['\\mk{p}{a \\\\ b}', '\\left( c \\right)']);
+  assert.deepEqual(splitLines('P = 3'), ['P = 3']);
+  assert.deepEqual(splitLines('a \\\\ '), ['a']);
 });
 
 test('a key whose content changes past recognition crossfades where it stands, carried as it moves', () => {
