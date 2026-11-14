@@ -287,6 +287,8 @@ html.anim-off .transport .tbtn{opacity:.45;pointer-events:none}
 /* a track too short to set a value on (figlib MIN_TRACK_PX) drops to its own line under the label and value */
 .controls label.ctl-wrap{grid-template-columns:minmax(1.6em,auto) 1fr;row-gap:2px}
 .controls label.ctl-wrap .ctl-track{grid-row:2;grid-column:1/-1}
+/* the value keeps its own width in its stretched column, so the fit measured by figlib can clear the wrap when the cell widens */
+.controls label.ctl-wrap .ctl-val{justify-self:start}
 .ctl-label{font-size:1rem;color:var(--ink);text-align:right}
 .ctl-held{opacity:.45}
 .ctl-held input[type=range]{cursor:not-allowed}
