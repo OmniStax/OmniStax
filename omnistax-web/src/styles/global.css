@@ -272,14 +272,15 @@ html.anim-off .transport .tbtn{opacity:.45;pointer-events:none}
 .story-lab.off{visibility:hidden}
 /* Controls fill their rows and the rows are balanced: no control is left alone at a fraction of the width beside
    empty space. Each takes at least 190px and stretches to share its row; four sit two by two, five and six three to a
-   row, seven and eight four to a row where the pane has room, and the last row's controls stretch to its full width. */
+   row, seven and eight four to a row where the pane has room, and the last row's controls stretch to its full width.
+   A control the figure has hidden (figlib sets display: none on it) is not counted. */
 .controls{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;margin:0;padding:14px 18px 8px;border-top:1px solid var(--rule);font-size:0.9rem;color:var(--muted)}
 .controls>*{flex:1 1 190px;min-width:0}
 /* a row of choice buttons keeps to one line where the pane allows it, taking a row of its own before it stacks */
 .controls>label.ctl-seg{flex-basis:max-content;max-width:100%}
-.controls:has(>:nth-child(4):last-child)>*{flex-basis:max(190px,calc(50% - 9px))}
-.controls:has(>:nth-child(5):last-child)>*,.controls:has(>:nth-child(6):last-child)>*{flex-basis:max(190px,calc(33.333% - 12px))}
-.controls:has(>:nth-child(7):last-child)>*,.controls:has(>:nth-child(8):last-child)>*{flex-basis:max(190px,calc(25% - 13.5px))}
+.controls:has(>:nth-child(4 of :not([style*="display: none"])):nth-last-child(1 of :not([style*="display: none"])))>*{flex-basis:max(190px,calc(50% - 9px))}
+.controls:has(>:nth-child(5 of :not([style*="display: none"])):nth-last-child(1 of :not([style*="display: none"])))>*,.controls:has(>:nth-child(6 of :not([style*="display: none"])):nth-last-child(1 of :not([style*="display: none"])))>*{flex-basis:max(190px,calc(33.333% - 12px))}
+.controls:has(>:nth-child(7 of :not([style*="display: none"])):nth-last-child(1 of :not([style*="display: none"])))>*,.controls:has(>:nth-child(8 of :not([style*="display: none"])):nth-last-child(1 of :not([style*="display: none"])))>*{flex-basis:max(190px,calc(25% - 13.5px))}
 .controls:empty{display:none}
 .ctl-faces{display:grid;justify-items:end;align-items:center}
 .ctl-face{grid-area:1/1}
