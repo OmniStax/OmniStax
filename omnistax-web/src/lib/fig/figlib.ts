@@ -446,7 +446,8 @@ const roomy = (lab: HTMLElement): void => {
     const [name, , val] = Array.from(lab.children) as HTMLElement[];
     if (!name || !val || !lab.clientWidth) return;
     const room = lab.clientWidth - name.getBoundingClientRect().width - val.getBoundingClientRect().width - 2 * CTL_GAP_PX;
-    lab.classList.toggle('ctl-wrap', room < MIN_TRACK_PX);
+    /* a wrapped slider unwraps only with room to spare, so a width near the limit never flips it back and forth */
+    lab.classList.toggle('ctl-wrap', room < MIN_TRACK_PX + (lab.classList.contains('ctl-wrap') ? 16 : 0));
   };
   const ro = new ResizeObserver(fit);
   [lab, ...Array.from(lab.children)].forEach((e) => ro.observe(e));
