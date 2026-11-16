@@ -47,6 +47,10 @@ export function shownIn(size: number, k: number): readonly [number, number] {
    the subscript's own anchor by SUB_DROP (a superscript's by SUP_DROP, which raises it), and the
    anchor lies `base` above each run's baseline */
 export const subDrop = (base: Em, sup = false): Em => (sup ? SUP_DROP : SUB_DROP) - base * (1 - SUB);
+/* the CSS `top` of a script run, in pixels of the main run's shown size: the run's own em is its
+   floored size (10 px under an 11 px line, not 0.72 of it), so a shift written in its em would
+   lift a superscript of a small label a quarter again too far */
+export const scriptTop = (g: Pick<Glyph, 'base' | 'size'>, sup = false): string => `${round(subDrop(g.base, sup) * shownSize(g.size))}px`;
 const small = (p: Piece): boolean => p.sub || !!p.sup;
 
 type Style = { readonly text: string; readonly shape: string; readonly transform: string; readonly font: string; readonly color: string; readonly opacity: string; readonly lit: string };
@@ -140,7 +144,7 @@ function fill(span: HTMLElement, g: Glyph, rebuild: boolean): void {
     if (p.html !== undefined) { if (texSet.get(e) !== p.html) { e.innerHTML = p.html; texSet.set(e, p.html); } }
     else if (e.textContent !== p.s) e.textContent = p.s;
     const bg = litOf(p.lit); if (e.style.backgroundColor !== bg) e.style.backgroundColor = bg;
-    if (small(p)) { const top = `${round(subDrop(g.base, p.sup) / SUB)}em`; if (e.style.top !== top) e.style.top = top; }
+    if (small(p)) { const top = scriptTop(g, p.sup); if (e.style.top !== top) e.style.top = top; }
   });
 }
 /* Shows what a canvas's last draw recorded. `box` is the canvas's place under its offset parent.

@@ -2,7 +2,7 @@
    the weight and size it is shown at, and the writes that bring the spans up to date. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapPoint, scaleOf, angleOf, shownWeight, shownSize, shownIn, isSerif, subDrop, topOf, styleOf, plan, inward, FLOOR, type Glyph } from '../src/lib/fig/textlayer';
+import { mapPoint, scaleOf, angleOf, shownWeight, shownSize, shownIn, isSerif, subDrop, scriptTop, topOf, styleOf, plan, inward, FLOOR, type Glyph } from '../src/lib/fig/textlayer';
 
 const NCM = "'New Computer Modern Book',Georgia,'Times New Roman',serif";
 const SANS = "'Source Sans 3','Segoe UI',Helvetica,Arial,sans-serif";
@@ -54,6 +54,16 @@ test('a line box sits so its baseline is where the canvas put it', () => {
   assert.ok(Math.abs(topOf(0.25, 0.9, 0.3) + 0.55) < 1e-9);
   /* the alphabetic baseline: a subscript is lowered by the canvas's drop alone */
   assert.equal(subDrop(0), 0.22);
+});
+
+test('a script run is shifted in pixels of its line, whatever size its own face is floored to', () => {
+  /* an 8 px label shows at the 11 px floor and its superscript at 10 px, not 0.72 of 11: a shift
+     written in the run's own em would lift it a quarter again too far */
+  const g = glyph({ size: 8, base: 0.3 });
+  assert.equal(scriptTop(g, true), `${Math.round(subDrop(0.3, true) * FLOOR * 100) / 100}px`);
+  assert.equal(scriptTop(glyph({ size: 30, base: 0 })), `${Math.round(0.22 * 30 * 100) / 100}px`);
+  /* the same at every alignment */
+  assert.equal(scriptTop(glyph({ size: 8, base: 0.3, align: 'center' }), true), scriptTop(g, true));
 });
 
 test('the style follows the alignment and the turn', () => {
