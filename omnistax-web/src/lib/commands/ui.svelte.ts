@@ -20,6 +20,7 @@ class Ui {
   browser = $state.raw<BrowserState>(BROWSER_CLOSED);
   settings = $state(false);
   findTextbook = $state(false);       /* the explorer's floater of books to add */
+  flashExplorer = $state(false);      /* a book was just added: the rail's explorer button pulses once, and clears this as it ends */
   spot = $state<Spot | null>(null);
   spotFrom = $state.raw<HTMLElement | null>(null);   /* the words that named it */
 

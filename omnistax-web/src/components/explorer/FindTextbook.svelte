@@ -24,6 +24,7 @@
   const add = (b: LibraryBookDTO): void => {
     library.add(b.id, b.title);
     if (!explorer.expanded(bookKey(b.id))) explorer.toggle(bookKey(b.id));
+    ui.flashExplorer = true;
   };
   const parts = (b: LibraryBookDTO): string =>
     [b.publisher, b.authors.join(', ')].filter((s) => s.length > 0).join(' · ');

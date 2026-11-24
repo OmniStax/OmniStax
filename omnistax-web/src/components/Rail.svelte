@@ -65,7 +65,7 @@
     <div class="section">
       {#each kinds as kind (kind)}
         {@const count = kind === 'pomodoro' ? pomodoro.railText : kind === 'exercises' && cart.count > 0 ? String(cart.count) : ''}
-        <button type="button" id={kind === 'sync' ? 'sync-btn' : kind === 'exercises' ? 'rail-exercises' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} aria-label={kind === 'chats' ? i18n.t('shell.rail.askAi') : titleOf(kind)}
+        <button type="button" id={kind === 'sync' ? 'sync-btn' : kind === 'exercises' ? 'rail-exercises' : undefined} class:on={lit(kind)} class:counting={!!count} class:spot={ui.spot === (kind === 'chats' ? 'ai' : kind)} class:flash={kind === 'explorer' && ui.flashExplorer} onanimationend={() => { if (kind === 'explorer') ui.flashExplorer = false; }} aria-label={kind === 'chats' ? i18n.t('shell.rail.askAi') : titleOf(kind)}
           use:draggable={dragOf(kind)} onclick={(e) => press(kind, e)} onauxclick={(e) => { if (e.button === 1 && !isSidebarKind(kind)) press(kind, e); }}>{@html kind === 'chats' ? ICON.chat : iconOf(kind)}{#if count}<span class="count">{count}</span>{/if}</button>
       {/each}
     </div>
@@ -101,6 +101,10 @@
   button.counting{color:var(--accent)}
   button.counting :global(svg){transform:translateY(-4px)}
   .rail.drop{background:var(--soft)}
+  /* A book was just added: the explorer's button pulses, to say where it went. No movement, so it stays under reduced motion, once. */
+  button.flash{animation:flash .6s ease-in-out 3}
+  @keyframes flash{50%{color:var(--spot);background:var(--soft);box-shadow:0 0 0 2px var(--spot)}}
+  @media (prefers-reduced-motion:reduce){ button.flash{animation-duration:1.2s;animation-iteration-count:1} }
   @media (max-height:620px){ button{width:32px;height:32px} button :global(svg){width:18px;height:18px} .gap{margin:4px 0} }
   @media (max-height:440px){ .rail{padding:4px 0} button{width:28px;height:28px} .gap{margin:3px 0} }
 </style>
